@@ -1,0 +1,182 @@
+20130308~20130311
+
+1.  加入Action Mode，建立contextual mode和menu
+2.  進Action Mode時以overlay方式顯示contextual menu與content layout，設定windowActionModeOverlay屬性
+    <item name="android:windowActionModeOverlay">true</item>
+
+3.  界面OnTouchListener回調
+
+    public interface OnTouchListener {
+        /**
+         * Called when a touch event is dispatched to a view. This allows listeners to
+         * get a chance to respond before the target view.
+         *
+         * @param v The view the touch event has been dispatched to.
+         * @param event The MotionEvent object containing full information about
+         *        the event.
+         * @return True if the listener has consumed the event, false otherwise.
+         */
+        boolean onTouch(View v, MotionEvent event);
+    }
+
+    根據回調MotionEvent抓取手指按壓位置，one click或long click時MotionEvent變化轉態如下
+    ACTION_DOWN-->N次ACTION_MOVE-->ACTION_UP
+    N次ACTION_MOVE若時間夠長就進入long click，若不夠長就放開就解釋one click
+
+
+4.  預先在ids.xml裡配置好程式裡要使用的widget ID，程式中生成I_Tracker_Well_Plate_View實體時調用setId(R.id.id名稱)
+<resources>
+  <item type="id" name="ID_well_plate_view" />
+</resources>
+
+5.  contextual menu item的icon以xml定義state drawable
+
+6.  管理Action mode的menu item狀態，ActionMode.Callback裡新增Update_Menu_Item_Enable更新item enable/disable
+
+
+
+20130312
+1.  mReentrance判斷是否task是全新的執行還是從back stack返回
+2.  device_filter.xml
+    <usb-device vendor-id="1046" product-id="20512" class="3" subclass="0" protocol="0"/>
+3.  新增I_Tracker_Device.java類別，enumeration usb device
+    VID和PID匹配則設定mDevice，class&subclass&protocol匹配則設定mInterface
+
+
+20130313
+1.  USB attach會經由SystemUI.apk帶出Intent啟動提示，使用者再選擇欲執行的app，因此若拿掉SystemUI.apk雖然可以移除下方navigation bar
+    ，但也影響了自動攔截USB ATTACH ACTION，之後要想辦法殺掉SystemUI程序，然後跳出前再重新啟動SystemUI
+2.  ActionMode.invalidate()即時更新選單，將它包成方法UpdateActionMenuItem()，onPrepareActionMode()加入更新MenuItem enable/disable
+3.  將Re-enumeration調整至onResume()
+4.  若進入ActionMode，然後再插上USB，假設SystemUI被關掉，此時將無法收到Activity(intent=USB_ATTACHED)，因此Menu Item將無法被刷新
+
+
+20130314
+1.  Launch Mode變更成single task，避免ACTION_MAIN和ACTION_USB_ATTACHED造出二個不同的instances
+2.  資料結構轉換到java要注意C語言的DWORD size，編譯器會做word alignment，以及每欄primitive type資料endian排序(記憶體內存放順序)
+3.  java所有資料都是有號數signed，要特別注意signed bit extension
+4.  各道指令checksum
+    HID_CMD_ITRACKER_SETTING  431
+    HID_CMD_ITRACKER_START  426
+5.  USB device-->USB interface-->USB endpoints，開啟device的連線
+
+
+20130315
+1.  ByteBuffer類別可以處理primitive data type成byte stream並且可以指定擺放endian
+2.  新增setInterface()保持紀錄最新的狀態，enumeration過程結束或者Deviceoffline時需要調用此方法更新mDeviceConnection
+
+20130316週六凌晨
+1.  暫時改成Portrait模式
+2.  定義Tag = "I_Tracker_Activity";
+3.  更改CMD_T成command message和data 兩種buffer並且實例化CMD_T成全局,之後要重新架構通訊協議格式；加入write_out()成員方法
+4.  指令傳輸測試HID_CMD_ITRACKER_SETTING、HID_CMD_ITRACKER_START、HID_CMD_ITRACKER_STOP
+5.  HID_CMD_ITRACKER_SETTING搭載I_tracker_setting_type，sizof(I_tracker_setting_type)=4
+struct I_tracker_setting_type {
+  int Well_Plate_Mode;
+};
+6.  HID_CMD_ITRACKER_DATA傳送資料結構I_tracker_type，不管compiler設定struct memeory align是1、2、4、8，大小和排列都一樣
+struct Well_Coord_t {
+//  uint8_t Liquid_Count[Max_well_X][Max_well_Y];
+  unsigned int Coord_X:5;
+  unsigned int Coord_Y:5;
+  unsigned int Coord_X_Count:4;
+  unsigned int Coord_Y_Count:4;
+};
+
+struct I_tracker_type {
+  int Is_Running;
+  int coord_index;
+  Well_Coord_t Valid_Coord_Buf[Max_Coord_Buf];
+};
+
+7.  CMD_T加入成員方法read_in()，read_in()取得InRequest然後執行request queue
+UsbRequest request = getOutRequest()或getInRequest(); //取得一個request
+request.setClientData(this);  //設定client data供request wait返回比對
+request.queue(byte_buf, byte_buf.limit());  //將byte_buf排入queue
+request = mDeviceConnection.requestWait();  //返回最新dequeue request
+
+8.  mTimer = new Timer();這行調整至onCreate()裡，Menu Item上Start和Stop就控制Timer開始與關閉
+
+9.   press Menu item ID_MI_start_itracker，send HID_CMD_ITRACKER_SETTING、HID_CMD_ITRACKER_START命令給裝置
+
+
+20130317
+1.  Menu item function detail description
+(1)  ID_MI_start_itracker: start the current task, if no any task is running, app start a whole new task
+(2)  ID_MI_pause_itracker: pause the current running task but keep it all states & records, infons 
+(3)  ID_MI_stop_itracker: ending the current task, all states & records, infos associated the current running
+ task will discarded
+(4)  ID_MI_previous_trans: go backward to cancel the recognized coordinates, only can cancel the unwanted 
+coordinates from last recognized coordinates, currently not support cancel coordinates at any specify
+position
+(5)  ID_MI_next_trans
+
+2.  USB attach後由System UI發現有符合的app可啟動，若回答是之後app內Enumeration()的finddevice和findinterface, opendevice都會成功
+最後成功建立連線；若回答否，則re-enumeration只能找到device和interface，但opendevice建立連線會失敗，這是因為re-enumeration完成後必須
+明確向係統提出連線請求，參照以下說明
+Obtaining permission to communicate with a device
+http://developer.android.com/guide/topics/connectivity/usb/host.html
+
+3.  Enumeration執行時機，onCreate()執行一次，程式一旦運行中，會遇到user拔除USB，然後再重插USB時須要re-enumeration
+(1)  程式運行中按home切到其它地方再按app反回，程式會繞經onNewIntent(action.MAIN)，無須再Enumeration
+(2)  程式運行中拔插USB，程式會繞經onNewIntent(action.USB_DEVICE_ATTACHED)，此時須要re-enumeration
+(3)  不放在onStart()或onResume()，因為會使得USB狀態掌控混亂
+
+4.  UI thread處理發送HID_CMD_ITRACKER_SETTING、HID_CMD_ITRACKER_START、HID_CMD_ITRACKER_STOP；timer thread負責固定時間向device請求
+發送HID_CMD_ITRACKER_DATA；小心處理資料同步存取問題，Itracker_IOCTL()加上synchronized，確保
+
+5.  HID_CMD_ITRACKER_DATA收到解析，Valid_Coord_Histogram[][]記錄每個合法座標次數，Valid_Coord_Buf_Seq[]記錄這些座標順序
+Valid_Coord_Histogram用來當作每個孔的color和brush style索引
+Valid_Coord_Seq_Index記錄目前Valid_Coord_Buf_Seq[]下一個存放索引
+Valid_Coord_Back_For記錄ID_MI_previous_trans和ID_MI_next_trans操作動作
+
+
+20130318
+1.  I_Tracker_Well_Plate新增2隻畫筆，一隻筆刷一隻細筆，筆刷會將封閉區填滿，細筆只畫輪廓邊
+2.  筆刷的顏色根據該well被滴的次數查表獲得，建立顏色表Mark_Color_Table[]
+3.  Well_Color_index[][]直接拷備Valid_Coord_Histogram[][]內容
+
+20130320
+1.  從API level HC版(3.0)起，systemUI做了很重大變革，係統會根據螢幕解析決定是phone還是tablet，若是phone則下方那條bar稱做status bar和navigation bar
+若是tablet，則稱作system bar
+2.  當activity進入onStart()時，此時引藏system bar；當activity被推入back stack，從新再顯示system bar，system bar隱藏前先取得當前桌面
+，再度顯示system bar時重新顯示桌面
+3.  現在有兩個頁面，一個是R.layout.radiogroup_well_selection，另一個是Well_View
+setContentView(R.layout.radiogroup_well_selection)切至孔盤選擇頁面
+setContentView(Well_View)切至well plate主頁
+4.  新增Alert dialog提示是否返回well plate selection畫面
+
+
+20130322
+1.  timer thread執行週期450ms調整至300ms
+2.  定義一些Toast message
+
+20130325
+1.  ID_MI_previous_trans和ID_MI_next_trans順暢度不佳是否因使用synchronized過度造成
+2.  synchronized保護地方要謹慎避免讓係統運行不順暢
+3.  最新當前focus座標，以blink effect顯示
+4.  I_Tracker_Well_Plate_View改成繼承自ImageView
+5.  Timer thread執行以下這行
+UI_invalid = mItracker_dev.Process_Itracker_Data();
+更動到之變量：Valid_Coord_Buf、Valid_Coord_Seq_Index、Valid_Coord_Back_For、Valid_Coord_Buf_Seq、Forwardable、Backwardable、Valid_Coord_Histogram
+
+6.  UI thread執行ID_MI_previous_trans和ID_MI_next_trans選項
+更動到之變量：Valid_Coord_Seq_Index、Valid_Coord_Back_For、Valid_Coord_Buf_Seq
+
+實際上使用者不可能一邊滴一邊進行退回前一個或往後一個，所以無須以synchronized保護
+
+7.  I_Tracker_Well_Plate_View.setWellColor(a[24][16]==Valid_Coord_Histogram[24][16])裡比對目前最新well color與well histogram，我們用histogram來表示
+well color，當兩者不一樣時則立即更該well，無須整個畫面重新調用各種draw方法，以提升效率，只更新須更新的地方
+
+
+20130326
+1.  Canvas畫布提供許多drawXXX()方法，bitmap用來存放Canvas畫出來的pixel，操作Canvas時所有繪圖畫至bitmap上，View類框架每次調用onDraw(Canvas)會給我們一個
+Canvas物件，我們在這Canvas畫想要畫的東西，所以有很多固定不變的draw call每次進到onDaraw()都要從新調用效能會很慢，因此我們創建一塊新畫布和新bitmap，然後在這塊
+客制的畫布上畫我們想畫的區域，以減少draw call次數，再Canvas.drawBitmap()將我們的bitmap烤備至onDraw給的畫布上
+
+2.  mMaxTouchablePosY改至初使化及setWell()改變孔盤設定後只算一遍
+3.  修改setWellColor(a[][])，只re-draw須變動的well，新增Invalidate_Single_Well()更新該well的bitmap區域
+
+
+20130327
+1.  I_Tracker_Well_Plate.set_focus_coord()設置當前最後滴取的位置，然後每秒鐘blinking一次該位置

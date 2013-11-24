@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ID_plate_selection_radiogroup"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent" 
+    android:baselineAligned="true"
+    android:orientation="vertical"
+    android:layout_gravity="center_horizontal"
+>
+    
+    <!-- android:layout_gravity="center_horizontal"
+    android:gravity="center"
+    android:gravity="center_horizontal"
+     -->
+    <TextView
+        android:id="@+id/ID_well_plate_selection_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/well_plate_selection"
+        android:textSize="60sp"
+        android:textColor="@color/caption_blue"
+    />
+
+    <RadioButton
+        android:id="@+id/ID_radioButton1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:button="@android:drawable/btn_radio"
+        android:text="@string/well_96"
+        android:textColor="@android:color/white"
+        android:textSize="60sp" 
+        android:checked="true"/>
+
+    <RadioButton
+        android:id="@+id/ID_radioButton2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/well_384" 
+        android:textColor="@android:color/tertiary_text_light"
+        android:textSize="60sp" 
+        android:button="@android:drawable/btn_radio" />
+
+<!-- 20130306 added by michael
+change the content view to main i-tracker     
+ -->
+    <RelativeLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/my_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal" >
+
+        <Button
+            android:id="@+id/ID_btn_enter_itracker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_caption_enter_itracker"
+            android:layout_alignParentLeft="true"
+            android:onClick="OnBnClickEnterItracker"
+            android:textSize="30sp" />
+
+        <Button
+            android:id="@+id/ID_btn_exit_itracker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_caption_exit_itracker"
+            android:textColor="@android:color/primary_text_light"
+            android:layout_alignParentRight="true"
+            android:onClick="OnBnClickExitItracker"
+            android:textSize="30sp" />
+    </RelativeLayout>
+
+</RadioGroup>

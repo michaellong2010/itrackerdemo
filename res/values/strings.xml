@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">iTrack Demo</string>
+    <string name="well_plate_selection">Select well plate type</string>
+    <string name="well_96">96 well plate</string>
+    <string name="well_384">384 well plate</string>
+    <string name="btn_caption_enter_itracker">Enter I_tracker</string>
+    <string name="btn_caption_exit_itracker">Exit I_tracker</string>
+    
+    <color name="caption_blue">#0000ff</color>
+    
+</resources>

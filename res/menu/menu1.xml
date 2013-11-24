@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/ID_MI_start_itracker"
+        android:showAsAction="ifRoom|withText"
+        android:icon="@drawable/start_drawable"
+        android:title="Start"/>
+
+    <item
+        android:id="@+id/ID_MI_pause_itracker"
+        android:showAsAction="ifRoom|withText"
+        android:icon="@drawable/pause_drawable"
+        android:title="Pause"/>
+    
+    <item
+        android:id="@+id/ID_MI_stop_itracker"
+        android:showAsAction="ifRoom|withText"
+        android:icon="@drawable/stop_drawable"
+        android:title="Reset"/>
+
+    <item
+        android:id="@+id/ID_MI_previous_trans"
+        android:showAsAction="ifRoom|withText"
+        android:icon="@drawable/previous_drawable"
+        android:title="Previous"/>
+    
+    <item
+        android:id="@+id/ID_MI_next_trans"
+        android:showAsAction="ifRoom|withText"
+        android:icon="@drawable/next_drawable"
+        android:title="Next"/>
+    
+    <item
+        android:id="@+id/ID_MI_well_selection"
+        android:title="Well selection"/>
+
+    <item
+        android:id="@+id/ID_MI_exit_app"
+        android:title="Exit"/>
+</menu>
