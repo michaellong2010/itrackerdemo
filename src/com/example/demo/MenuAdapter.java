@@ -95,7 +95,8 @@ public class MenuAdapter extends BaseAdapter {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                 tv.setCompoundDrawablesRelativeWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
             } else {
-                tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
+                //tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
+                  tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mDrawable, null, null, null);
             }
         }
 
@@ -106,5 +107,11 @@ public class MenuAdapter extends BaseAdapter {
         }
 
         return v;
+    }
+
+    /*20131125 added by michael
+    change the ListAdapter then ListView.SetAdapter(ListAdapter) to update the view content*/
+    public Object removeItem(int position) {
+      return mItems.remove(position);
     }
 }

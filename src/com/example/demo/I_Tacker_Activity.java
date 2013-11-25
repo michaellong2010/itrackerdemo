@@ -720,12 +720,12 @@ radio group to let user to choice well plate for i-tacker*/
 		ViewGroup.LayoutParams lp;
 		ViewGroup vg;
 		mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_FULLSCREEN);
-		vg = (ViewGroup) this.findViewById(R.id.md__menu);
+/*		vg = (ViewGroup) this.findViewById(R.id.md__menu);
 		lp = (ViewGroup.LayoutParams)vg.getLayoutParams();
 		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
 		lp.height = (int)Well_View.mMaxTouchablePosY;
 		vg.setLayoutParams(lp);
-		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
+		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));*/
 	}
 
 //Exit the i-tracker demo activity

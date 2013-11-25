@@ -36,20 +36,51 @@ public abstract class BaseListSample extends Activity implements MenuAdapter.Men
         mMenuDrawer = MenuDrawer.attach(this, MenuDrawer.Type.OVERLAY, getDrawerPosition(), getDragMode());
 
         List<Object> items = new ArrayList<Object>();
-        items.add(new Item("Item 1", R.drawable.ic_action_refresh_dark));
-        items.add(new Item("Item 2", R.drawable.ic_action_select_all_dark));
-        items.add(new Category("Cat 1"));
-        items.add(new Item("Item 3", R.drawable.ic_action_refresh_dark));
-        items.add(new Item("Item 4", R.drawable.ic_action_select_all_dark));
-        items.add(new Category("Cat 2"));
-        items.add(new Item("Item 5", R.drawable.ic_action_refresh_dark));
-        items.add(new Item("Item 6", R.drawable.ic_action_select_all_dark));
-        items.add(new Category("Cat 3"));
-        items.add(new Item("Item 7", R.drawable.ic_action_refresh_dark));
-        items.add(new Item("Item 8", R.drawable.ic_action_select_all_dark));
-        items.add(new Category("Cat 4"));
-        items.add(new Item("Item 9", R.drawable.ic_action_refresh_dark));
-        items.add(new Item("Item 10", R.drawable.ic_action_select_all_dark));
+        My_StateListDrawable d1;
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_dis));
+        items.add(new Item("Start", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_dis));
+        items.add(new Item("Pause", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_dis));
+        items.add(new Item("Stop", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_dis));
+        items.add(new Item("Previous", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_dis));
+        items.add(new Item("Next", d1));
+        //d1 = null;
+
+        //items.add(new Item("Item 1", R.drawable.ic_action_refresh_dark));
+        //items.add(new Item("Item 2", R.drawable.ic_action_select_all_dark));
+        //items.add(new Category("Cat 1"));
+        //items.add(new Item("Item 3", R.drawable.ic_action_refresh_dark));
+        //items.add(new Item("Item 4", R.drawable.ic_action_select_all_dark));
+        //items.add(new Category("Cat 2"));
+        //items.add(new Item("Item 5", R.drawable.ic_action_refresh_dark));
+        //items.add(new Item("Item 6", R.drawable.ic_action_select_all_dark));
+        //items.add(new Category("Cat 3"));
+        //items.add(new Item("Item 7", R.drawable.ic_action_refresh_dark));
+        //items.add(new Item("Item 8", R.drawable.ic_action_select_all_dark));
+        //items.add(new Category("Cat 4"));
+        //items.add(new Item("Item 9", R.drawable.ic_action_refresh_dark));
+        //items.add(new Item("Item 10", R.drawable.ic_action_select_all_dark));
 
         mList = new ListView(this);
 
