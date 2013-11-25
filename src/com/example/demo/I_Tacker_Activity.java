@@ -6,6 +6,9 @@ import java.text.SimpleDateFormat;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import net.simonvt.menudrawer.MenuDrawer;
+import net.simonvt.menudrawer.Position;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
@@ -39,6 +42,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
 import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
@@ -54,7 +58,7 @@ import android.widget.Toast;
 
 import com.example.demo.I_Tracker_Device.CMD_T;
 
-public class I_Tacker_Activity extends Activity implements OnCheckedChangeListener, OnTouchListener {
+public class I_Tacker_Activity extends BaseListSample implements OnCheckedChangeListener, OnTouchListener {
 	
 	FrameLayout mLayout_Conten;
 	//Calendar c = Calendar.getInstance();
@@ -234,6 +238,8 @@ public class I_Tacker_Activity extends Activity implements OnCheckedChangeListen
 			mLayout_Conten.addView(myRadiogroup);
 
 			//Toast.makeText(I_Tacker_Activity.this, "Great! Welcome.", Toast.LENGTH_SHORT).show();
+			/*20131124 added by michael*/
+			mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_NONE);
 		}
 	};
 	
@@ -243,7 +249,10 @@ public class I_Tacker_Activity extends Activity implements OnCheckedChangeListen
 			//Toast.makeText(I_Tacker_Activity.this, "You can't use this app then.", Toast.LENGTH_SHORT).show();
 		}
 	};
-	
+
+/*20131124 added by michael
+use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
+	//protected MenuDrawer mMenuDrawer;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -546,6 +555,11 @@ radio group to let user to choice well plate for i-tacker*/
 		}
 		//Bitmap icon = BitmapFactory.
 		getResources();
+		
+		/*20131124 added by michael
+		create the menudrawer instance*/
+		//mMenuDrawer = MenuDrawer.attach(this, MenuDrawer.Type.BEHIND, getDrawerPosition(), getDragMode());
+		
 	}
 
 	@Override
@@ -700,6 +714,18 @@ radio group to let user to choice well plate for i-tacker*/
 		//EnumerationDevice(getIntent());
 		mItracker_dev.Well_Plate_Mode = Well_Selection;
 		Well_View.DrawBitmap();
+		
+		/*20131124 added by michael
+		enable menudrawer and configure height to fit the UI region*/
+		ViewGroup.LayoutParams lp;
+		ViewGroup vg;
+		mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_FULLSCREEN);
+		vg = (ViewGroup) this.findViewById(R.id.md__menu);
+		lp = (ViewGroup.LayoutParams)vg.getLayoutParams();
+		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
+		lp.height = (int)Well_View.mMaxTouchablePosY;
+		vg.setLayoutParams(lp);
+		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
 	}
 
 //Exit the i-tracker demo activity
@@ -931,4 +957,23 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		mToastMsg.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 125);
 		mToastMsg.show();
     }
+    
+    /*20131124 added by michael
+    getDragMode() & getDrawerPosition()*/
+    @Override
+    protected int getDragMode() {
+        //return MenuDrawer.MENU_DRAG_CONTENT;
+    	return MenuDrawer.MENU_DRAG_WINDOW;
+    }
+
+    @Override
+    protected Position getDrawerPosition() {
+        return Position.START;
+    }
+
+	@Override
+	protected void onMenuItemClicked(int position, Item item) {
+		// TODO Auto-generated method stub
+		Log.d(this.getComponentName().toShortString().toString(), item.mTitle);
+	} 
 }
