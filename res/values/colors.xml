@@ -2,5 +2,8 @@
 
     <color name="md__transparent">#00000000</color>
 
-    <color name="md__defaultBackground">#FF555555</color>
+<!--20131126 added by michael
+    The menu background match miscrosoft windows system default color for UI -->
+    <color name="md__defaultBackground">#FFece9d8</color>
+    <!-- <color name="md__defaultBackground">#FF555555</color> -->
 </resources>

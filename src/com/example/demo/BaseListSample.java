@@ -36,7 +36,8 @@ public abstract class BaseListSample extends Activity implements MenuAdapter.Men
         mMenuDrawer = MenuDrawer.attach(this, MenuDrawer.Type.OVERLAY, getDrawerPosition(), getDragMode());
 
         List<Object> items = new ArrayList<Object>();
-        My_StateListDrawable d1;
+        setItemsData(items);
+        /*My_StateListDrawable d1;
         d1 = new My_StateListDrawable(this);
         d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en));
         d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_dis));
@@ -67,6 +68,8 @@ public abstract class BaseListSample extends Activity implements MenuAdapter.Men
         items.add(new Item("Next", d1));
         //d1 = null;
 
+        items.add(new Item("Well selection", null));
+        items.add(new Item("Exit", null));*/
         //items.add(new Item("Item 1", R.drawable.ic_action_refresh_dark));
         //items.add(new Item("Item 2", R.drawable.ic_action_select_all_dark));
         //items.add(new Category("Cat 1"));
@@ -94,6 +97,10 @@ public abstract class BaseListSample extends Activity implements MenuAdapter.Men
         mMenuDrawer.setMenuView(mList);
     }
 
+    protected abstract void update_item_state();
+
+    protected abstract void setItemsData(List<Object> items);
+    
     protected abstract void onMenuItemClicked(int position, Item item);
 
     protected abstract int getDragMode();

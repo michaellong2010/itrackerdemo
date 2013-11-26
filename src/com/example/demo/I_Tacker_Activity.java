@@ -3,6 +3,7 @@ package com.example.demo;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -477,6 +478,7 @@ radio group to let user to choice well plate for i-tacker*/
 					return false;
 				}
 				Itracker_MI_State = mMenu_item_state;
+				//Update_Menu_Item_Enable(menu, mMenu_item_state);
 				mode.finish();
 				return true;
 			}
@@ -716,16 +718,23 @@ radio group to let user to choice well plate for i-tacker*/
 		Well_View.DrawBitmap();
 		
 		/*20131124 added by michael
-		enable menudrawer and configure height to fit the UI region*/
+		enable menudrawer and configure it's child view mMenuContainer dimension to fit the adapted UI region*/
 		ViewGroup.LayoutParams lp;
 		ViewGroup vg;
 		mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_FULLSCREEN);
-/*		vg = (ViewGroup) this.findViewById(R.id.md__menu);
+		vg = (ViewGroup) this.findViewById(R.id.md__menu);
 		lp = (ViewGroup.LayoutParams)vg.getLayoutParams();
 		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
-		lp.height = (int)Well_View.mMaxTouchablePosY;
+		lp.height = (int)Well_View.mMaxTouchablePosY + 5;
+		//lp.width = LayoutParams.WRAP_CONTENT;
 		vg.setLayoutParams(lp);
-		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));*/
+		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
+		Log.d("first menu item position", Integer.toString(mList.getFirstVisiblePosition()));
+		Log.d("last menu item position", Integer.toString(mList.getLastVisiblePosition()));
+		//android.R.drawable.divider_horizontal_bright;
+		//android.R.drawable.divider_horizontal_dark;
+		//android.R.drawable.divider_horizontal_dim_dark;
+		//android.R.drawable.divider_horizontal_textfield;
 	}
 
 //Exit the i-tracker demo activity
@@ -971,9 +980,101 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         return Position.START;
     }
 
-	@Override
+    /*20131126 add by michael
+    execute same action with onActionItemClicked()*/
+    @Override
 	protected void onMenuItemClicked(int position, Item item) {
 		// TODO Auto-generated method stub
 		Log.d(this.getComponentName().toShortString().toString(), item.mTitle);
+		update_item_state();
+	}
+
+    /*20131126 add by michael
+     * assign the menu items meta-data
+     * *(non-Javadoc)
+     * @see com.example.demo.BaseListSample#setItemsData(java.util.List)
+     */
+	@Override
+	protected void setItemsData(List<Object> items) {
+		// TODO Auto-generated method stub
+        My_StateListDrawable d1;
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_dis));
+        items.add(new Item("Start", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_dis));
+        items.add(new Item("Pause", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_dis));
+        items.add(new Item("Stop", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_dis));
+        items.add(new Item("Previous", d1));
+        //d1 = null;
+        
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_dis));
+        items.add(new Item("Next", d1));
+        //d1 = null;
+
+        items.add(new Item("Well selection", null));
+        items.add(new Item("Exit", null));		
+	}
+
+	/*20131126 add by michael
+	 * take View.setEnabled() to update the menu item view state enabled/disabled text & compoundDrawable in ListView
+	 * (non-Javadoc)
+	 * @see com.example.demo.BaseListSample#update_item_state()
+	 */
+	@Override
+	protected void update_item_state() {
+		// TODO Auto-generated method stub
+		int i, j, start, item_state;
+		View v;
+		
+		item_state = Itracker_MI_State & Itracker_MI_MASK;
+		for (start = i = mList.getFirstVisiblePosition(), j = mList.getLastVisiblePosition(); i <= j; i++) {
+			if (mAdapter.getItemViewType(i)==0) {
+				v = mList.getChildAt(i-start);
+				
+				
+				if ((item_state & (1<<Itracker_MI_Start))==(1<<Itracker_MI_Start))
+					menu.findItem(R.id.ID_MI_start_itracker).setEnabled(true);
+				else
+					menu.findItem(R.id.ID_MI_start_itracker).setEnabled(false);
+
+				if ((item_state & (1<<Itracker_MI_Stop))==(1<<Itracker_MI_Stop))
+					menu.findItem(R.id.ID_MI_stop_itracker).setEnabled(true);
+				else
+					menu.findItem(R.id.ID_MI_stop_itracker).setEnabled(false);
+
+				if ((item_state & (1<<Itracker_MI_Pause))==(1<<Itracker_MI_Pause))
+					menu.findItem(R.id.ID_MI_pause_itracker).setEnabled(true);
+				else
+					menu.findItem(R.id.ID_MI_pause_itracker).setEnabled(false);
+
+				if ((item_state & (1<<Itracker_MI_Previos_Tran))==(1<<Itracker_MI_Previos_Tran))
+					menu.findItem(R.id.ID_MI_previous_trans).setEnabled(true);
+				else
+					menu.findItem(R.id.ID_MI_previous_trans).setEnabled(false);
+				
+				if ((item_state & (1<<Itracker_MI_Next_Tran))==(1<<Itracker_MI_Next_Tran))
+					menu.findItem(R.id.ID_MI_next_trans).setEnabled(true);
+				else
+					menu.findItem(R.id.ID_MI_next_trans).setEnabled(false);	
+
+			}
+		}
 	} 
 }

@@ -1,6 +1,8 @@
 package com.example.demo;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -77,7 +79,8 @@ public class MenuAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         View v = convertView;
         Object item = getItem(position);
-
+        TextView tv;
+        
         if (item instanceof Category) {
             if (v == null) {
                 v = LayoutInflater.from(mContext).inflate(R.layout.menu_row_category, parent, false);
@@ -89,8 +92,8 @@ public class MenuAdapter extends BaseAdapter {
             if (v == null) {
                 v = LayoutInflater.from(mContext).inflate(R.layout.menu_row_item, parent, false);
             }
-
-            TextView tv = (TextView) v;
+            
+            tv = (TextView) v;
             tv.setText(((Item) item).mTitle);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                 tv.setCompoundDrawablesRelativeWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
@@ -98,6 +101,21 @@ public class MenuAdapter extends BaseAdapter {
                 //tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
                   tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mDrawable, null, null, null);
             }
+            
+            tv.setTextColor (new ColorStateList (
+          		   new int [] [] {
+               	      //new int [] {android.R.attr.state_enabled, android.R.attr.state_selected},
+          			  new int [] {android.R.attr.state_enabled},
+          			  //new int [] {android.R.attr.state_selected},
+          		      new int [] {}
+          		   },
+          		   new int [] {
+          			  //Color.rgb (0, 255, 0),
+          			  Color.rgb (0, 0, 0),
+          		      //Color.rgb (255, 0, 0),
+          		      Color.rgb (0xac, 0xa8, 0x99)            			  
+          		   }
+          		));
         }
 
         v.setTag(R.id.mdActiveViewPosition, position);
