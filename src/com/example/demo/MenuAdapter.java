@@ -67,7 +67,11 @@ public class MenuAdapter extends BaseAdapter {
 
     @Override
     public boolean isEnabled(int position) {
-        return getItem(position) instanceof Item;
+    	if (position==1)
+    		return true;
+    	else
+    		return false;
+        //return getItem(position) instanceof Item;
     }
 
     @Override

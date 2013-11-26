@@ -981,7 +981,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     }
 
     /*20131126 add by michael
-    execute same action with onActionItemClicked()*/
+     *interactive with user then execute same correspond action with onActionItemClicked(), then update menu item state*/
     @Override
 	protected void onMenuItemClicked(int position, Item item) {
 		// TODO Auto-generated method stub
@@ -1033,7 +1033,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	}
 
 	/*20131126 add by michael
-	 * take View.setEnabled() to update the menu item view state enabled/disabled text & compoundDrawable in ListView
+	 * take View.setEnabled() to update the menu item view state enabled/disabled textColor & compoundDrawable appearance in ListView
 	 * (non-Javadoc)
 	 * @see com.example.demo.BaseListSample#update_item_state()
 	 */
@@ -1047,33 +1047,42 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		for (start = i = mList.getFirstVisiblePosition(), j = mList.getLastVisiblePosition(); i <= j; i++) {
 			if (mAdapter.getItemViewType(i)==0) {
 				v = mList.getChildAt(i-start);
-				
-				
-				if ((item_state & (1<<Itracker_MI_Start))==(1<<Itracker_MI_Start))
-					menu.findItem(R.id.ID_MI_start_itracker).setEnabled(true);
-				else
-					menu.findItem(R.id.ID_MI_start_itracker).setEnabled(false);
+				switch (i) {
+				case Itracker_MI_Start:
+					if ((item_state & (1 << Itracker_MI_Start)) == (1 << Itracker_MI_Start))
+						v.setEnabled(true);
+					else
+						v.setEnabled(false);
+					break;
 
-				if ((item_state & (1<<Itracker_MI_Stop))==(1<<Itracker_MI_Stop))
-					menu.findItem(R.id.ID_MI_stop_itracker).setEnabled(true);
-				else
-					menu.findItem(R.id.ID_MI_stop_itracker).setEnabled(false);
+				case Itracker_MI_Stop:
+					if ((item_state & (1 << Itracker_MI_Stop)) == (1 << Itracker_MI_Stop))
+						v.setEnabled(true);
+					else
+						v.setEnabled(false);
+					break;
 
-				if ((item_state & (1<<Itracker_MI_Pause))==(1<<Itracker_MI_Pause))
-					menu.findItem(R.id.ID_MI_pause_itracker).setEnabled(true);
-				else
-					menu.findItem(R.id.ID_MI_pause_itracker).setEnabled(false);
+				case Itracker_MI_Pause:
+					if ((item_state & (1 << Itracker_MI_Pause)) == (1 << Itracker_MI_Pause))
+						v.setEnabled(true);
+					else
+						v.setEnabled(false);
+					break;
 
-				if ((item_state & (1<<Itracker_MI_Previos_Tran))==(1<<Itracker_MI_Previos_Tran))
-					menu.findItem(R.id.ID_MI_previous_trans).setEnabled(true);
-				else
-					menu.findItem(R.id.ID_MI_previous_trans).setEnabled(false);
-				
-				if ((item_state & (1<<Itracker_MI_Next_Tran))==(1<<Itracker_MI_Next_Tran))
-					menu.findItem(R.id.ID_MI_next_trans).setEnabled(true);
-				else
-					menu.findItem(R.id.ID_MI_next_trans).setEnabled(false);	
+				case Itracker_MI_Previos_Tran:
+					if ((item_state & (1 << Itracker_MI_Previos_Tran)) == (1 << Itracker_MI_Previos_Tran))
+						v.setEnabled(true);
+					else
+						v.setEnabled(false);
+					break;
 
+				case Itracker_MI_Next_Tran:
+					if ((item_state & (1 << Itracker_MI_Next_Tran)) == (1 << Itracker_MI_Next_Tran))
+						v.setEnabled(true);
+					else
+						v.setEnabled(false);
+					break;
+				}
 			}
 		}
 	} 
