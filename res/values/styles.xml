@@ -62,6 +62,7 @@
         <item name="android:buttonStyle">@style/myButtonStyle</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="menuDrawerStyle">@style/MenuDrawerStyle</item>
+        <!-- <item name="android:divider">#FF131627</item> -->
         <item name="android:divider">@android:drawable/divider_horizontal_dim_dark</item>
         <!-- <item name="android:buttonStyle">@android:style/Widget.Holo.Light.Button</item>
         <item name="android:background">@android:drawable/btn_default</item> -->

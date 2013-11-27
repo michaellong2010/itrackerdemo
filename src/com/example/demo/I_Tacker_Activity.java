@@ -59,7 +59,7 @@ import android.widget.Toast;
 
 import com.example.demo.I_Tracker_Device.CMD_T;
 
-public class I_Tacker_Activity extends BaseListSample implements OnCheckedChangeListener, OnTouchListener {
+public class I_Tacker_Activity extends BaseListSample implements OnCheckedChangeListener, OnTouchListener, MenuAdapter.OnRetrieveItemEnable {
 	
 	FrameLayout mLayout_Conten;
 	//Calendar c = Calendar.getInstance();
@@ -479,6 +479,7 @@ radio group to let user to choice well plate for i-tacker*/
 				}
 				Itracker_MI_State = mMenu_item_state;
 				//Update_Menu_Item_Enable(menu, mMenu_item_state);
+				update_item_state();
 				mode.finish();
 				return true;
 			}
@@ -521,7 +522,10 @@ radio group to let user to choice well plate for i-tacker*/
 				if ((item_state & (1<<Itracker_MI_Next_Tran))==(1<<Itracker_MI_Next_Tran))
 					menu.findItem(R.id.ID_MI_next_trans).setEnabled(true);
 				else
-					menu.findItem(R.id.ID_MI_next_trans).setEnabled(false);	
+					menu.findItem(R.id.ID_MI_next_trans).setEnabled(false);
+				
+				/*20131127 added by michael*/
+				update_item_state();
 			}
 		};
 	    //getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
@@ -561,7 +565,8 @@ radio group to let user to choice well plate for i-tacker*/
 		/*20131124 added by michael
 		create the menudrawer instance*/
 		//mMenuDrawer = MenuDrawer.attach(this, MenuDrawer.Type.BEHIND, getDrawerPosition(), getDragMode());
-		
+		/*20131127 added by michael*/
+		this.mAdapter.setOnRetrieveItemEnable(this);
 	}
 
 	@Override
@@ -735,6 +740,7 @@ radio group to let user to choice well plate for i-tacker*/
 		//android.R.drawable.divider_horizontal_dark;
 		//android.R.drawable.divider_horizontal_dim_dark;
 		//android.R.drawable.divider_horizontal_textfield;
+		update_item_state();
 	}
 
 //Exit the i-tracker demo activity
@@ -933,6 +939,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	if (mMode != null) {
     		mMode.invalidate();
     	}
+    	else {
+    		update_item_state();
+    	}
     }
     
     
@@ -1029,7 +1038,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         //d1 = null;
 
         items.add(new Item("Well selection", null));
-        items.add(new Item("Exit", null));		
+        items.add(new Item("Exit", null));
 	}
 
 	/*20131126 add by michael
@@ -1085,5 +1094,45 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				}
 			}
 		}
-	} 
+	}
+
+	/*20131127 added by michael
+	 * according the software running state then modify Listview item enable/disable state
+	 * the ListView item enable/disable mask the permission of OnItemClick() event on certain position
+	 * */
+	@Override
+	public boolean getItemEnable(int position) {
+		// TODO Auto-generated method stub
+		int item_state;
+		
+		item_state = Itracker_MI_State & Itracker_MI_MASK;
+		switch (position) {
+		case Itracker_MI_Start:
+			if ((item_state & (1 << Itracker_MI_Start)) == (1 << Itracker_MI_Start))
+				return true;
+			else
+				return false;
+		case Itracker_MI_Stop:
+			if ((item_state & (1 << Itracker_MI_Stop)) == (1 << Itracker_MI_Stop))
+				return true;
+			else
+				return false;
+		case Itracker_MI_Pause:
+			if ((item_state & (1 << Itracker_MI_Pause)) == (1 << Itracker_MI_Pause))
+				return true;
+			else
+				return false;
+		case Itracker_MI_Previos_Tran:
+			if ((item_state & (1 << Itracker_MI_Previos_Tran)) == (1 << Itracker_MI_Previos_Tran))
+				return true;
+			else
+				return false;
+		case Itracker_MI_Next_Tran:
+			if ((item_state & (1 << Itracker_MI_Next_Tran)) == (1 << Itracker_MI_Next_Tran))
+				return true;
+			else
+				return false;
+		}
+		return true;
+	}
 }

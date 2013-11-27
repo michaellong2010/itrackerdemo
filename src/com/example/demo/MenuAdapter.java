@@ -67,16 +67,19 @@ public class MenuAdapter extends BaseAdapter {
 
     @Override
     public boolean isEnabled(int position) {
-    	if (position==1)
+/*    	if (position==1)
     		return true;
     	else
-    		return false;
-        //return getItem(position) instanceof Item;
+    		return false;*/
+		if (mOnRetrieveItemEnable != null)
+			return mOnRetrieveItemEnable.getItemEnable(position);
+		else
+			return getItem(position) instanceof Item;
     }
 
     @Override
     public boolean areAllItemsEnabled() {
-        return false;
+        return true;
     }
 
     @Override
@@ -135,5 +138,15 @@ public class MenuAdapter extends BaseAdapter {
     change the ListAdapter then ListView.SetAdapter(ListAdapter) to update the view content*/
     public Object removeItem(int position) {
       return mItems.remove(position);
+    }
+    
+    OnRetrieveItemEnable mOnRetrieveItemEnable;
+    /*20131127 added by michael
+    define a abstract method or interface to retrieve newest item state at certain position*/
+    public interface OnRetrieveItemEnable {
+    	boolean getItemEnable(int position);
+    }
+    public void setOnRetrieveItemEnable(OnRetrieveItemEnable l) {
+    	mOnRetrieveItemEnable = l;
     }
 }

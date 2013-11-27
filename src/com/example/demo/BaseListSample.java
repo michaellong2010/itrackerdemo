@@ -93,6 +93,7 @@ public abstract class BaseListSample extends Activity implements MenuAdapter.Men
 
         mList.setAdapter(mAdapter);
         mList.setOnItemClickListener(mItemClickListener);
+        mList.setDividerHeight(2);
 
         mMenuDrawer.setMenuView(mList);
     }
