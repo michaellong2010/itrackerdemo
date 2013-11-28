@@ -21,4 +21,5 @@ pre-naming a set id for runtime use
 
 <resources>
   <item type="id" name="ID_well_plate_view" />
+  <item type="id" name="ID_OverflowMenuButton" />
 </resources>

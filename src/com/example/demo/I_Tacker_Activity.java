@@ -109,11 +109,22 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 		@Override
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
-			if ((mItrackerState & (1 << Itracker_State_isRunning))==1) {
-				Show_Toast_Msg(I_Tracker_Device_Running);
-			}
-			else {
-				Show_Toast_Msg(I_Tracker_Device_Stop);
+			switch(v.getId()) {
+			case R.id.ID_well_plate_view:
+				I_Tracker_Well_Plate_View v1 = (I_Tracker_Well_Plate_View) v;
+				if (mTouchPositionX < v1.mMaxTouchablePosX
+						&& mTouchPositionY < v1.mMaxTouchablePosY) {
+					if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
+						Show_Toast_Msg(I_Tracker_Device_Running);
+					} else {
+						Show_Toast_Msg(I_Tracker_Device_Stop);
+					}
+				}
+				break;
+
+			case R.id.ID_OverflowMenuButton:
+                mMenuDrawer.toggleMenu();
+				break;
 			}
 			//
 			//
@@ -749,11 +760,14 @@ radio group to let user to choice well plate for i-tacker*/
 		/*20131128 added by michael
 		 * add a menu overflow button*/
 		OveflaowBtn = new OverflowMenuButton(this, null, R.attr.customOverflowMenuButtonStyle);
-		lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END); 
+		lp = new FrameLayout.LayoutParams(32, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END); 
 		mLayout_Conten.addView(OveflaowBtn, lp);
-		OveflaowBtn.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
+		//OveflaowBtn.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
+		OveflaowBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.overflowmwnu_button_selector_holo_dark));
 		//OveflaowBtn.setScaleX((float) 0.75);
-		OveflaowBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_menu_moreoverflow_normal_holo_light));
+		OveflaowBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_menu_moreoverflow_normal_holo_dark_resize1));
+		OveflaowBtn.setId(R.id.ID_OverflowMenuButton);
+		OveflaowBtn.setOnClickListener(this.listener1);
 		//OveflaowBtn.setScaleY((float) 0.6);
 	}
 
