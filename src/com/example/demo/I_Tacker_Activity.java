@@ -54,10 +54,12 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.demo.I_Tracker_Device.CMD_T;
+
 
 public class I_Tacker_Activity extends BaseListSample implements OnCheckedChangeListener, OnTouchListener, MenuAdapter.OnRetrieveItemEnable {
 	
@@ -254,6 +256,8 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 /*20131124 added by michael
 use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	//protected MenuDrawer mMenuDrawer;
+	/*20131128 added by michael*/
+	OverflowMenuButton OveflaowBtn;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -741,6 +745,16 @@ radio group to let user to choice well plate for i-tacker*/
 		//android.R.drawable.divider_horizontal_dim_dark;
 		//android.R.drawable.divider_horizontal_textfield;
 		update_item_state();
+		
+		/*20131128 added by michael
+		 * add a menu overflow button*/
+		OveflaowBtn = new OverflowMenuButton(this, null, R.attr.customOverflowMenuButtonStyle);
+		lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END); 
+		mLayout_Conten.addView(OveflaowBtn, lp);
+		OveflaowBtn.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
+		//OveflaowBtn.setScaleX((float) 0.75);
+		OveflaowBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_menu_moreoverflow_normal_holo_light));
+		//OveflaowBtn.setScaleY((float) 0.6);
 	}
 
 //Exit the i-tracker demo activity
