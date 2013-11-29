@@ -1,5 +1,7 @@
 package com.example.demo;
 
+import gif.decoder.GifRun;
+
 import java.io.DataOutputStream;
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -39,6 +41,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnLongClickListener;
@@ -63,7 +66,9 @@ import com.example.demo.I_Tracker_Device.CMD_T;
 
 public class I_Tacker_Activity extends BaseListSample implements OnCheckedChangeListener, OnTouchListener, MenuAdapter.OnRetrieveItemEnable {
 	
-	FrameLayout mLayout_Conten;
+	FrameLayout mLayout_Content;
+/*20131129 added by michael*/
+	RelativeLayout mIndicators_Layout;
 	//Calendar c = Calendar.getInstance();
 	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	Handler  mHandler;
@@ -106,6 +111,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 	OnClickListener listener1 = new OnClickListener() {
         /*20130322 added by michael*/
 		//click the display region, show the current connection of device
+		@SuppressWarnings("static-access")
 		@Override
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
@@ -114,11 +120,13 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 				I_Tracker_Well_Plate_View v1 = (I_Tracker_Well_Plate_View) v;
 				if (mTouchPositionX < v1.mMaxTouchablePosX
 						&& mTouchPositionY < v1.mMaxTouchablePosY) {
-					if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
+					if ((mItrackerState & (1 << I_Tacker_Activity.this.Itracker_State_isConnect)) == 0) {
+						Show_Toast_Msg(I_Tracker_Device_DisCon);
+					} else if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
 						Show_Toast_Msg(I_Tracker_Device_Running);
-					} else {
-						Show_Toast_Msg(I_Tracker_Device_Stop);
 					}
+					else
+						Show_Toast_Msg(I_Tacker_Activity.this.I_Tracker_Device_Stop);
 				}
 				break;
 
@@ -170,6 +178,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						mItracker_dev.show_debug(Tag+"onReceive process thread id" + Integer.toString(Process.myTid())+"\n");
 						timerTaskPause();
 						Show_Toast_Msg(I_Tracker_Device_DisCon);
+						mItrackerState = 0;
 					}
 				}
 			}
@@ -183,12 +192,14 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 							mItracker_dev.show_debug(Tag+"permission allowed for device "+device+"\n");
 							Itracker_MI_State = 1 << Itracker_MI_Start;
 							Show_Toast_Msg(I_Tracker_Device_Conn);
+							mItrackerState |= Itracker_State_isConnect;
 							//UpdateActionMenuItem();
 						}
 					} else {
 						Log.d(Tag, "permission denied for device " + device);
 						mItracker_dev.show_debug(Tag+"permission denied for device "+device+"\n");
 						Itracker_MI_State = 0;
+						mItrackerState = 0;
 						//UpdateActionMenuItem();
 					}
 					UpdateActionMenuItem();
@@ -208,6 +219,8 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
     public static final int Itracker_State_isRunning = 0;
     public static final int Itracker_State_isForwardable = 1;
     public static final int Itracker_State_isBackable = 2;
+/*20131129 added by michael*/
+    public static final int Itracker_State_isConnect = 3;
     public static int mItrackerState = 0;
 /*20130317 added by michael*/    
     private static final String ACTION_USB_PERMISSION = "com.example.demo.USB_PERMISSION";
@@ -248,8 +261,8 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 			/*20130408 added by michael*/
 			Itracker_MI_State = 1 << Itracker_MI_Start;
 			Reset_App();
-			mLayout_Conten.removeAllViews();
-			mLayout_Conten.addView(myRadiogroup);
+			mLayout_Content.removeAllViews();
+			mLayout_Content.addView(myRadiogroup);
 
 			//Toast.makeText(I_Tacker_Activity.this, "Great! Welcome.", Toast.LENGTH_SHORT).show();
 			/*20131124 added by michael*/
@@ -273,8 +286,8 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		mTmpTextView = new TextView(this);
-		mLayout_Conten = (FrameLayout) this.findViewById(android.R.id.content);
-		mLayout_Conten.addView(mTmpTextView);
+		mLayout_Content = (FrameLayout) this.findViewById(android.R.id.content);
+		mLayout_Content.addView(mTmpTextView);
 		//timerStart();
 		mTimer = new Timer();
 		mHandler= new Handler();
@@ -310,8 +323,8 @@ radio group to let user to choice well plate for i-tacker*/
 		Well_View.setLayoutParams(lp);
 		mTmpTextView.setTextColor(getResources().getColor(android.R.color.holo_green_light));
 		
-		//mLayout_Conten.addView(Well_View);
-		//mLayout_Conten.removeView(v);
+		//mLayout_Content.addView(Well_View);
+		//mLayout_Content.removeAllViews();
 		//20130308 added by michael
 		 //*long click a view and display contextual button
 		 
@@ -468,8 +481,8 @@ radio group to let user to choice well plate for i-tacker*/
 					break;
 
 				case R.id.ID_MI_well_selection:
-					//mLayout_Conten.removeAllViews();
-					//mLayout_Conten.addView(myRadiogroup);
+					//mLayout_Content.removeAllViews();
+					//mLayout_Content.addView(myRadiogroup);
 					//setContentView(myRadiogroup);
 					Builder builder = new AlertDialog.Builder(I_Tacker_Activity.this);
 					AlertDialog dialog = builder.create();
@@ -545,7 +558,7 @@ radio group to let user to choice well plate for i-tacker*/
 		};
 	    //getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
 		//ActionBar Abr = this.getActionBar();
-		//this.setContentView(mLayout_Conten);
+		//this.setContentView(mLayout_Content);
 		mReentrance = 0;
 		mItracker_dev = new I_Tracker_Device(this);
 
@@ -582,6 +595,45 @@ radio group to let user to choice well plate for i-tacker*/
 		//mMenuDrawer = MenuDrawer.attach(this, MenuDrawer.Type.BEHIND, getDrawerPosition(), getDragMode());
 		/*20131127 added by michael*/
 		this.mAdapter.setOnRetrieveItemEnable(this);
+				
+		/*20131128 added by michael
+		 * add a menu overflow button*/
+		//FrameLayout.LayoutParams lp1;
+		RelativeLayout.LayoutParams lp2;
+		mIndicators_Layout = new RelativeLayout(this);
+		lp = new FrameLayout.LayoutParams(40, (int)Well_View.mMaxTouchablePosY, Gravity.END|Gravity.TOP);
+		mIndicators_Layout.setLayoutParams(lp);
+		
+		OveflaowBtn = new OverflowMenuButton(this, null, R.attr.customOverflowMenuButtonStyle);
+		lp2 = new RelativeLayout.LayoutParams(32, ViewGroup.LayoutParams.WRAP_CONTENT);
+		//lp1.setMargins((int)(Well_View.mMaxTouchablePosX-32), (int)(Well_View.mMaxTouchablePosY-48), 32, 48);
+		//lp1.setMargins(Well_View.mMaxTouchablePosX-32, Well_View.mMaxTouchablePosY-48, 32, 48);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
+		mIndicators_Layout.addView(OveflaowBtn, lp2);
+		//lp1 = (FrameLayout.LayoutParams)mLayout_Content.getLayoutParams();
+		//lp1.setMargins((int)(Well_View.mMaxTouchablePosX-32), (int)(Well_View.mMaxTouchablePosY-48), 0, 0);
+		//mLayout_Content.setLayoutParams(lp1);
+		//OveflaowBtn.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
+		OveflaowBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.overflowmwnu_button_selector_holo_dark));
+		//OveflaowBtn.setScaleX((float) 0.75);
+		OveflaowBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_menu_moreoverflow_normal_holo_dark_resize1));		
+		OveflaowBtn.setId(R.id.ID_OverflowMenuButton);
+		OveflaowBtn.setOnClickListener(this.listener1);
+		//OveflaowBtn.setScaleY((float) 0.6);
+
+		
+		/*20131129 added by michael
+		 * status indicator to notify iTracker is running or pause*/
+		SurfaceView surf_v = new SurfaceView(this);
+		surf_v.setId(R.id.ID_StatusIndicator);
+		lp2 = new RelativeLayout.LayoutParams(32, 32);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
+		//lp2.addRule(RelativeLayout.BELOW, R.id.ID_OverflowMenuButton);
+		mIndicators_Layout.addView(surf_v, lp2);
+		GifRun w = new  GifRun();
+		w.LoadGiff(surf_v, this, R.drawable.status_32x32);
 	}
 
 	@Override
@@ -730,24 +782,25 @@ radio group to let user to choice well plate for i-tacker*/
 			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96);
 		else
 			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384);
-		mLayout_Conten.removeAllViews();
-		mLayout_Conten.addView(Well_View);
+		mLayout_Content.removeAllViews();
+		mLayout_Content.addView(Well_View);
+		mLayout_Content.addView(mIndicators_Layout);
 		//setContentView(Well_View);
 		//EnumerationDevice(getIntent());
 		mItracker_dev.Well_Plate_Mode = Well_Selection;
 		Well_View.DrawBitmap();
-		
+
 		/*20131124 added by michael
 		enable menudrawer and configure it's child view mMenuContainer dimension to fit the adapted UI region*/
-		ViewGroup.LayoutParams lp;
+		ViewGroup.LayoutParams lp1;
 		ViewGroup vg;
 		mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_FULLSCREEN);
 		vg = (ViewGroup) this.findViewById(R.id.md__menu);
-		lp = (ViewGroup.LayoutParams)vg.getLayoutParams();
+		lp1 = (ViewGroup.LayoutParams)vg.getLayoutParams();
 		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
-		lp.height = (int)Well_View.mMaxTouchablePosY + 5;
+		lp1.height = (int)Well_View.mMaxTouchablePosY + 5;
 		//lp.width = LayoutParams.WRAP_CONTENT;
-		vg.setLayoutParams(lp);
+		vg.setLayoutParams(lp1);
 		Log.d("menudrawer (width, height)", Integer.toString(vg.getWidth())+" ,"+Integer.toString(vg.getHeight()));
 		Log.d("first menu item position", Integer.toString(mList.getFirstVisiblePosition()));
 		Log.d("last menu item position", Integer.toString(mList.getLastVisiblePosition()));
@@ -756,19 +809,7 @@ radio group to let user to choice well plate for i-tacker*/
 		//android.R.drawable.divider_horizontal_dim_dark;
 		//android.R.drawable.divider_horizontal_textfield;
 		update_item_state();
-		
-		/*20131128 added by michael
-		 * add a menu overflow button*/
-		OveflaowBtn = new OverflowMenuButton(this, null, R.attr.customOverflowMenuButtonStyle);
-		lp = new FrameLayout.LayoutParams(32, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END); 
-		mLayout_Conten.addView(OveflaowBtn, lp);
-		//OveflaowBtn.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
-		OveflaowBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.overflowmwnu_button_selector_holo_dark));
-		//OveflaowBtn.setScaleX((float) 0.75);
-		OveflaowBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_menu_moreoverflow_normal_holo_dark_resize1));
-		OveflaowBtn.setId(R.id.ID_OverflowMenuButton);
-		OveflaowBtn.setOnClickListener(this.listener1);
-		//OveflaowBtn.setScaleY((float) 0.6);
+
 	}
 
 //Exit the i-tracker demo activity
@@ -785,7 +826,7 @@ radio group to let user to choice well plate for i-tacker*/
         protected void onDraw(Canvas canvas) {
 		   Log.d(Tag, "height: " + canvas.getHeight());
 		   Log.d(Tag, "width: " + canvas.getWidth());
-		   Log.d(Tag, "isdrawable:" + Boolean.toString(mLayout_Conten.isDrawingCacheEnabled()));
+		   Log.d(Tag, "isdrawable:" + Boolean.toString(mLayout_Content.isDrawingCacheEnabled()));
 		}
 	}
 
@@ -938,14 +979,17 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 				Itracker_MI_State = 1 << Itracker_MI_Start;
 				Show_Toast_Msg(I_Tracker_Device_Conn);
+				mItrackerState |= Itracker_State_isConnect;
 			} else {
 //if isDeviceOnline() return true, send a permission request to communicate with device
 				if (mItracker_dev.isDeviceOnline()) {
 					mRequest_USB_permission = true;
 					mUsbManager.requestPermission(mItracker_dev.getDevice(), mPermissionIntent);
 				}
-				else
+				else {
 					Itracker_MI_State = 0;
+					mItrackerState = 0;
+				}
 			}
 			mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 		}
@@ -955,9 +999,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     			if (mItracker_dev.Enumeration(device)) {
     				Itracker_MI_State = 1 << Itracker_MI_Start;
     				Show_Toast_Msg(I_Tracker_Device_Conn);
+    				mItrackerState |= Itracker_State_isConnect;
     			}
     			else {
     				Itracker_MI_State = 0;
+    				mItrackerState = 0;
     			}    			
     		}
     	UpdateActionMenuItem();
