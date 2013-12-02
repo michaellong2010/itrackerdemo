@@ -192,7 +192,8 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 							mItracker_dev.show_debug(Tag+"permission allowed for device "+device+"\n");
 							Itracker_MI_State = 1 << Itracker_MI_Start;
 							Show_Toast_Msg(I_Tracker_Device_Conn);
-							mItrackerState |= Itracker_State_isConnect;
+							mItrackerState |= 1 << Itracker_State_isConnect;
+							mGif.Resume_thread();
 							//UpdateActionMenuItem();
 						}
 					} else {
@@ -221,7 +222,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
     public static final int Itracker_State_isBackable = 2;
 /*20131129 added by michael*/
     public static final int Itracker_State_isConnect = 3;
-    public static int mItrackerState = 0;
+    public int mItrackerState = 0;
 /*20130317 added by michael*/    
     private static final String ACTION_USB_PERMISSION = "com.example.demo.USB_PERMISSION";
     UsbManager mUsbManager;
@@ -251,15 +252,25 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 		//timer thread has stop, so below is UI thread running only
 		mItracker_dev.reset();
 		Well_View.ResetWell();
-		//Well_View.invalidate();
-		mItrackerState = 0;		
+        if ((mItrackerState & (1 << Itracker_State_isConnect)) != 0) {
+    		//mItrackerState = 0;
+            mItrackerState = 1 << Itracker_State_isConnect;        	
+        }
+        else {
+        	mItrackerState = 0;
+        }
+		//Well_View.invalidate();		
 	}
 	
 	DialogInterface.OnClickListener listenerAccept = new DialogInterface.OnClickListener() {
 		
 		public void onClick(DialogInterface dialog, int which) {
 			/*20130408 added by michael*/
-			Itracker_MI_State = 1 << Itracker_MI_Start;
+			if ((Itracker_MI_State & 1 << Itracker_MI_Stop) != 0 || (Itracker_MI_State & 1 << Itracker_MI_Pause) != 0 || (Itracker_MI_State & 1 << Itracker_MI_Start) != 0) {
+				Itracker_MI_State = 1 << Itracker_MI_Start;
+			}
+			else
+				Itracker_MI_State = 0;
 			Reset_App();
 			mLayout_Content.removeAllViews();
 			mLayout_Content.addView(myRadiogroup);
@@ -282,6 +293,8 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	//protected MenuDrawer mMenuDrawer;
 	/*20131128 added by michael*/
 	OverflowMenuButton OveflaowBtn;
+	/*20131202 added by michael*/
+	GifRun mGif;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -632,8 +645,8 @@ radio group to let user to choice well plate for i-tacker*/
 		lp2.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
 		//lp2.addRule(RelativeLayout.BELOW, R.id.ID_OverflowMenuButton);
 		mIndicators_Layout.addView(surf_v, lp2);
-		GifRun w = new  GifRun();
-		w.LoadGiff(surf_v, this, R.drawable.status_32x32);
+		mGif = new  GifRun();
+		mGif.LoadGiff(surf_v, this, R.drawable.status_32x32);
 	}
 
 	@Override
@@ -809,7 +822,9 @@ radio group to let user to choice well plate for i-tacker*/
 		//android.R.drawable.divider_horizontal_dim_dark;
 		//android.R.drawable.divider_horizontal_textfield;
 		update_item_state();
-
+		
+		/*20131202 added by michael*/
+		mGif.Resume_thread();
 	}
 
 //Exit the i-tracker demo activity
@@ -979,7 +994,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 				Itracker_MI_State = 1 << Itracker_MI_Start;
 				Show_Toast_Msg(I_Tracker_Device_Conn);
-				mItrackerState |= Itracker_State_isConnect;
+				mItrackerState |= 1 << Itracker_State_isConnect;
+				if (mGif != null)
+					mGif.Resume_thread();
 			} else {
 //if isDeviceOnline() return true, send a permission request to communicate with device
 				if (mItracker_dev.isDeviceOnline()) {
@@ -999,7 +1016,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     			if (mItracker_dev.Enumeration(device)) {
     				Itracker_MI_State = 1 << Itracker_MI_Start;
     				Show_Toast_Msg(I_Tracker_Device_Conn);
-    				mItrackerState |= Itracker_State_isConnect;
+    				mItrackerState |= 1 << Itracker_State_isConnect;
+    				if (mGif != null)
+    					mGif.Resume_thread();
     			}
     			else {
     				Itracker_MI_State = 0;
