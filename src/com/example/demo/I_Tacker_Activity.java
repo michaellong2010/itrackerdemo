@@ -116,10 +116,11 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 		public void onClick(View v) {
 			// TODO Auto-generated method stub
 			switch(v.getId()) {
-			case R.id.ID_well_plate_view:
-				I_Tracker_Well_Plate_View v1 = (I_Tracker_Well_Plate_View) v;
+			//case R.id.ID_well_plate_view:
+			case R.id.ID_StatusIndicator:
+				/*I_Tracker_Well_Plate_View v1 = (I_Tracker_Well_Plate_View) v;
 				if (mTouchPositionX < v1.mMaxTouchablePosX
-						&& mTouchPositionY < v1.mMaxTouchablePosY) {
+						&& mTouchPositionY < v1.mMaxTouchablePosY) {*/
 					if ((mItrackerState & (1 << I_Tacker_Activity.this.Itracker_State_isConnect)) == 0) {
 						Show_Toast_Msg(I_Tracker_Device_DisCon);
 					} else if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
@@ -127,7 +128,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 					}
 					else
 						Show_Toast_Msg(I_Tacker_Activity.this.I_Tracker_Device_Stop);
-				}
+				//}
 				break;
 
 			case R.id.ID_OverflowMenuButton:
@@ -193,7 +194,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 							Itracker_MI_State = 1 << Itracker_MI_Start;
 							Show_Toast_Msg(I_Tracker_Device_Conn);
 							mItrackerState |= 1 << Itracker_State_isConnect;
-							mGif.Resume_thread();
+							//mGif.Resume_thread();
 							//UpdateActionMenuItem();
 						}
 					} else {
@@ -342,7 +343,7 @@ radio group to let user to choice well plate for i-tacker*/
 		 //*long click a view and display contextual button
 		 
 		Well_View.setOnLongClickListener(listener);
-		Well_View.setOnClickListener(listener1);
+		//Well_View.setOnClickListener(listener1);
 		mTouch_state = Touch_State.IDLE;
 		Well_View.setOnTouchListener(this);
 		mCallback = new ActionMode.Callback() {
@@ -567,6 +568,8 @@ radio group to let user to choice well plate for i-tacker*/
 				
 				/*20131127 added by michael*/
 				update_item_state();
+				//if (mGif != null)
+					//mGif.Resume_thread();
 			}
 		};
 	    //getWindow().requestFeature(Window.FEATURE_ACTION_BAR);
@@ -642,9 +645,11 @@ radio group to let user to choice well plate for i-tacker*/
 		surf_v.setId(R.id.ID_StatusIndicator);
 		lp2 = new RelativeLayout.LayoutParams(32, 32);
 		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
-		lp2.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
+		//lp2.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
 		//lp2.addRule(RelativeLayout.BELOW, R.id.ID_OverflowMenuButton);
+		lp2.setMargins(0, (int)(Well_View.mMaxTouchablePosY-32)/2, 0, 0);
 		mIndicators_Layout.addView(surf_v, lp2);
+		surf_v.setOnClickListener(listener1);
 		mGif = new  GifRun();
 		mGif.LoadGiff(surf_v, this, R.drawable.status_32x32);
 	}
@@ -824,7 +829,7 @@ radio group to let user to choice well plate for i-tacker*/
 		update_item_state();
 		
 		/*20131202 added by michael*/
-		mGif.Resume_thread();
+		//mGif.Resume_thread();
 	}
 
 //Exit the i-tracker demo activity
@@ -995,8 +1000,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				Itracker_MI_State = 1 << Itracker_MI_Start;
 				Show_Toast_Msg(I_Tracker_Device_Conn);
 				mItrackerState |= 1 << Itracker_State_isConnect;
-				if (mGif != null)
-					mGif.Resume_thread();
+				//if (mGif != null)
+					//mGif.Resume_thread();
 			} else {
 //if isDeviceOnline() return true, send a permission request to communicate with device
 				if (mItracker_dev.isDeviceOnline()) {
@@ -1017,8 +1022,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				Itracker_MI_State = 1 << Itracker_MI_Start;
     				Show_Toast_Msg(I_Tracker_Device_Conn);
     				mItrackerState |= 1 << Itracker_State_isConnect;
-    				if (mGif != null)
-    					mGif.Resume_thread();
+    				//if (mGif != null)
+    					//mGif.Resume_thread();
     			}
     			else {
     				Itracker_MI_State = 0;
@@ -1187,6 +1192,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				}
 			}
 		}
+		
+		/*20131203 added by michael
+		 * trigger a update event to update canvas on the SurfaceView for the status indicator*/
+		if (mGif != null)
+			mGif.Resume_thread();
 	}
 
 	/*20131127 added by michael
