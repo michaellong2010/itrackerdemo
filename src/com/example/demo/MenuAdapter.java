@@ -149,4 +149,8 @@ public class MenuAdapter extends BaseAdapter {
     public void setOnRetrieveItemEnable(OnRetrieveItemEnable l) {
     	mOnRetrieveItemEnable = l;
     }
+    
+    public void syncItems(List<Object> items) {
+    	this.mItems = items;
+    }
 }

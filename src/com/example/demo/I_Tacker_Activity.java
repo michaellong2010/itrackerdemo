@@ -30,6 +30,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Process;
@@ -1135,8 +1136,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         items.add(new Item("Next", d1));
         //d1 = null;
 
-        items.add(new Item("Well selection", null));
-        items.add(new Item("Exit", null));
+        items.add(new Item("Well selection", (BitmapDrawable)null));
+        items.add(new Item("Exit", (BitmapDrawable)null));
 	}
 
 	/*20131126 add by michael
@@ -1149,6 +1150,15 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		// TODO Auto-generated method stub
 		int i, j, start, item_state;
 		View v;
+        My_StateListDrawable d1, d2;
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en));
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_dis));
+        d2 = new My_StateListDrawable(this);
+        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en));
+        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_dis));
+        Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
+        BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
 		
 		item_state = Itracker_MI_State & Itracker_MI_MASK;
 		for (start = i = mList.getFirstVisiblePosition(), j = mList.getLastVisiblePosition(); i <= j; i++) {
@@ -1156,10 +1166,29 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				v = mList.getChildAt(i-start);
 				switch (i) {
 				case Itracker_MI_Start:
-					if ((item_state & (1 << Itracker_MI_Start)) == (1 << Itracker_MI_Start))
+					if ((item_state & (1 << Itracker_MI_Start)) == (1 << Itracker_MI_Start)) {
+						this.items.set(0, new Item("Start", d1));
+						((TextView) v).setText("Start");
 						v.setEnabled(true);
+					}
 					else
-						v.setEnabled(false);
+						if ((item_state & (1 << Itracker_MI_Stop)) == (1 << Itracker_MI_Stop)) {
+							this.items.set(0, new Item("Pause", d2));
+							((TextView) v).setText("Pause");
+							v.setEnabled(true);
+						}
+						else {
+							this.items.set(0, new Item("Start/Pause", d3));
+							((TextView) v).setText("Start/Pause");
+							v.setEnabled(false);
+						}
+					mAdapter.syncItems(items);
+		            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+		                ((TextView) v).setCompoundDrawablesRelativeWithIntrinsicBounds(((Item) items.get(0)).mIconRes, 0, 0, 0);
+		            } else {
+		                //tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
+		            	((TextView) v).setCompoundDrawablesWithIntrinsicBounds(((Item) items.get(0)).mDrawable, null, null, null);
+		            }
 					break;
 
 				case Itracker_MI_Stop:

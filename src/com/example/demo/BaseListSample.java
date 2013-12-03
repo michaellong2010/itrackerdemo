@@ -23,7 +23,7 @@ public abstract class BaseListSample extends Activity implements MenuAdapter.Men
     protected ListView mList;
 
     private int mActivePosition = 0;
-
+    protected List<Object> items;
     @Override
     protected void onCreate(Bundle inState) {
         super.onCreate(inState);
@@ -35,7 +35,7 @@ public abstract class BaseListSample extends Activity implements MenuAdapter.Men
         //mMenuDrawer = MenuDrawer.attach(this, MenuDrawer.Type.BEHIND, getDrawerPosition(), getDragMode());
         mMenuDrawer = MenuDrawer.attach(this, MenuDrawer.Type.OVERLAY, getDrawerPosition(), getDragMode());
 
-        List<Object> items = new ArrayList<Object>();
+        items = new ArrayList<Object>();
         setItemsData(items);
         /*My_StateListDrawable d1;
         d1 = new My_StateListDrawable(this);
