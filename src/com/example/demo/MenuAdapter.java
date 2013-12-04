@@ -87,6 +87,7 @@ public class MenuAdapter extends BaseAdapter {
         View v = convertView;
         Object item = getItem(position);
         TextView tv;
+        //ViewGroup.LayoutParams lp;
         
         if (item instanceof Category) {
             if (v == null) {

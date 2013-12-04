@@ -1106,38 +1106,41 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	protected void setItemsData(List<Object> items) {
 		// TODO Auto-generated method stub
         My_StateListDrawable d1;
+        Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
+        BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
+
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en));
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_dis));
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0x40);
         items.add(new Item("Start", d1));
         //d1 = null;
         
-        d1 = new My_StateListDrawable(this);
+        /*d1 = new My_StateListDrawable(this);
         d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en));
         d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_dis));
-        items.add(new Item("Pause", d1));
+        items.add(new Item("Pause", d1));*/
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en));
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_dis));
-        items.add(new Item("Stop", d1));
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0x40);
+        items.add(new Item("End", d1));
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en));
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_dis));
-        items.add(new Item("Previous", d1));
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0x40);
+        items.add(new Item("Undo", d1));
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en));
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_dis));
-        items.add(new Item("Next", d1));
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0x40);
+        items.add(new Item("Redo", d1));
         //d1 = null;
 
-        items.add(new Item("Well selection", (BitmapDrawable)null));
-        items.add(new Item("Exit", (BitmapDrawable)null));
+        //items.add(new Item("Well selection", (BitmapDrawable)d3));
+        items.add(new Item("Home", (BitmapDrawable)d3));
 	}
 
 	/*20131126 add by michael
@@ -1152,11 +1155,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		View v;
         My_StateListDrawable d1, d2;
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en));
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_dis));
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0x40);
         d2 = new My_StateListDrawable(this);
-        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en));
-        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_dis));
+        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en), 0xFF);
+        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en), 0x40);
         Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
         BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
 		
@@ -1165,14 +1168,16 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			if (mAdapter.getItemViewType(i)==0) {
 				v = mList.getChildAt(i-start);
 				switch (i) {
+				/*20131203 added by michael
+				 * integrate start and pause into a single compound button¡Acustomer define this function is `Start/Pause`*/
 				case Itracker_MI_Start:
 					if ((item_state & (1 << Itracker_MI_Start)) == (1 << Itracker_MI_Start)) {
-						this.items.set(0, new Item("Start", d1));
-						((TextView) v).setText("Start");
+						this.items.set(0, new Item("Run", d1));
+						((TextView) v).setText("Run");
 						v.setEnabled(true);
 					}
 					else
-						if ((item_state & (1 << Itracker_MI_Stop)) == (1 << Itracker_MI_Stop)) {
+						if ((item_state & (1 << Itracker_MI_Pause)) == (1 << Itracker_MI_Pause)) {
 							this.items.set(0, new Item("Pause", d2));
 							((TextView) v).setText("Pause");
 							v.setEnabled(true);
@@ -1183,36 +1188,42 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 							v.setEnabled(false);
 						}
 					mAdapter.syncItems(items);
-		            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+		            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
 		                ((TextView) v).setCompoundDrawablesRelativeWithIntrinsicBounds(((Item) items.get(0)).mIconRes, 0, 0, 0);
-		            } else {
+		            } else {*/
 		                //tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
 		            	((TextView) v).setCompoundDrawablesWithIntrinsicBounds(((Item) items.get(0)).mDrawable, null, null, null);
-		            }
+		            //}
 					break;
 
-				case Itracker_MI_Stop:
+				/*20131204 modified by michael
+				 * customer define the function is `End`*/
+				case (Itracker_MI_Stop-1):
 					if ((item_state & (1 << Itracker_MI_Stop)) == (1 << Itracker_MI_Stop))
 						v.setEnabled(true);
 					else
 						v.setEnabled(false);
 					break;
 
-				case Itracker_MI_Pause:
+				/*case Itracker_MI_Pause:
 					if ((item_state & (1 << Itracker_MI_Pause)) == (1 << Itracker_MI_Pause))
 						v.setEnabled(true);
 					else
 						v.setEnabled(false);
-					break;
+					break;*/
 
-				case Itracker_MI_Previos_Tran:
+				/*20131204 modified by michael
+				 * customer define the function is `Undo`*/
+				case (Itracker_MI_Previos_Tran-1):
 					if ((item_state & (1 << Itracker_MI_Previos_Tran)) == (1 << Itracker_MI_Previos_Tran))
 						v.setEnabled(true);
 					else
 						v.setEnabled(false);
 					break;
-
-				case Itracker_MI_Next_Tran:
+					
+				/*20131204 modified by michael
+				 * customer define the function is `Redo`*/
+				case (Itracker_MI_Next_Tran-1):
 					if ((item_state & (1 << Itracker_MI_Next_Tran)) == (1 << Itracker_MI_Next_Tran))
 						v.setEnabled(true);
 					else
@@ -1243,23 +1254,26 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			if ((item_state & (1 << Itracker_MI_Start)) == (1 << Itracker_MI_Start))
 				return true;
 			else
-				return false;
-		case Itracker_MI_Stop:
+				if ((item_state & (1 << Itracker_MI_Pause)) == (1 << Itracker_MI_Pause))
+					return true;
+				else
+					return false;
+		case (Itracker_MI_Stop-1):
 			if ((item_state & (1 << Itracker_MI_Stop)) == (1 << Itracker_MI_Stop))
 				return true;
 			else
 				return false;
-		case Itracker_MI_Pause:
+/*		case Itracker_MI_Pause:
 			if ((item_state & (1 << Itracker_MI_Pause)) == (1 << Itracker_MI_Pause))
 				return true;
 			else
-				return false;
-		case Itracker_MI_Previos_Tran:
+				return false;*/
+		case (Itracker_MI_Previos_Tran-1):
 			if ((item_state & (1 << Itracker_MI_Previos_Tran)) == (1 << Itracker_MI_Previos_Tran))
 				return true;
 			else
 				return false;
-		case Itracker_MI_Next_Tran:
+		case (Itracker_MI_Next_Tran-1):
 			if ((item_state & (1 << Itracker_MI_Next_Tran)) == (1 << Itracker_MI_Next_Tran))
 				return true;
 			else
