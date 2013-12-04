@@ -51,8 +51,9 @@ class My_StateListDrawable extends StateListDrawable {
         if (d instanceof BitmapDrawable) {
         	d.setAlpha(alpha);
         	c.setBitmap(bitmap);
-        	//d.draw(c);
-        	c.drawBitmap(((BitmapDrawable) d).getBitmap(), 0, 0, ((BitmapDrawable) d).getPaint());
+        	d.setBounds(10, 10, c.getWidth(), c.getHeight());
+        	d.draw(c);
+        	//c.drawBitmap(((BitmapDrawable) d).getBitmap(), 0, 0, ((BitmapDrawable) d).getPaint());
         }
         d1 = new BitmapDrawable(mContext.getResources(), bitmap);
         super.addState(stateSet, d1);
@@ -96,10 +97,13 @@ class My_StateListDrawable extends StateListDrawable {
 			int height = drawable.getIntrinsicHeight();
 			//Bitmap.Config config = drawable.getOpacity() != PixelFormat.OPAQUE ? Bitmap.Config.ARGB_8888: Bitmap.Config.RGB_565; // ??drawable ?„é??²æ ¼å¼
 			Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888); // å»ºç?å¯¹å?
-			Canvas canvas = new Canvas(bitmap); // å»ºç?å¯¹å? bitmap ?„ç”»å¸
-			drawable.setBounds(0, 0, width, height);
-			drawable.draw(canvas); // ??drawable ?…å®¹?»åˆ°?»å?ä¸
+			Canvas canvas = new Canvas(); // å»ºç?å¯¹å? bitmap ?„ç”»å¸
+			canvas.setBitmap(bitmap);
+			//drawable.setBounds(0, 0, width, height);
+			//drawable.draw(canvas); // ??drawable ?…å®¹?»åˆ°?»å?ä¸
+			canvas.drawBitmap(((BitmapDrawable)drawable).getBitmap(), 0, 0, ((BitmapDrawable)drawable).getPaint());
 			//canvas.drawBitmap(((BitmapDrawable) drawable).getBitmap(), 0, 0, null);
+			
 			/*
 			 * Paint mPaint; mPaint = new Paint(); mPaint.setColor(0xFFFF0000);
 			 * mPaint.setTextSize(20); canvas.drawText("kitt", 0, 0, mPaint);
