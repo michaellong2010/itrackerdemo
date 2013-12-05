@@ -38,6 +38,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -591,7 +592,7 @@ radio group to let user to choice well plate for i-tacker*/
 		/*20130317 added by michael*/
 		mRequest_USB_permission = false;
 		EnumerationDevice(getIntent());
-		timertask = new TheTimerTask();
+		//timertask = new TheTimerTask();
 		
 		/*20130319 added by michael*/
 		SystemUI_intent.setComponent(new ComponentName(
@@ -743,8 +744,10 @@ radio group to let user to choice well plate for i-tacker*/
 
 	protected void timerTaskStart() {
 	    //mTimer = new Timer();
-	    timertask = new TheTimerTask();
-	    mTimer.schedule( timertask, 0, 1000); // 100 milli seconds
+	    if (timertask==null) {
+	    	timertask = new TheTimerTask();
+	    	mTimer.schedule( timertask, 0, 1000); // 100 milli seconds
+	    }
 	}
 
 	protected void timerTaskPause() {
@@ -1122,25 +1125,34 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0x40);
+        //d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0xFF);
+        //d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.restart), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.restart), 0x40);
         items.add(new Item("End", d1));
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0x40);
+        //d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0xFF);
+        //d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.undo), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.undo), 0x40);
         items.add(new Item("Undo", d1));
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0x40);
+        //d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0xFF);
+        //d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.redo), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.redo), 0x40);
         items.add(new Item("Redo", d1));
         //d1 = null;
 
         //items.add(new Item("Well selection", (BitmapDrawable)d3));
-        items.add(new Item("Home", (BitmapDrawable)d3));
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0x40);
+        items.add(new Item("Home", d1));
 	}
 
 	/*20131126 add by michael
@@ -1155,11 +1167,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		View v;
         My_StateListDrawable d1, d2;
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0x40);
         d2 = new My_StateListDrawable(this);
-        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en), 0xFF);
-        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause_en), 0x40);
+        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0xFF);
+        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0x40);
         Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
         BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
 		
@@ -1281,4 +1293,17 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		}
 		return true;
 	}
+	
+	/*20131205 added by michael
+	 * catch the HW back key button pressed event¡Alock system default function to finish the app¡Aprevent user touch the HW key carelessly*/
+	/*@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+	    if (keyCode == KeyEvent.KEYCODE_BACK ) {
+	        //do your stuff
+	    }
+	    return super.onKeyDown(keyCode, event);
+	}*/
+	public void onBackPressed() {
+		//super.onBackPressed();
+    }
 }
