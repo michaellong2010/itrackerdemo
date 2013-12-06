@@ -58,7 +58,14 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 /*20130327 added by michael*/
     public int Last_Coord_X, Last_Coord_Y, Last_Coord_X_Count, Last_Coord_Y_Count;
     boolean Show_focus_coord;
-
+/*20131206 added by michael*/
+    PorterDuffXfermode Xfermode_clear = new PorterDuffXfermode(Mode.CLEAR);
+    PorterDuffXfermode Xfermode_src = new PorterDuffXfermode(Mode.SRC);
+    PorterDuffXfermode Xfermode_src_out = new PorterDuffXfermode(Mode.SRC_OUT);
+    PorterDuffXfermode Xfermode_src_over = new PorterDuffXfermode(Mode.SRC_OVER);
+    PorterDuffXfermode Xfermode_dst_over = new PorterDuffXfermode(Mode.DST_OVER);
+    PorterDuffXfermode Xfermode_dst = new PorterDuffXfermode(Mode.DST);
+    
 	public I_Tracker_Well_Plate_View(Context context, int wells) {
 		super(context);
 		mWells = wells;
@@ -283,16 +290,16 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	}
 
 	//@Override
-	//protected void onDraw(Canvas canvas) {
+	protected void onDraw(Canvas canvas) {
 		//DrawBitmap();
-		//super.onDraw(canvas);
+		super.onDraw(canvas);
       /*Paint paint = new Paint();  
       paint.setXfermode(new PorterDuffXfermode(Mode.CLEAR));  
       canvas.drawPaint(paint);  
       paint.setXfermode(new PorterDuffXfermode(Mode.SRC));*/
 		//canvas.drawColor(Color.BLACK);
 		//canvas.drawBitmap(Bmp_Well_Plate, 0, 0, null);
-	//}
+	}
 	
 	private void Draw_Client_Well_Region(Canvas canvas, int Client_Border_left, int Client_Border_top)
 	{
@@ -429,11 +436,14 @@ public class I_Tracker_Well_Plate_View extends ImageView {
             margin_x = convert_mm2pixel((2*Border_left+mwell_pitch_x+well_x*2*mwell_pitch_x)/2);
 			if (color_index==0) {
 				mPaint = mPaint_well_Fill;
-				mPaint.setColor(Color.BLACK);
+				//mPaint.setColor(Color.BLACK);
+				mPaint.setXfermode(Xfermode_clear);
 				Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
-				mPaint.setColor(Color.WHITE);
+				mPaint.setXfermode(null);
+				//mPaint.setColor(Color.WHITE);
 				mPaint = mPaint_well_Stroke;
 				mPaint.setColor(Color.WHITE);
+				//mPaint.setXfermode(Xfermode_clear);
 			} else {
 				mPaint = mPaint_well_Fill;
 				if (color_index <= total_colors) {
@@ -441,8 +451,10 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 				} else {
 					mPaint.setColor(Mark_Color_Table[total_colors - 1]);
 				}
+				mPaint.setXfermode(Xfermode_dst_over);
 			}
 			Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
+			mPaint.setXfermode(null);
 			this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
 			
 			/*update the lower well*/
@@ -451,16 +463,25 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			margin_x = convert_mm2pixel((2*Client_Border_left+mClient_well_pitch_x+well_x*2*mClient_well_pitch_x)/2);
 			if (color_index==0) {
 				if (I_Tacker_Activity.mWell_View_Display_Mode==0) {
+					mPaint = mPaint_well_Fill;
+					mPaint.setXfermode(Xfermode_clear);
+					Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
+					mPaint.setXfermode(null);
 					mPaint = mPaint_well_Stroke;
 					Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
 					this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
 				}
 				else {
 					mPaint = mPaint_well_Fill;
+					mPaint.setXfermode(Xfermode_clear);
+					Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
+					mPaint.setXfermode(null);
+					this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
+					/*mPaint = mPaint_well_Fill;
 					mPaint.setColor(Color.BLACK);
 					Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
 					this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
-					mPaint.setColor(Color.WHITE);			
+					mPaint.setColor(Color.WHITE);*/			
 				}
 
 			} else {
