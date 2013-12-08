@@ -61,6 +61,10 @@ public class I_Tracker_Device {
     public int Forwardable, Backwardable;
     /*20131208 added by michael*/
     Object lock1, lock2;
+    static final int ACTION_None = -1;
+    static final int ACTION_Undo = 1;
+    static final int ACTION_Redo = 2;
+    protected int Action_flag = -1;
     
     public I_Tracker_Device(Context context) {
     	mContext = context;
@@ -242,6 +246,7 @@ public class I_Tracker_Device {
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
             	Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] - 1;
             	Need_Update_UI = 1;
+            	Action_flag = ACTION_Undo;
             }
             if (Valid_Coord_Back_For==0) {
             	Backwardable = 0;
@@ -285,6 +290,7 @@ public class I_Tracker_Device {
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
             	Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
             	Need_Update_UI = 1;
+            	Action_flag = ACTION_Redo;
             }
             Valid_Coord_Back_For = Valid_Coord_Back_For + 1;
             if (Valid_Coord_Back_For==Valid_Coord_Seq_Index) {
@@ -309,6 +315,23 @@ public class I_Tracker_Device {
     		Arrays.fill(Valid_Coord_Histogram[i], 0x00);
     	Arrays.fill(Valid_Coord_Buf_Seq, 0x00);
     	Valid_Coord_Back_For = Valid_Coord_Seq_Index = 0;
+	}
+	
+	/*20131208 added by michael*/
+	public int get_reverse_undo_coord() {
+		if (Action_flag==ACTION_Undo) {
+			Action_flag = ACTION_None;
+			return Valid_Coord_Buf_Seq[Valid_Coord_Back_For+1];
+		}
+		return -1;
+	}
+	
+	public int get_reverse_redo_coord() {
+		if (Action_flag==ACTION_Redo) {
+			Action_flag = ACTION_None;
+			return Valid_Coord_Buf_Seq[Valid_Coord_Back_For-1];
+		}
+		return -1;
 	}
 	
 	/*20130318 added by michael*/
@@ -358,6 +381,7 @@ public class I_Tracker_Device {
 					Valid_Coord_Buf_Seq[Valid_Coord_Seq_Index] = Valid_Coord_Buf[i];
 					Valid_Coord_Seq_Index = Valid_Coord_Seq_Index + 1;
 					Valid_Coord_Back_For = Valid_Coord_Seq_Index;
+					Action_flag = ACTION_None;
 					Forwardable = 0;
 					Backwardable = 1;
 					Need_Update_UI = 1;

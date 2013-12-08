@@ -466,7 +466,7 @@ radio group to let user to choice well plate for i-tacker*/
 				case R.id.ID_MI_previous_trans:
 					/*if (!isBackable())
 						mMenu_item_state ^= 1 << Itracker_MI_Previos_Tran;*/
-					synchronized (TheDelegatedTimerTask) {
+					//synchronized (TheDelegatedTimerTask) {
 						UI_invalid = mItracker_dev.go_backward();
 						if (mItracker_dev.Backwardable==0) {
 							mItrackerState &= ~(1 << Itracker_State_isBackable);
@@ -479,18 +479,19 @@ radio group to let user to choice well plate for i-tacker*/
 
 						UpdateActionMenuItem();
 						if (UI_invalid == 1) {
-							Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
+							Well_View.decrese_SingleWellColor(mItracker_dev.get_reverse_undo_coord());
+							//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
 							Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
 							//Well_View.DrawBitmap();
 							//Well_View.invalidate();
 							//Toast mToastMsg = Toast.makeText(getApplicationContext(), "previous", Toast.LENGTH_LONG);
 						}
-					}
+					//}
 					break;
 				case R.id.ID_MI_next_trans:
 					/*if (!isForwardable())
 						mMenu_item_state ^= 1 << Itracker_MI_Next_Tran;*/
-					synchronized (TheDelegatedTimerTask) {
+					//synchronized (TheDelegatedTimerTask) {
 						UI_invalid = mItracker_dev.go_forward();
 						if (mItracker_dev.Backwardable==1) {
 							mItrackerState |= 1 << Itracker_State_isBackable;
@@ -503,12 +504,13 @@ radio group to let user to choice well plate for i-tacker*/
 
 						UpdateActionMenuItem();
 						if (UI_invalid == 1) {
-							Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
+							Well_View.increase_SingleWellColor(mItracker_dev.get_reverse_redo_coord());
+							//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
 							Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
 							//Well_View.DrawBitmap();
 							//Well_View.invalidate();
 						}
-					}
+					//}
 					break;
 
 				case R.id.ID_MI_well_selection:

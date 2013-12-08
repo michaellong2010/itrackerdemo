@@ -605,4 +605,47 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			}
 		}
 	}
+	
+	/*20131208 added by michael*/
+	public void decrese_SingleWellColor(int focus_valid_coord) {
+		int Coord_X, Coord_Y, Coord_X_Count, Coord_Y_Count; 
+
+		if (focus_valid_coord != -1) {
+			Coord_X = (focus_valid_coord) & I_Tracker_Device.Coord_X_Mask;
+			Coord_Y = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_shift) & I_Tracker_Device.Coord_X_Mask;
+			//Coord_Y = Y_holes - 1 - Coord_Y;
+			Coord_X_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_X_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
+			Coord_Y_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
+			
+			if (Coord_X >= 0 && Coord_Y >= 0) {
+				Well_Color_index[Coord_X][Coord_Y]--;
+				Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, (Y_holes - 1 - Coord_Y));
+			}
+		}
+		else {
+			Coord_X_Count = -1;
+			Coord_Y_Count = -1;
+		}
+	}
+	
+	public void increase_SingleWellColor(int focus_valid_coord) {
+		int Coord_X, Coord_Y, Coord_X_Count, Coord_Y_Count; 
+
+		if (focus_valid_coord != -1) {
+			Coord_X = (focus_valid_coord) & I_Tracker_Device.Coord_X_Mask;
+			Coord_Y = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_shift) & I_Tracker_Device.Coord_X_Mask;
+			//Coord_Y = Y_holes - 1 - Coord_Y;
+			Coord_X_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_X_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
+			Coord_Y_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
+			
+			if (Coord_X >= 0 && Coord_Y >= 0) {
+				Well_Color_index[Coord_X][Coord_Y]++;
+				Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, Coord_Y);
+			}
+		}
+		else {
+			Coord_X_Count = -1;
+			Coord_Y_Count = -1;
+		}
+	}
 }
