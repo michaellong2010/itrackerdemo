@@ -180,3 +180,8 @@ Canvas物件，我們在這Canvas畫想要畫的東西，所以有很多固定不變的draw call每次進到o
 
 20130327
 1.  I_Tracker_Well_Plate.set_focus_coord()設置當前最後滴取的位置，然後每秒鐘blinking一次該位置
+
+20131208
+1.  timer thread理task queue原本由timerTaskStart()和timerTaskPause()控制enqueue及dequeue，重新改寫成一般worker thread
+2.  建立iTracker_polling_thread，TheDelegatedPollingTask與原本TheDelegatedTimerTask一樣，指定它成iTracker_polling_thread要執行的內容
+3.  Itracker_device.Itracker_IOCTL會被UI和worker thread競爭存取，因此必須用synchronized保證同一時間只有一個thread可執行該方法，我們把原本lock class範圍縮小成lock block

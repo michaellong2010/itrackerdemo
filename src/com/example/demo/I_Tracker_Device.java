@@ -59,6 +59,8 @@ public class I_Tracker_Device {
     IntBuffer Itracker_dev_data;
     int [] Valid_Coord_Buf;
     public int Forwardable, Backwardable;
+    /*20131208 added by michael*/
+    Object lock1, lock2;
     
     public I_Tracker_Device(Context context) {
     	mContext = context;
@@ -94,6 +96,10 @@ public class I_Tracker_Device {
     	
     	Forwardable = 0;
     	Backwardable = 0;
+    	
+    	/*20131208 added by michael*/
+    	lock1 = new Object();
+    	lock2 = new Object();
     }
     
 /*    private void RegisterReceiver() {
@@ -489,7 +495,9 @@ public class I_Tracker_Device {
     }
 	/*20130314 added by michael*/	
 	//device IOCTL
-    public synchronized boolean Itracker_IOCTL(int itracker_cmd, int debug) {
+    //public synchronized boolean Itracker_IOCTL(int itracker_cmd, int debug) {
+    public boolean Itracker_IOCTL(int itracker_cmd, int debug) {
+    	synchronized(lock1) {
 		message.set(itracker_cmd, 0, 0, null, debug);
 		message.process_command(0);
 		if (itracker_cmd==CMD_T.HID_CMD_ITRACKER_DATA) {
@@ -501,6 +509,7 @@ public class I_Tracker_Device {
 			Itracker_dev_data.get(Valid_Coord_Buf);
 		}
 		return true;
+    	}
 	}
 
 /*struct I_tracker_setting_type {
