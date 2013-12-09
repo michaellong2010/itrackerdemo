@@ -174,14 +174,14 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 				if (mItracker_dev != null && mItracker_dev.getDevice() != null) {
 					if (device.getProductId() == mItracker_dev.getDevice().getProductId() && device.getVendorId() == mItracker_dev.getDevice().getVendorId()) {
 						mItracker_dev.DeviceOffline();
-
+						Stop_Refresh_iTracker_Data_Thread();
+						
 						Itracker_MI_State = 0;
 						UpdateActionMenuItem();
 						Log.d(Tag, "onReceive process thread id" + Integer.toString(Process.myTid()));
 						mItracker_dev.show_debug(Tag+"onReceive process thread id" + Integer.toString(Process.myTid())+"\n");
 						/*20131208 modified by michael*/
 						//timerTaskPause();
-						Stop_Refresh_iTracker_Data_Thread();
 						Show_Toast_Msg(I_Tracker_Device_DisCon);
 						mItrackerState = 0;
 					}
@@ -306,7 +306,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	 * To enhance performance¡Ainstead of using timertask on timer thread¡Ausing the pure worker thread to handle polling iTracker data*/
 	Thread iTracker_polling_thread;
 	//Runnable iTracker_DataRefreshTask;
-	boolean AllowRefresh_iTrackerData = true;
+	boolean AllowRefresh_iTrackerData = false;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -411,7 +411,7 @@ radio group to let user to choice well plate for i-tacker*/
 						mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");*/
 						
 						/*20130327 added by michael*/
-						Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
+						//Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
 						/*20131208 modified by michael
 						 * replace timerTaskStart() with Start_Refresh_iTracker_Data_Thread()*/
 						//timerTaskStart();
@@ -788,10 +788,22 @@ radio group to let user to choice well plate for i-tacker*/
 						//if ((mItrackerState & (1 << Itracker_State_isForwardable)) == 0)
 							Itracker_MI_State &= ~(1 << Itracker_MI_Next_Tran);
 					//}
+				    		try {
+								Thread.sleep(650);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 		    	}
 		    	else {
 		    		/*20130327 added by michael*/
 		    		mHandler.post(BlinkWellTimerTask);
+		    		try {
+						Thread.sleep(650);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 		    	}
 			}
 		}
@@ -824,6 +836,7 @@ radio group to let user to choice well plate for i-tacker*/
 	 * instead of using timer thread to request iTracker data continuously¡Acreate a newly worker thread to  retrieve the iTracker data*/
 	protected void Start_Refresh_iTracker_Data_Thread() {
 		if (iTracker_polling_thread.getState()==Thread.State.TERMINATED) {
+			AllowRefresh_iTrackerData = true;
 			iTracker_polling_thread = new Thread(iTracker_DataRefreshTask);
 			iTracker_polling_thread.start();
 		}
@@ -836,8 +849,8 @@ radio group to let user to choice well plate for i-tacker*/
 
 	protected void Stop_Refresh_iTracker_Data_Thread() {
 		//if the thread state is New then exit the loop runnable by setting the variable AllowRefresh_iTrackerData=false
-		if (iTracker_polling_thread.getState() == Thread.State.NEW) {
-			AllowRefresh_iTrackerData = false;
+		AllowRefresh_iTrackerData = false;
+		//if (iTracker_polling_thread.getState() == Thread.State.NEW) {
 			boolean retry = true;
 			while (retry) {
 				try {
@@ -846,7 +859,7 @@ radio group to let user to choice well plate for i-tacker*/
 				} catch (InterruptedException e) {
 				}
 			}
-		}
+		//}
 	}
 
 	@Override

@@ -65,7 +65,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     PorterDuffXfermode Xfermode_src_over = new PorterDuffXfermode(Mode.SRC_OVER);
     PorterDuffXfermode Xfermode_dst_over = new PorterDuffXfermode(Mode.DST_OVER);
     PorterDuffXfermode Xfermode_dst = new PorterDuffXfermode(Mode.DST);
-    
+/*20131209 added by michael*/
+    Object lock1, lock2;
 	public I_Tracker_Well_Plate_View(Context context, int wells) {
 		super(context);
 		mWells = wells;
@@ -120,6 +121,10 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		//Canvas_Well_Plate = new Canvas(Bmp_Well_Plate);
 		setImageBitmap(Bmp_Well_Plate);
 		mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
+		
+    	/*20131209 added by michael*/
+    	lock1 = new Object();
+    	lock2 = new Object();
 	}
 
 	/*20130325 added by michael*/
@@ -517,10 +522,12 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					
 					/*20130325 night added by michael*/
 					//compare current color index with well histogram
+					//synchronized(lock1) {
 					if (Well_Color_index[i][j] != a[i][Y_holes-1-j]) {
 						Invalidate_Single_Well(a[i][Y_holes-1-j], i, j);
 						Well_Color_index[i][j] = a[i][Y_holes-1-j];
 					}
+					//}
 				}
 			}
 		//}
@@ -613,13 +620,15 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		if (focus_valid_coord != -1) {
 			Coord_X = (focus_valid_coord) & I_Tracker_Device.Coord_X_Mask;
 			Coord_Y = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_shift) & I_Tracker_Device.Coord_X_Mask;
-			//Coord_Y = Y_holes - 1 - Coord_Y;
+			Coord_Y = Y_holes - 1 - Coord_Y;
 			Coord_X_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_X_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			Coord_Y_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			
 			if (Coord_X >= 0 && Coord_Y >= 0) {
-				Well_Color_index[Coord_X][Coord_Y]--;
-				Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, (Y_holes - 1 - Coord_Y));
+				//synchronized(lock1) {
+					Well_Color_index[Coord_X][Coord_Y]--;
+					Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, Coord_Y);
+				//}
 			}
 		}
 		else {
@@ -634,13 +643,15 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		if (focus_valid_coord != -1) {
 			Coord_X = (focus_valid_coord) & I_Tracker_Device.Coord_X_Mask;
 			Coord_Y = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_shift) & I_Tracker_Device.Coord_X_Mask;
-			//Coord_Y = Y_holes - 1 - Coord_Y;
+			Coord_Y = Y_holes - 1 - Coord_Y;
 			Coord_X_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_X_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			Coord_Y_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			
 			if (Coord_X >= 0 && Coord_Y >= 0) {
-				Well_Color_index[Coord_X][Coord_Y]++;
-				Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, Coord_Y);
+				//synchronized(lock1) {
+					Well_Color_index[Coord_X][Coord_Y]++;
+					Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, Coord_Y);
+				//}
 			}
 		}
 		else {

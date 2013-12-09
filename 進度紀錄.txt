@@ -186,3 +186,6 @@ Canvas物件，我們在這Canvas畫想要畫的東西，所以有很多固定不變的draw call每次進到o
 2.  建立iTracker_polling_thread，TheDelegatedPollingTask與原本TheDelegatedTimerTask一樣，指定它成iTracker_polling_thread要執行的內容
 3.  Itracker_device.Itracker_IOCTL會被UI和worker thread競爭存取，因此必須用synchronized保證同一時間只有一個thread可執行該方法，我們把原本lock class範圍縮小成lock block
 4.  I_Tracker_Well_Plate_View.decrese_SingleWellColor(...)及I_Tracker_Well_Plate_View.increase_SingleWellColor(...)操作Undo與Redo更有效率更新well plate view上color count index
+
+20131209
+1.  測試昨天新增的修正，worker thread每個回合加入適當延遲

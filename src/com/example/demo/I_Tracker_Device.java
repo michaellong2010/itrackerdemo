@@ -64,7 +64,7 @@ public class I_Tracker_Device {
     static final int ACTION_None = -1;
     static final int ACTION_Undo = 1;
     static final int ACTION_Redo = 2;
-    protected int Action_flag = -1;
+    protected int Action_flag = ACTION_None;
     
     public I_Tracker_Device(Context context) {
     	mContext = context;
@@ -321,7 +321,7 @@ public class I_Tracker_Device {
 	public int get_reverse_undo_coord() {
 		if (Action_flag==ACTION_Undo) {
 			Action_flag = ACTION_None;
-			return Valid_Coord_Buf_Seq[Valid_Coord_Back_For+1];
+			return Valid_Coord_Buf_Seq[Valid_Coord_Back_For];
 		}
 		return -1;
 	}
@@ -381,7 +381,6 @@ public class I_Tracker_Device {
 					Valid_Coord_Buf_Seq[Valid_Coord_Seq_Index] = Valid_Coord_Buf[i];
 					Valid_Coord_Seq_Index = Valid_Coord_Seq_Index + 1;
 					Valid_Coord_Back_For = Valid_Coord_Seq_Index;
-					Action_flag = ACTION_None;
 					Forwardable = 0;
 					Backwardable = 1;
 					Need_Update_UI = 1;
