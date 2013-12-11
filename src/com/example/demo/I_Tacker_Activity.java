@@ -235,7 +235,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 	TheTimerTask timertask;
 /*20130318 added by michael*/
 	I_Tracker_Well_Plate_View Well_View;
-	public int UI_invalid = 0;
+	public int UI_invalid = 0, UI_invalid_pipetting = 0;
 
 /*20130319 added by michael*/
 	Intent SystemUI_intent = new Intent();
@@ -479,8 +479,8 @@ radio group to let user to choice well plate for i-tacker*/
 
 						UpdateActionMenuItem();
 						if (UI_invalid == 1) {
-							Well_View.decrese_SingleWellColor(mItracker_dev.get_reverse_undo_coord());
-							//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
+							//Well_View.decrese_SingleWellColor(mItracker_dev.get_reverse_undo_coord());
+							Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
 							Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
 							//Well_View.DrawBitmap();
 							//Well_View.invalidate();
@@ -504,8 +504,8 @@ radio group to let user to choice well plate for i-tacker*/
 
 						UpdateActionMenuItem();
 						if (UI_invalid == 1) {
-							Well_View.increase_SingleWellColor(mItracker_dev.get_reverse_redo_coord());
-							//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
+							//Well_View.increase_SingleWellColor(mItracker_dev.get_reverse_redo_coord());
+							Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
 							Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
 							//Well_View.DrawBitmap();
 							//Well_View.invalidate();
@@ -731,7 +731,7 @@ radio group to let user to choice well plate for i-tacker*/
 	    	mItracker_dev.Valid_Coord_Seq_Index;
 	    	mItracker_dev.Valid_Coord_Back_For;*/
 			//synchronized (TheDelegatedTimerTask) {
-				UI_invalid = mItracker_dev.Process_Itracker_Data();
+	    	UI_invalid_pipetting = mItracker_dev.Process_Itracker_Data();
 			//}
 	    	//Well_View.setWellColor();
 	    	//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
@@ -739,7 +739,7 @@ radio group to let user to choice well plate for i-tacker*/
 	    	
 	    	//queue a Runnable task into UI thread
 		    //synchronized (TheDelegatedTimerTask) {
-	    	if (UI_invalid != 0) {
+	    	if (UI_invalid_pipetting != 0) {
 				//synchronized (TheDelegatedTimerTask) {
 	    		//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
 					mHandler.post(TheDelegatedTimerTask);
@@ -773,11 +773,11 @@ radio group to let user to choice well plate for i-tacker*/
 				/*****  Run in worker thread  *****/
 				
 				mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0);
-				UI_invalid = mItracker_dev.Process_Itracker_Data();
+				UI_invalid_pipetting = mItracker_dev.Process_Itracker_Data();
 				
 		    	//queue a Runnable task into UI thread
 			    //synchronized (TheDelegatedTimerTask) {
-		    	if (UI_invalid != 0) {
+		    	if (UI_invalid_pipetting != 0) {
 		    		//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
 						mHandler.post(TheDelegatedTimerTask);
 						mItrackerState |= 1 << Itracker_State_isBackable;

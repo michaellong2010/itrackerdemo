@@ -233,7 +233,7 @@ public class I_Tracker_Device {
 		}*/
 	public int go_backward() {
 		
-		int x, y;
+		int x, y, i, j;
 		int Need_Update_UI = 0;
 
 		if (Valid_Coord_Back_For > 0) {
@@ -244,7 +244,13 @@ public class I_Tracker_Device {
 			x = Coord_X;
             y = Coord_Y;
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
-            	Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] - 1;
+            	/*20131210 modified by michael*/
+            	//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] - 1;
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += 2) {
+						Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] - 1;
+					}
+				}
             	Need_Update_UI = 1;
             	Action_flag = ACTION_Undo;
             }
@@ -278,7 +284,7 @@ public class I_Tracker_Device {
 	}*/
 	public int go_forward() {
 		
-		int x, y;
+		int x, y, i, j;
 		int Need_Update_UI = 0;
 
 		if (Valid_Coord_Back_For < Valid_Coord_Seq_Index) {
@@ -288,7 +294,13 @@ public class I_Tracker_Device {
 			x = Coord_X;
             y = Coord_Y;
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
-            	Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+            	/*20131210 modified by michael*/
+            	//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += 2) {
+						Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+					}
+				}
             	Need_Update_UI = 1;
             	Action_flag = ACTION_Redo;
             }
@@ -344,9 +356,14 @@ public class I_Tracker_Device {
 	mItracker_dev.Valid_Coord_Back_For;*/
 	//if need update well plate UI return 1 else return 0
 	public int Process_Itracker_Data() {
-		int i = 0, x, y;
+		int i = 0, x, y, j, k;
 		int Need_Update_UI = 0;
 		
+		/*20131210 added by michael
+		 * if Valid_Coord_Buf is locked by iTracker device¡Athen skip the iteration for data processing*/
+		if (buffer_locked != 0)
+			return Need_Update_UI;
+				
 		show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"coord_index:  "+Itracker_dev_data.get(1)+"\n");
 		for (i = 0; i <= coord_index; i++) {
 			Coord_X = (Valid_Coord_Buf[i]) & Coord_X_Mask;
@@ -362,13 +379,20 @@ public class I_Tracker_Device {
 					&& itracker_dev.Valid_Coord_Buf[i].Coord_Y_Count == 1) {
 			}*/
 			
-			if (Coord_X_Count==1 && Coord_Y_Count==1) {
+			/*20131210 modified by michael*/
+			//if (Coord_X_Count==1 && Coord_Y_Count==1) {
+			if (1 <= Coord_X_Count && 1 <= Coord_Y_Count) {
 				//TRACE("Valid coordinate (%d, %d)\n", x, y);
 				show_debug(Tag+String.format("Valid coordinate (%d, %d)\n", Coord_X, Coord_Y));
 				x =  Coord_X;
 				y =  Coord_Y;
 				if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
-					Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+					//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+					for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += 2) {
+						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += 2) {
+							Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+						}
+					}
 /*					if (pItrackerDlg->Valid_Coord_Back_For != pItrackerDlg->Valid_Coord_Seq_Index)
 						  pItrackerDlg->Valid_Coord_Seq_Index = pItrackerDlg->Valid_Coord_Back_For;
 						pItrackerDlg->Valid_Coord_Buf_Seq[pItrackerDlg->Valid_Coord_Seq_Index] = itracker_dev.Valid_Coord_Buf[i];
@@ -386,14 +410,14 @@ public class I_Tracker_Device {
 					Need_Update_UI = 1;
 				}
 			}
-			else
+			/*else
 				if (Coord_X_Count==1 && Coord_Y_Count > 1) {
 					
 				}
 				else
 					if (Coord_X_Count > 1 && Coord_Y_Count==1) {
 						
-					}
+					}*/
 		}
 		return Need_Update_UI;
 	}
@@ -530,6 +554,8 @@ public class I_Tracker_Device {
 			Arrays.fill(Valid_Coord_Buf, 0x00);
 			Itracker_dev_data.position(2);
 			Itracker_dev_data.get(Valid_Coord_Buf);
+			/*20131210 added by michael*/
+			buffer_locked = Itracker_dev_data.get(Itracker_dev_data.limit()-2);
 		}
 		return true;
     	}
@@ -578,6 +604,9 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	public static final int Coord_Y_shift = 5;
 	public static final int Coord_X_Count_shift = 10;
 	public static final int Coord_Y_Count_shift = 14;
+	/*20131210 added by michael
+	 * buffer_locked represent if Valid_Coord_Buf be locked*/
+	public int buffer_locked = 0;
 	
 	public final class CMD_T {
 		public final String Tag = "Command";

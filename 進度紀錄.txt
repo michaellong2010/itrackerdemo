@@ -189,3 +189,30 @@ Canvas物件，我們在這Canvas畫想要畫的東西，所以有很多固定不變的draw call每次進到o
 
 20131209
 1.  測試昨天新增的修正，worker thread每個回合加入適當延遲
+
+20131211
+1.  worker thread裡存在與UI thread資料衝突，變量UI_valid產生競爭危險，把worker thread的UI_invalid修改成UI_invalid_pipetting
+按下undo事件，這段事件代碼由UI thread執行
+case R.id.ID_MI_previous_trans:
+  UI_invalid = mItracker_dev.go_backward();
+......
+  if (UI_invalid == 1) {
+  }
+
+
+以下代碼worker thread一直無窮迴圈執行
+Runnable iTracker_DataRefreshTask = new Runnable() {
+  public void run() {
+    // TODO Auto-generated method stub
+    while (AllowRefresh_iTrackerData) {
+      mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0);
+      UI_invalid = mItracker_dev.Process_Itracker_Data();
+
+      if (UI_invalid != 0) {
+      }
+    }
+  }
+}
+
+再仔細分析I_Tacker_Activity.java成員go_backward()由UI thread調用但Itracker_IOCTL(...)、Process_Itracker_Data()由worker thread調用，這三個成員方法產生同步race condition情況是不太可能的
+，原因在於不可能同時操作redo、undo、pipetting，因此無須加一些同步lock

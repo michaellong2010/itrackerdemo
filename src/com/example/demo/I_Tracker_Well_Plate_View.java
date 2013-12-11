@@ -509,6 +509,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	public void setWellColor(int a[][]) {
 		int i = 0, j = 0, temp;
 		//synchronized (Well_Color_index) {
+		//synchronized(lock1) {
 			//for (i = 0; i < a.length; i++) {
 			for (i = 0; i < X_holes; i++) {
 				// System.arraycopy( aArray, 0, copy, 0, aArray.length );
@@ -522,12 +523,10 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					
 					/*20130325 night added by michael*/
 					//compare current color index with well histogram
-					//synchronized(lock1) {
 					if (Well_Color_index[i][j] != a[i][Y_holes-1-j]) {
 						Invalidate_Single_Well(a[i][Y_holes-1-j], i, j);
 						Well_Color_index[i][j] = a[i][Y_holes-1-j];
 					}
-					//}
 				}
 			}
 		//}
@@ -601,13 +600,25 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	}
 	
 	public void blink_last_well() {
+		int x, y, i, j;
+		
 		if (Last_Coord_X_Count > 0 && Last_Coord_Y_Count > 0) {
 			if (Show_focus_coord) {
-				Invalidate_Single_Well(Well_Color_index[Last_Coord_X][Last_Coord_Y], Last_Coord_X, Last_Coord_Y);
+				//Invalidate_Single_Well(Well_Color_index[Last_Coord_X][Last_Coord_Y], Last_Coord_X, Last_Coord_Y);
+				for (i = 0, x = Last_Coord_X; i < Last_Coord_X_Count; i++, x+= 2) {
+					for (j = 0, y = Last_Coord_Y; j < Last_Coord_Y_Count; j++, y-= 2) {
+						Invalidate_Single_Well(Well_Color_index[x][y], x, y);
+					}
+				}
 				Show_focus_coord = false;
 			}
 			else {
-				Invalidate_Single_Well(0, Last_Coord_X, Last_Coord_Y);
+				//Invalidate_Single_Well(0, Last_Coord_X, Last_Coord_Y);
+				for (i = 0, x = Last_Coord_X; i < Last_Coord_X_Count; i++, x+= 2) {
+					for (j = 0, y = Last_Coord_Y; j < Last_Coord_Y_Count; j++, y-= 2) {
+						Invalidate_Single_Well(0, x, y);
+					}
+				}
 				Show_focus_coord = true;
 			}
 		}
@@ -615,7 +626,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	
 	/*20131208 added by michael*/
 	public void decrese_SingleWellColor(int focus_valid_coord) {
-		int Coord_X, Coord_Y, Coord_X_Count, Coord_Y_Count; 
+		int Coord_X, Coord_Y, Coord_X_Count, Coord_Y_Count, x, y, i, j; 
 
 		if (focus_valid_coord != -1) {
 			Coord_X = (focus_valid_coord) & I_Tracker_Device.Coord_X_Mask;
@@ -626,8 +637,12 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			
 			if (Coord_X >= 0 && Coord_Y >= 0) {
 				//synchronized(lock1) {
-					Well_Color_index[Coord_X][Coord_Y]--;
-					Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, Coord_Y);
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y -= 2) {
+						Well_Color_index[x][y]--;
+						Invalidate_Single_Well(Well_Color_index[x][y], x, y);
+					}
+				}
 				//}
 			}
 		}
@@ -638,7 +653,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	}
 	
 	public void increase_SingleWellColor(int focus_valid_coord) {
-		int Coord_X, Coord_Y, Coord_X_Count, Coord_Y_Count; 
+		int Coord_X, Coord_Y, Coord_X_Count, Coord_Y_Count, x, y, i, j; 
 
 		if (focus_valid_coord != -1) {
 			Coord_X = (focus_valid_coord) & I_Tracker_Device.Coord_X_Mask;
@@ -649,8 +664,12 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			
 			if (Coord_X >= 0 && Coord_Y >= 0) {
 				//synchronized(lock1) {
-					Well_Color_index[Coord_X][Coord_Y]++;
-					Invalidate_Single_Well(Well_Color_index[Coord_X][Coord_Y], Coord_X, Coord_Y);
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y -= 2) {
+						Well_Color_index[x][y]++;
+						Invalidate_Single_Well(Well_Color_index[x][y], x, y);
+					}
+				}
 				//}
 			}
 		}
