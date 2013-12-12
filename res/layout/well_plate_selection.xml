@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ID_well_plate_selection"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent" 
+    android:baselineAligned="true"
+    android:orientation="vertical"
+    android:layout_gravity="center_horizontal"
+>
+    
+    <!-- android:layout_gravity="center_horizontal"
+    android:gravity="center"
+    android:gravity="center_horizontal"
+     -->
+  <!--<TextView
+        android:id="@+id/ID_well_plate_selection_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/well_plate_selection"
+        android:textSize="60sp"
+        android:textColor="@color/caption_blue"
+    />-->
+
+    <Button
+        android:id="@+id/ID_btn_96_well_plate"
+        android:layout_width="600dp"
+        android:layout_height="wrap_content"
+        android:text="@string/well_96"
+        android:textSize="60sp"        
+        android:layout_marginTop="25dp"
+        android:background="#FF2F9EBB"
+        android:onClick="OnBnClick_96_Well_Plate"/>
+
+    <Button
+        android:id="@+id/ID_btn_384_well_plate"
+        android:layout_width="600dp"
+        android:layout_height="wrap_content"
+        android:text="@string/well_384" 
+        android:textSize="60sp"
+        android:layout_marginBottom="55dp"
+        android:layout_marginTop="25dp"
+        android:background="#FF2F9EBB"
+        android:onClick="OnBnClick_384_Well_Plate"/>
+
+<!-- 20130306 added by michael
+change the content view to main i-tracker
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"     
+ -->
+    <RelativeLayout
+        android:id="@+id/my_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <Button
+            android:id="@+id/ID_btn_logfile_itracker"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_caption_logfile_itracker"
+            android:textColor="@android:color/primary_text_light"
+            android:layout_alignParentLeft="true"
+            android:onClick="OnBnClickLogFileItracker"
+            android:textSize="40sp" />
+
+        <Button
+            android:id="@+id/ID_btn_exit_itracker"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_caption_exit_itracker"
+            android:textColor="@android:color/primary_text_light"
+            android:layout_alignParentRight="true"
+            android:onClick="OnBnClickExitItracker"
+            android:textSize="40sp" />
+    </RelativeLayout>
+
+</LinearLayout>

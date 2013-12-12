@@ -81,6 +81,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 	Button tmp_Button;
 	RadioButton tmp_Radio_button;
 	RadioGroup myRadiogroup;
+	LinearLayout myWellPlateSelection;
 	int Well_Selection;
 
 /*20130308 added by michael
@@ -280,7 +281,10 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 				Itracker_MI_State = 0;
 			Reset_App();
 			mLayout_Content.removeAllViews();
-			mLayout_Content.addView(myRadiogroup);
+			/*20131211 modified by michael
+			 * new well plate selection page*/
+			//mLayout_Content.addView(myRadiogroup);
+			mLayout_Content.addView(myWellPlateSelection);
 
 			//Toast.makeText(I_Tacker_Activity.this, "Great! Welcome.", Toast.LENGTH_SHORT).show();
 			/*20131124 added by michael*/
@@ -322,7 +326,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 /*20130306 added by michael
 radio group to let user to choice well plate for i-tacker*/
 		//Tag = getPackageName();
-		setContentView(R.layout.radiogroup_well_selection);
+		/*setContentView(R.layout.radiogroup_well_selection);
 		tmp_Radio_button = (RadioButton) findViewById(R.id.ID_radioButton1);
 		tmp_Radio_button.setOnCheckedChangeListener(this);
 		tmp_Radio_button = (RadioButton) findViewById(R.id.ID_radioButton2);
@@ -339,10 +343,12 @@ radio group to let user to choice well plate for i-tacker*/
 		Drawable d = tmp_Button.getBackground();
 		int resID = getResources().getIdentifier("btn_default", "drawable", "android");
 		String resName = getResources().getResourceName(resID);
-		Drawable d1 = getResources().getDrawable(resID);
+		Drawable d1 = getResources().getDrawable(resID);*/
 		//tmp_Button.setBackgroundDrawable(d1);
 
-
+        /*20131211 added by michael*/
+		setContentView(R.layout.well_plate_selection);
+		myWellPlateSelection = (LinearLayout) findViewById(R.id.ID_well_plate_selection);
 		Well_View = new I_Tracker_Well_Plate_View(this, I_Tracker_Well_Plate_View.Wells_384);
 		Well_View.setId(R.id.ID_well_plate_view);
 		FrameLayout.LayoutParams lp =  new FrameLayout.LayoutParams(600, 800);
@@ -896,6 +902,18 @@ radio group to let user to choice well plate for i-tacker*/
 		}
 	}
 
+	/*20131211 added by michael*/
+	public void OnBnClickLogFileItracker(View v) {
+		
+	}
+    public void OnBnClick_96_Well_Plate(View v) {
+    	Well_Selection = I_Tracker_Device.Well_96;
+    	OnBnClickEnterItracker(v);
+    }
+    public void OnBnClick_384_Well_Plate(View v) {
+    	Well_Selection = I_Tracker_Device.Well_384;
+    	OnBnClickEnterItracker(v);
+    }
 //Enter i-tracker single well demostration
 	public void OnBnClickEnterItracker(View v) {
 		if (Well_Selection==mItracker_dev.Well_96)

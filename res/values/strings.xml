@@ -3,10 +3,12 @@
 
     <string name="app_name">iTrack Demo</string>
     <string name="well_plate_selection">Select well plate type</string>
-    <string name="well_96">96 well plate</string>
-    <string name="well_384">384 well plate</string>
+    <string name="well_96">  96-Well Plate   </string>
+    <string name="well_384">  384-Well Plate  </string>
+    <!-- 20131211 modified by michael -->
     <string name="btn_caption_enter_itracker">Enter I_tracker</string>
-    <string name="btn_caption_exit_itracker">Exit I_tracker</string>
+    <string name="btn_caption_exit_itracker">Exit</string>
+    <string name="btn_caption_logfile_itracker">Log File</string>
     
     <color name="caption_blue">#0000ff</color>
     
