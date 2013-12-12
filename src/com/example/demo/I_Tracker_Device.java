@@ -356,8 +356,9 @@ public class I_Tracker_Device {
 	mItracker_dev.Valid_Coord_Back_For;*/
 	//if need update well plate UI return 1 else return 0
 	public int Process_Itracker_Data() {
-		int i = 0, x, y, j, k;
+		int i = 0, x, y, j, k, chr = 'A';
 		int Need_Update_UI = 0;
+		String line;
 		
 		/*20131210 added by michael
 		 * if Valid_Coord_Buf is locked by iTracker device¡Athen skip the iteration for data processing*/
@@ -389,8 +390,14 @@ public class I_Tracker_Device {
 				if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
 					//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 					for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += 2) {
+						//
 						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += 2) {
 							Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+							/*20131213 added by michael*/
+							chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
+							line = Character.toString((char) (chr)) +Integer.toString(x);
+							Log.d(Tag, line);
+							I_Tacker_Activity.write_logfile_msg(line);
 						}
 					}
 /*					if (pItrackerDlg->Valid_Coord_Back_For != pItrackerDlg->Valid_Coord_Seq_Index)

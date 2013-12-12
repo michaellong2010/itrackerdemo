@@ -31,6 +31,7 @@
         android:background="@drawable/btn_default"
         android:onClick="OnBnClick_96_Well_Plate"/>
 
+    <!-- android:background="#FF2F9EBB" -->
     <Button
         android:id="@+id/ID_btn_384_well_plate"
         android:layout_width="600dp"
@@ -39,7 +40,7 @@
         android:textSize="60sp"
         android:layout_marginBottom="55dp"
         android:layout_marginTop="25dp"
-        android:background="#FF2F9EBB"
+        android:background="@drawable/btn_default"
         android:onClick="OnBnClick_384_Well_Plate"/>
 
 <!-- 20130306 added by michael

@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -81,7 +83,9 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 /*20131129 added by michael*/
 	RelativeLayout mIndicators_Layout;
 	//Calendar c = Calendar.getInstance();
-	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	//SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd-HHmmss");
+	static SimpleDateFormat df1 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	Handler  mHandler;
 
 	public final String Tag = "I_Tracker_Activity";
@@ -165,6 +169,8 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
     public static final int Itracker_MI_Previos_Tran = 3;
     public static final int Itracker_MI_Next_Tran = 4;
     int Itracker_MI_State = 1 << Itracker_MI_Start;
+    /*20131213 added by michael*/
+    int Itracker_MI_State_Before_Offline = 1 << Itracker_MI_Start;
 /*20130312 added by michael*/
 //indicate if the task in back stack
     int mReentrance;
@@ -186,6 +192,9 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						mItracker_dev.DeviceOffline();
 						Stop_Refresh_iTracker_Data_Thread();
 						
+						/*20131213 modified by michael
+						 * Accident disconnection cause iTracker device off-line¡Ashould backup the last all of the menu item states */
+						Itracker_MI_State_Before_Offline = Itracker_MI_State;
 						Itracker_MI_State = 0;
 						UpdateActionMenuItem();
 						Log.d(Tag, "onReceive process thread id" + Integer.toString(Process.myTid()));
@@ -193,7 +202,9 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						/*20131208 modified by michael*/
 						//timerTaskPause();
 						Show_Toast_Msg(I_Tracker_Device_DisCon);
-						mItrackerState = 0;
+						/*20131213 modified by michael*/
+						//mItrackerState = 0;
+						mItrackerState &= 1 << Itracker_State_isConnect; 
 					}
 				}
 			}
@@ -215,7 +226,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						Log.d(Tag, "permission denied for device " + device);
 						mItracker_dev.show_debug(Tag+"permission denied for device "+device+"\n");
 						Itracker_MI_State = 0;
-						mItrackerState = 0;
+						//mItrackerState = 0;
 						//UpdateActionMenuItem();
 					}
 					UpdateActionMenuItem();
@@ -237,6 +248,8 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
     public static final int Itracker_State_isBackable = 2;
 /*20131129 added by michael*/
     public static final int Itracker_State_isConnect = 3;
+/*20131213 added by michael*/
+    public static final int Itracker_State_isResumable = 4;
     public int mItrackerState = 0;
 /*20130317 added by michael*/    
     private static final String ACTION_USB_PERMISSION = "com.example.demo.USB_PERMISSION";
@@ -326,7 +339,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	final String iTracker_Data_Dir = sdcard + "/iTracker"; 
 	File iTracker_MetaData = new File(iTracker_Data_Dir);
 	File iTracker_logfile;
-	BufferedWriter log_file_buf;
+	static BufferedWriter log_file_buf;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -430,6 +443,20 @@ radio group to let user to choice well plate for i-tacker*/
 						mMenu_item_state ^= 1 << Itracker_MI_Start;
 						mMenu_item_state ^= 1 << Itracker_MI_Pause;
 						//mMenu_item_state ^= 1 << Itracker_MI_Stop;
+						/*20131213 added by michael
+						 * judge if it is start a new pipetting session or resume a last session according to the `End` button rnable/disable state */
+						if ((Itracker_MI_State_Before_Offline & 1 << Itracker_MI_Stop) == 0) {
+							try {
+								create_logfile(generate_logfilename());
+								write_logfile_msg("Start a new pipetting session");
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+						else {
+							write_logfile_msg("Resume");
+						}
 						mMenu_item_state |= 1 << Itracker_MI_Stop;
 						if ((mItrackerState & (1<<Itracker_State_isBackable)) != 0)
 						mMenu_item_state |= 1 << Itracker_MI_Previos_Tran;
@@ -474,6 +501,10 @@ radio group to let user to choice well plate for i-tacker*/
 					//Show_focus_coord==true then call I_Tracker_Well_Plate.blink_last_well() again
 					if (Well_View.Show_focus_coord)
 						Well_View.blink_last_well();
+					
+					
+					/*20131213 added by michael*/
+					write_logfile_msg("Pause");
 					break;
 				case R.id.ID_MI_stop_itracker:
 //ending the current task, clear device states & records, infos
@@ -496,6 +527,10 @@ radio group to let user to choice well plate for i-tacker*/
 					//Show_focus_coord==true then call I_Tracker_Well_Plate.blink_last_well() again
 					if (Well_View.Show_focus_coord)
 						Well_View.blink_last_well();
+					
+					/*20131213 added by michael*/
+					write_logfile_msg("End");
+					flush_close_logfile();
 					break;
 				case R.id.ID_MI_previous_trans:
 					/*if (!isBackable())
@@ -521,6 +556,9 @@ radio group to let user to choice well plate for i-tacker*/
 							//Toast mToastMsg = Toast.makeText(getApplicationContext(), "previous", Toast.LENGTH_LONG);
 						}
 					//}
+						
+					/*20131213 added by michael*/
+					write_logfile_msg("Undo");
 					break;
 				case R.id.ID_MI_next_trans:
 					/*if (!isForwardable())
@@ -545,6 +583,9 @@ radio group to let user to choice well plate for i-tacker*/
 							//Well_View.invalidate();
 						}
 					//}
+
+					/*20131213 added by michael*/
+					write_logfile_msg("Redo");
 					break;
 
 				case R.id.ID_MI_well_selection:
@@ -705,6 +746,7 @@ radio group to let user to choice well plate for i-tacker*/
 		surf_v.setOnClickListener(listener1);
 		mGif = new  GifRun();
 		mGif.LoadGiff(surf_v, this, R.drawable.status_32x32);
+
 	}
 
 	@Override
@@ -930,8 +972,45 @@ radio group to let user to choice well plate for i-tacker*/
 		}
 	}
 	
+	/*20131213 added by michael*/
+	public void flush_close_logfile() {
+		try {
+			if (log_file_buf != null) {
+				log_file_buf.flush();
+				log_file_buf.close();
+				log_file_buf = null;
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	/*20131213 added by michael*/
+	public static void write_logfile_msg(String line) {
+		if (log_file_buf != null) {
+			String line_text = df1.format(new Date()) + "  " + line;
+			try {
+				log_file_buf.write(line_text, 0, line_text.length());
+				log_file_buf.newLine();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	/*20131213 added by michael
+	 * the log file file naming format logyyyymmdd-hhmmss.txt*/
+	public String generate_logfilename() {
+		String filename;
+		filename = "log_" + df.format(new Date()) + ".txt";
+		Log.d(Tag, filename);
+		return filename;
+	}
+	
 	/*20131212 added by michael*/
-	public void create_logfile() throws IOException {
+	public void create_logfile(String filename) throws IOException {
 		if (sdcard.exists()) {
 			if (!iTracker_MetaData.exists()) {
 				iTracker_MetaData.mkdirs();
@@ -939,7 +1018,7 @@ radio group to let user to choice well plate for i-tacker*/
 			}
 			
 			if (iTracker_MetaData.exists()) {
-			  iTracker_logfile = new File(iTracker_MetaData, "log.txt");
+			  iTracker_logfile = new File(iTracker_MetaData, filename);
 			  log_file_buf = new BufferedWriter(new FileWriter(iTracker_logfile, false));
 			}
 			else {
@@ -962,14 +1041,14 @@ radio group to let user to choice well plate for i-tacker*/
     	Well_Selection = I_Tracker_Device.Well_96;
     	OnBnClickEnterItracker(v);
     	/*20131212 added by michael*/
-    	create_logfile();
+    	//create_logfile();
     }
     
     public void OnBnClick_384_Well_Plate(View v) throws IOException {
     	Well_Selection = I_Tracker_Device.Well_384;
     	OnBnClickEnterItracker(v);
     	/*20131212 added by michael*/
-    	create_logfile();
+    	//create_logfile();
     }
     
 //Enter i-tracker single well demostration

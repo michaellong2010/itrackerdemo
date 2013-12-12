@@ -21,7 +21,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     private int mWells;
     private double mwell_pitch_x;
     private double mwell_pitch_y;
-    int X_holes, Y_holes;
+    public static int X_holes, Y_holes;
     int well_pixels_x, well_pixels_y;
 //char dimension in mm unit 
     double Label_cxChar;
