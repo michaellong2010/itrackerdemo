@@ -2,12 +2,17 @@ package com.example.demo;
 
 import gif.decoder.GifRun;
 
+import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import org.xmlpull.v1.XmlPullParser;
 
 import net.simonvt.menudrawer.MenuDrawer;
 import net.simonvt.menudrawer.Position;
@@ -23,6 +28,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -32,10 +38,13 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Process;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
+import android.util.Xml;
 import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -311,6 +320,13 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	Thread iTracker_polling_thread;
 	//Runnable iTracker_DataRefreshTask;
 	boolean AllowRefresh_iTrackerData = false;
+	/*20131212 added by michael
+	 * output log file to record information*/
+	File sdcard = Environment.getExternalStorageDirectory();
+	final String iTracker_Data_Dir = sdcard + "/iTracker"; 
+	File iTracker_MetaData = new File(iTracker_Data_Dir);
+	File iTracker_logfile;
+	BufferedWriter log_file_buf;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -349,6 +365,18 @@ radio group to let user to choice well plate for i-tacker*/
         /*20131211 added by michael*/
 		setContentView(R.layout.well_plate_selection);
 		myWellPlateSelection = (LinearLayout) findViewById(R.id.ID_well_plate_selection);
+		
+		/*XmlPullParser parser = getResources().getXml(R.layout.well_plate_selection);
+		AttributeSet attributes = Xml.asAttributeSet(parser);
+		TypedValue a = new TypedValue();
+		getTheme().resolveAttribute(android.R.attr.buttonStyle, a, true);
+		//getTheme().obtainStyledAttributes(android.R.)
+        //TypedArray a = obtainStyledAttributes(attributes, android.R.style., defStyle, 0);
+		tmp_Button = (Button) findViewById(R.id.ID_btn_logfile_itracker);
+		Drawable d = tmp_Button.getBackground(); 
+		tmp_Button = (Button) findViewById(R.id.ID_btn_96_well_plate);
+		d = tmp_Button.getBackground();*/
+		
 		Well_View = new I_Tracker_Well_Plate_View(this, I_Tracker_Well_Plate_View.Wells_384);
 		Well_View.setId(R.id.ID_well_plate_view);
 		FrameLayout.LayoutParams lp =  new FrameLayout.LayoutParams(600, 800);
@@ -901,19 +929,49 @@ radio group to let user to choice well plate for i-tacker*/
 			}*/
 		}
 	}
+	
+	/*20131212 added by michael*/
+	public void create_logfile() throws IOException {
+		if (sdcard.exists()) {
+			if (!iTracker_MetaData.exists()) {
+				iTracker_MetaData.mkdirs();
+				Log.d(Tag, "sdcard directory exist:" + Boolean.toString(iTracker_MetaData.exists()));
+			}
+			
+			if (iTracker_MetaData.exists()) {
+			  iTracker_logfile = new File(iTracker_MetaData, "log.txt");
+			  log_file_buf = new BufferedWriter(new FileWriter(iTracker_logfile, false));
+			}
+			else {
+				log_file_buf = null;
+				Log.d(Tag, "Can't create the log file");
+			}
+		}
+		else {
+			log_file_buf = null;
+			Log.d(Tag, "Can't found external sdcard ");
+		}		
+	}
 
 	/*20131211 added by michael*/
 	public void OnBnClickLogFileItracker(View v) {
 		
 	}
-    public void OnBnClick_96_Well_Plate(View v) {
+	
+    public void OnBnClick_96_Well_Plate(View v) throws IOException {
     	Well_Selection = I_Tracker_Device.Well_96;
     	OnBnClickEnterItracker(v);
+    	/*20131212 added by michael*/
+    	create_logfile();
     }
-    public void OnBnClick_384_Well_Plate(View v) {
+    
+    public void OnBnClick_384_Well_Plate(View v) throws IOException {
     	Well_Selection = I_Tracker_Device.Well_384;
     	OnBnClickEnterItracker(v);
+    	/*20131212 added by michael*/
+    	create_logfile();
     }
+    
 //Enter i-tracker single well demostration
 	public void OnBnClickEnterItracker(View v) {
 		if (Well_Selection==mItracker_dev.Well_96)
@@ -1421,5 +1479,31 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	}*/
 	public void onBackPressed() {
 		//super.onBackPressed();
+		/*File sdcard = Environment.getExternalStorageDirectory();
+		final String iTracker_Data_Dir = sdcard + "/iTracker"; 
+		File iTracker_MetaData = new File(iTracker_Data_Dir);
+		File iTracker_logfile;
+		if (sdcard.exists() && iTracker_MetaData.exists()) {
+			
+		}
+		else {
+			iTracker_MetaData.mkdirs();
+			Log.d(this.toString(), "directory exist:"+Boolean.toString(iTracker_MetaData.exists()));
+		}
+		
+		if (iTracker_MetaData.exists()) {
+			iTracker_logfile = new File(iTracker_MetaData, "log.txt");
+			try {
+				BufferedWriter buf = new BufferedWriter(new FileWriter(iTracker_logfile));
+				buf.write("knight", 0, "knight".length());
+				buf.newLine();
+				buf.flush();
+				buf.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}*/
+
     }
 }

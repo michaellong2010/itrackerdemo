@@ -66,6 +66,7 @@
         <item name="android:divider">@android:drawable/divider_horizontal_dim_dark</item>
         <!-- <item name="android:buttonStyle">@android:style/Widget.Holo.Light.Button</item>
         <item name="android:background">@android:drawable/btn_default</item> -->
+        <!-- <item name="android:buttonStyle">@android:style/Widget.Holo.Light.Button</item> -->
         <item name="customOverflowMenuButtonStyle">@android:style/Widget.ActionButton.Overflow</item>
         <!-- styles for overflow menu  
              @android:style/Widget.Holo.ActionButton.Overflow 

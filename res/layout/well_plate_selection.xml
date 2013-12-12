@@ -28,7 +28,7 @@
         android:text="@string/well_96"
         android:textSize="60sp"        
         android:layout_marginTop="25dp"
-        android:background="#FF2F9EBB"
+        android:background="@drawable/btn_default"
         android:onClick="OnBnClick_96_Well_Plate"/>
 
     <Button
@@ -70,7 +70,8 @@ change the content view to main i-tracker
             android:textColor="@android:color/primary_text_light"
             android:layout_alignParentRight="true"
             android:onClick="OnBnClickExitItracker"
-            android:textSize="40sp" />
+            android:textSize="40sp"
+            android:background="@android:drawable/btn_default" />"
     </RelativeLayout>
 
 </LinearLayout>

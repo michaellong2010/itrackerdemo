@@ -42,10 +42,10 @@
 
 <!-- 20130306 added by michael
 change the content view to main i-tracker     
- -->
-    <RelativeLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
+ -->
+    <RelativeLayout
         android:id="@+id/my_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
