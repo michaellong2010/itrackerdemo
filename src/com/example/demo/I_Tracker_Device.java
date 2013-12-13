@@ -65,6 +65,8 @@ public class I_Tracker_Device {
     static final int ACTION_Undo = 1;
     static final int ACTION_Redo = 2;
     protected int Action_flag = ACTION_None;
+    /*20131213 added by michael*/
+    protected int multi_pipettes_well_gap = 0, Well_Plate_Type = 0;
     
     public I_Tracker_Device(Context context) {
     	mContext = context;
@@ -246,8 +248,8 @@ public class I_Tracker_Device {
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
             	/*20131210 modified by michael*/
             	//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] - 1;
-				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
-					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += 2) {
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += multi_pipettes_well_gap) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += multi_pipettes_well_gap) {
 						Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] - 1;
 					}
 				}
@@ -296,8 +298,8 @@ public class I_Tracker_Device {
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
             	/*20131210 modified by michael*/
             	//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
-				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
-					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += 2) {
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += multi_pipettes_well_gap) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += multi_pipettes_well_gap) {
 						Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 					}
 				}
@@ -346,6 +348,15 @@ public class I_Tracker_Device {
 		return -1;
 	}
 	
+	/*20131213 added by michael*/
+	public void set_well_plate(int type) {
+		Well_Plate_Type = type; 
+		if (Well_Plate_Type == I_Tracker_Device.Well_96)
+			multi_pipettes_well_gap = 1;
+		else
+			multi_pipettes_well_gap = 2;
+	}
+
 	/*20130318 added by michael*/
 	//deal with the following Itracker data
 	/*mItracker_dev.coord_index;
@@ -358,7 +369,7 @@ public class I_Tracker_Device {
 	public int Process_Itracker_Data() {
 		int i = 0, x, y, j, k, chr = 'A';
 		int Need_Update_UI = 0;
-		String line;
+		String line = new String();
 		
 		/*20131210 added by michael
 		 * if Valid_Coord_Buf is locked by iTracker device¡Athen skip the iteration for data processing*/
@@ -388,18 +399,19 @@ public class I_Tracker_Device {
 				x =  Coord_X;
 				y =  Coord_Y;
 				if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
+					line = "";
 					//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
-					for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += 2) {
+					for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += multi_pipettes_well_gap) {
 						//
-						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += 2) {
+						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += multi_pipettes_well_gap) {
 							Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 							/*20131213 added by michael*/
 							chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
-							line = Character.toString((char) (chr)) +Integer.toString(x);
-							Log.d(Tag, line);
-							I_Tacker_Activity.write_logfile_msg(line);
+							line = line + Character.toString((char) (chr)) +Integer.toString(x) + ", ";
 						}
 					}
+					Log.d(Tag, line);
+					I_Tacker_Activity.write_logfile_msg(line);
 /*					if (pItrackerDlg->Valid_Coord_Back_For != pItrackerDlg->Valid_Coord_Seq_Index)
 						  pItrackerDlg->Valid_Coord_Seq_Index = pItrackerDlg->Valid_Coord_Back_For;
 						pItrackerDlg->Valid_Coord_Buf_Seq[pItrackerDlg->Valid_Coord_Seq_Index] = itracker_dev.Valid_Coord_Buf[i];

@@ -67,6 +67,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     PorterDuffXfermode Xfermode_dst = new PorterDuffXfermode(Mode.DST);
 /*20131209 added by michael*/
     Object lock1, lock2;
+/*20131213 added by michael*/
+    protected int multi_pipettes_well_gap = 0; 
 	public I_Tracker_Well_Plate_View(Context context, int wells) {
 		super(context);
 		mWells = wells;
@@ -566,6 +568,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Label_cyChar = 5;
 			Border_left = Label_cxChar + 1;
 			Border_top = Label_cyChar + 1;
+			/*20131213 added by michael*/
+			multi_pipettes_well_gap = 1;
 		} else if (well_type == Wells_384) {
 			mwell_pitch_x = 9.580d / 2;
 			mwell_pitch_y = 7.5d / 2;
@@ -575,6 +579,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Label_cyChar = 3;
 			Border_left = Label_cxChar + 1;
 			Border_top = Label_cyChar + 1;
+			/*20131213 added by michael*/
+			multi_pipettes_well_gap = 2;
 		}
 		mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
 		//this.invalidate();
@@ -605,8 +611,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		if (Last_Coord_X_Count > 0 && Last_Coord_Y_Count > 0) {
 			if (Show_focus_coord) {
 				//Invalidate_Single_Well(Well_Color_index[Last_Coord_X][Last_Coord_Y], Last_Coord_X, Last_Coord_Y);
-				for (i = 0, x = Last_Coord_X; i < Last_Coord_X_Count; i++, x+= 2) {
-					for (j = 0, y = Last_Coord_Y; j < Last_Coord_Y_Count; j++, y-= 2) {
+				for (i = 0, x = Last_Coord_X; i < Last_Coord_X_Count; i++, x+= multi_pipettes_well_gap) {
+					for (j = 0, y = Last_Coord_Y; j < Last_Coord_Y_Count; j++, y-= multi_pipettes_well_gap) {
 						Invalidate_Single_Well(Well_Color_index[x][y], x, y);
 					}
 				}
@@ -614,8 +620,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			}
 			else {
 				//Invalidate_Single_Well(0, Last_Coord_X, Last_Coord_Y);
-				for (i = 0, x = Last_Coord_X; i < Last_Coord_X_Count; i++, x+= 2) {
-					for (j = 0, y = Last_Coord_Y; j < Last_Coord_Y_Count; j++, y-= 2) {
+				for (i = 0, x = Last_Coord_X; i < Last_Coord_X_Count; i++, x+= multi_pipettes_well_gap) {
+					for (j = 0, y = Last_Coord_Y; j < Last_Coord_Y_Count; j++, y-= multi_pipettes_well_gap) {
 						Invalidate_Single_Well(0, x, y);
 					}
 				}
@@ -637,8 +643,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			
 			if (Coord_X >= 0 && Coord_Y >= 0) {
 				//synchronized(lock1) {
-				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
-					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y -= 2) {
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += multi_pipettes_well_gap) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y -= multi_pipettes_well_gap) {
 						Well_Color_index[x][y]--;
 						Invalidate_Single_Well(Well_Color_index[x][y], x, y);
 					}
@@ -664,8 +670,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			
 			if (Coord_X >= 0 && Coord_Y >= 0) {
 				//synchronized(lock1) {
-				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += 2) {
-					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y -= 2) {
+				for (i = 0, x = Coord_X; i < Coord_X_Count; i++, x += multi_pipettes_well_gap) {
+					for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y -= multi_pipettes_well_gap) {
 						Well_Color_index[x][y]++;
 						Invalidate_Single_Well(Well_Color_index[x][y], x, y);
 					}

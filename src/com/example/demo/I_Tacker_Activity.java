@@ -311,6 +311,11 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 			//Toast.makeText(I_Tacker_Activity.this, "Great! Welcome.", Toast.LENGTH_SHORT).show();
 			/*20131124 added by michael*/
 			mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_NONE);
+			
+			/*20131213 added by michael
+			 * close the current session */
+			write_logfile_msg("End pipetting session & back to home");
+			flush_close_logfile();
 		}
 	};
 	
@@ -445,7 +450,7 @@ radio group to let user to choice well plate for i-tacker*/
 						//mMenu_item_state ^= 1 << Itracker_MI_Stop;
 						/*20131213 added by michael
 						 * judge if it is start a new pipetting session or resume a last session according to the `End` button rnable/disable state */
-						if ((Itracker_MI_State_Before_Offline & 1 << Itracker_MI_Stop) == 0) {
+						if (log_file_buf == null) {
 							try {
 								create_logfile(generate_logfilename());
 								write_logfile_msg("Start a new pipetting session");
@@ -529,7 +534,7 @@ radio group to let user to choice well plate for i-tacker*/
 						Well_View.blink_last_well();
 					
 					/*20131213 added by michael*/
-					write_logfile_msg("End");
+					write_logfile_msg("End pipetting session");
 					flush_close_logfile();
 					break;
 				case R.id.ID_MI_previous_trans:
@@ -746,7 +751,6 @@ radio group to let user to choice well plate for i-tacker*/
 		surf_v.setOnClickListener(listener1);
 		mGif = new  GifRun();
 		mGif.LoadGiff(surf_v, this, R.drawable.status_32x32);
-
 	}
 
 	@Override
@@ -1034,11 +1038,20 @@ radio group to let user to choice well plate for i-tacker*/
 
 	/*20131211 added by michael*/
 	public void OnBnClickLogFileItracker(View v) {
+		Intent it = new Intent(Intent.ACTION_MAIN);
+		it.setComponent(new ComponentName("com.example.hello_android", "com.example.hello_android.MainActivity"));
+		startActivity(it);
+		this.startActivityForResult(it, 0);
+		//this.setResult(resultCode, data);
+	}
+	
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		
 	}
 	
     public void OnBnClick_96_Well_Plate(View v) throws IOException {
     	Well_Selection = I_Tracker_Device.Well_96;
+    	this.mItracker_dev.set_well_plate(Well_Selection);
     	OnBnClickEnterItracker(v);
     	/*20131212 added by michael*/
     	//create_logfile();
@@ -1046,6 +1059,7 @@ radio group to let user to choice well plate for i-tacker*/
     
     public void OnBnClick_384_Well_Plate(View v) throws IOException {
     	Well_Selection = I_Tracker_Device.Well_384;
+    	this.mItracker_dev.set_well_plate(Well_Selection);
     	OnBnClickEnterItracker(v);
     	/*20131212 added by michael*/
     	//create_logfile();
