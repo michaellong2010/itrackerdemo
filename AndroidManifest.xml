@@ -38,6 +38,10 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
                 <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
             </intent-filter>
         </receiver>
+        
+<!--         20131213 added by michael
+        Listing all iTracker meta data log file in folder /mnt/sdcard/*.txt -->
+        <activity android:name="LogFileChooserActivity" android:theme="@style/AppTheme_title" android:screenOrientation="reversePortrait" android:launchMode="singleTask"/>
     </application>
 
 </manifest>

@@ -73,6 +73,8 @@ import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import ar.com.daidalos.afiledialog.FileChooserActivity;
+import ar.com.daidalos.afiledialog.FileChooserDialog;
 
 import com.example.demo.I_Tracker_Device.CMD_T;
 
@@ -341,7 +343,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	/*20131212 added by michael
 	 * output log file to record information*/
 	File sdcard = Environment.getExternalStorageDirectory();
-	final String iTracker_Data_Dir = sdcard + "/iTracker"; 
+	final String iTracker_Data_Dir = sdcard.getPath() + "/iTracker"; 
 	File iTracker_MetaData = new File(iTracker_Data_Dir);
 	File iTracker_logfile;
 	static BufferedWriter log_file_buf;
@@ -1038,11 +1040,15 @@ radio group to let user to choice well plate for i-tacker*/
 
 	/*20131211 added by michael*/
 	public void OnBnClickLogFileItracker(View v) {
-		Intent it = new Intent(Intent.ACTION_MAIN);
+		/*Intent it = new Intent(Intent.ACTION_MAIN);
 		it.setComponent(new ComponentName("com.example.hello_android", "com.example.hello_android.MainActivity"));
 		startActivity(it);
-		this.startActivityForResult(it, 0);
+		this.startActivityForResult(it, 0);*/
 		//this.setResult(resultCode, data);
+		
+		Intent intent = new Intent(this, LogFileChooserActivity.class);
+		intent.putExtra(FileChooserActivity.INPUT_START_FOLDER, iTracker_Data_Dir);
+		startActivity(intent);
 	}
 	
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
