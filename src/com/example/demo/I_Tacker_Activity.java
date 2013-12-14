@@ -1045,8 +1045,10 @@ radio group to let user to choice well plate for i-tacker*/
 		startActivity(it);
 		this.startActivityForResult(it, 0);*/
 		//this.setResult(resultCode, data);
-		
+		//Intent intent = new Intent(this, LogFileDisplayActivity.class);
 		Intent intent = new Intent(this, LogFileChooserActivity.class);
+		//intent.putExtra(FileChooserActivity.INPUT_FOLDER_MODE, true);
+		intent.putExtra(FileChooserActivity.INPUT_SHOW_FULL_PATH_IN_TITLE, true);
 		intent.putExtra(FileChooserActivity.INPUT_START_FOLDER, iTracker_Data_Dir);
 		startActivity(intent);
 	}
