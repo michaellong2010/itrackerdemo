@@ -243,6 +243,10 @@ public class I_Tracker_Device {
 			Valid_Coord_Back_For = Valid_Coord_Back_For - 1;
 			Coord_X = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For]) & Coord_X_Mask;
 			Coord_Y = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> Coord_Y_shift) & Coord_X_Mask;
+			/*20131216 added by michael
+			 * Don't forget to refresh Coord_X_Count & Coord_Y_Count */
+			Coord_X_Count = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> I_Tracker_Device.Coord_X_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
+			Coord_Y_Count = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> I_Tracker_Device.Coord_Y_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			x = Coord_X;
             y = Coord_Y;
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
@@ -293,6 +297,10 @@ public class I_Tracker_Device {
 			Backwardable = 1;
 			Coord_X = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For]) & Coord_X_Mask;
 			Coord_Y = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> Coord_Y_shift) & Coord_X_Mask;
+			/*20131216 added by michael
+			 * Don't forget to refresh Coord_X_Count & Coord_Y_Count */
+			Coord_X_Count = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> I_Tracker_Device.Coord_X_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
+			Coord_Y_Count = (Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> I_Tracker_Device.Coord_Y_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			x = Coord_X;
             y = Coord_Y;
             if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
@@ -401,6 +409,8 @@ public class I_Tracker_Device {
 				if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
 					line = "";
 					//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+					/*20131216 added by michael*/
+					if (Coord_X_Count == 1) {
 					for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += multi_pipettes_well_gap) {
 						//
 						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += multi_pipettes_well_gap) {
@@ -409,6 +419,17 @@ public class I_Tracker_Device {
 							chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
 							line = line + Character.toString((char) (chr)) +Integer.toString(x) + ", ";
 						}
+					}
+					}
+					else {
+						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += multi_pipettes_well_gap) {
+							for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += multi_pipettes_well_gap) {
+								Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+								/*20131213 added by michael*/
+								chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
+								line = line + Character.toString((char) (chr)) +Integer.toString(x) + ", ";
+							}
+						}						
 					}
 					Log.d(Tag, line);
 					I_Tacker_Activity.write_logfile_msg(line);

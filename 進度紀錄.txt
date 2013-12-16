@@ -216,3 +216,9 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 
 再仔細分析I_Tacker_Activity.java成員go_backward()由UI thread調用但Itracker_IOCTL(...)、Process_Itracker_Data()由worker thread調用，這三個成員方法產生同步race condition情況是不太可能的
 ，原因在於不可能同時操作redo、undo、pipetting，因此無須加一些同步lock
+
+20131216
+1.  修正I_Tracker_Device.Process_Itracker_Data()，row-base multi-pipetting log輸出剛好一行，col-base multi-pipetting則被拆成多行輸出，必須併成一行log
+2.  實現選單click功能I_Tacker_Activity.onMenuItemClicked(...)
+3.  demo發現新bug，純單爪測試undo/redo都沒問題，單爪和多爪混合使用再操作undo/redo會發生錯誤，多爪單純橫向或多爪單純縱向使用不會有問題，多爪橫向和縱向使用會出問題。原因在於I_Tracke_Device.go_backward()及I_Tracke_Device.go_forward()
+裡並未更新解析最新的Coord_X_Count及Coord_Y_Count

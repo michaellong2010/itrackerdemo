@@ -734,7 +734,7 @@ radio group to let user to choice well plate for i-tacker*/
 		//OveflaowBtn.setBackgroundColor(getResources().getColor(android.R.color.holo_green_dark));
 		OveflaowBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.overflowmwnu_button_selector_holo_dark));
 		//OveflaowBtn.setScaleX((float) 0.75);
-		OveflaowBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_menu_moreoverflow_normal_holo_dark_resize1));		
+		OveflaowBtn.setImageDrawable(getResources().getDrawable(R.drawable.ic_menu_moreoverflow_normal_holo_dark));		
 		OveflaowBtn.setId(R.id.ID_OverflowMenuButton);
 		OveflaowBtn.setOnClickListener(this.listener1);
 		//OveflaowBtn.setScaleY((float) 0.6);
@@ -1371,8 +1371,206 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     @Override
 	protected void onMenuItemClicked(int position, Item item) {
 		// TODO Auto-generated method stub
-		Log.d(this.getComponentName().toShortString().toString(), item.mTitle);
+    	View v;
+    	TextView tv;
+    	int start;
+    	
+    	start = mList.getFirstVisiblePosition();
+    	v = mList.getChildAt(position-start);
+    	
+    	if (mAdapter.getItemViewType(position)==0) {
+    		tv = (TextView) v; 
+    		switch (position) {
+    		case Itracker_MI_Start:
+    			if (tv.getText()=="Run") {
+					if (Connect_Itracker()) {
+						mItrackerState |= 1 << Itracker_State_isRunning;
+						Itracker_MI_State ^= 1 << Itracker_MI_Start;
+						Itracker_MI_State ^= 1 << Itracker_MI_Pause;
+						//mMenu_item_state ^= 1 << Itracker_MI_Stop;
+						/*20131213 added by michael
+						 * judge if it is start a new pipetting session or resume a last session according to the `End` button rnable/disable state */
+						if (log_file_buf == null) {
+							try {
+								create_logfile(generate_logfilename());
+								write_logfile_msg("Start a new pipetting session");
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+						else {
+							write_logfile_msg("Resume");
+						}
+						Itracker_MI_State |= 1 << Itracker_MI_Stop;
+						if ((mItrackerState & (1<<Itracker_State_isBackable)) != 0)
+							Itracker_MI_State |= 1 << Itracker_MI_Previos_Tran;
+						
+						if ((mItrackerState & (1<<Itracker_State_isForwardable)) != 0)
+							Itracker_MI_State |= 1 << Itracker_MI_Next_Tran;
+						/*20130317 preparing polling device*/
+						//create a new thread to receive the device data continuously
+						//implement this task via timer & timertask, using timer implicitly run task in a new thread
+/*						mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_SETTING, 1);
+						mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
+						mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_START, 1);
+						mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");*/
+						
+						/*20130327 added by michael*/
+						//Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
+						/*20131208 modified by michael
+						 * replace timerTaskStart() with Start_Refresh_iTracker_Data_Thread()*/
+						//timerTaskStart();
+						Start_Refresh_iTracker_Data_Thread();
+					}
+					else {
+//Device may be something wrong cause we can't send commands(HID_CMD_ITRACKER_SETTING¡BHID_CMD_ITRACKER_START)
+						if (I_Tacker_Activity.mDebug_Itracker==true)
+							Toast.makeText(getApplicationContext(), "Can't satrt Itracker device", Toast.LENGTH_LONG).show();
+					}
+					Show_Toast_Msg(I_Tracker_Device_Tracking_On);    				
+    			}
+    			else
+    				if (tv.getText()=="Pause") {
+    					//pause the current task
+    					Itracker_MI_State ^= 1 << Itracker_MI_Start;
+    					Itracker_MI_State ^= 1 << Itracker_MI_Pause;
+    					/*20131208 modified by michael*/
+    					//timerTaskPause();
+    					Stop_Refresh_iTracker_Data_Thread();
+    					mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
+    					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+    					mItrackerState &= ~(1 << Itracker_State_isRunning);
+    					Show_Toast_Msg(I_Tracker_Device_Tracking_Off);
+    					
+    					/*20130327 added by michael*/
+    					//Show_focus_coord==true then call I_Tracker_Well_Plate.blink_last_well() again
+    					if (Well_View.Show_focus_coord)
+    						Well_View.blink_last_well();
+    					
+    					
+    					/*20131213 added by michael*/
+    					write_logfile_msg("Pause");
+    					break;    					
+    				}
+    			break;
+    			
+    		case (Itracker_MI_Stop-1):
+    			if (tv.getText()=="End") {
+    				//ending the current task, clear device states & records, infos
+    				Itracker_MI_State = 1 << Itracker_MI_Start;
+					/*timerTaskPause();
+					if ((mItrackerState & (1<<Itracker_State_isRunning)) != 0) {
+						mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
+						mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+					}*/					
+					/*20130318 added by michael*/
+					//timer thread has stop, so below is UI thread running only
+					/*mItracker_dev.reset();
+					Well_View.ResetWell();
+					//Well_View.invalidate();
+					mItrackerState = 0;*/
+                    Reset_App();
+                    Show_Toast_Msg(I_Tracker_Device_Reset);
+
+                    /*20130327 added by michael*/
+					//Show_focus_coord==true then call I_Tracker_Well_Plate.blink_last_well() again
+					if (Well_View.Show_focus_coord)
+						Well_View.blink_last_well();
+					
+					/*20131213 added by michael*/
+					write_logfile_msg("End pipetting session");
+					flush_close_logfile();
+					break;
+
+    			}
+    			break;
+    			
+    		case (Itracker_MI_Previos_Tran-1):
+    			if (tv.getText()=="Undo") {
+					/*if (!isBackable())
+					mMenu_item_state ^= 1 << Itracker_MI_Previos_Tran;*/
+				//synchronized (TheDelegatedTimerTask) {
+					UI_invalid = mItracker_dev.go_backward();
+					if (mItracker_dev.Backwardable==0) {
+						mItrackerState &= ~(1 << Itracker_State_isBackable);
+						Itracker_MI_State &= ~(1 << Itracker_MI_Previos_Tran);
+					}
+					if (mItracker_dev.Forwardable==1) {
+						mItrackerState |= 1 << Itracker_State_isForwardable;
+						Itracker_MI_State |= 1 << Itracker_MI_Next_Tran;
+					}
+
+					UpdateActionMenuItem();
+					if (UI_invalid == 1) {
+						//Well_View.decrese_SingleWellColor(mItracker_dev.get_reverse_undo_coord());
+						Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
+						Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
+						//Well_View.DrawBitmap();
+						//Well_View.invalidate();
+						//Toast mToastMsg = Toast.makeText(getApplicationContext(), "previous", Toast.LENGTH_LONG);
+					}
+				//}
+					
+				/*20131213 added by michael*/
+				write_logfile_msg("Undo");
+    			}
+    			break;
+    			
+    		case (Itracker_MI_Next_Tran-1):
+    			if (tv.getText()=="Redo") {
+					/*if (!isForwardable())
+					mMenu_item_state ^= 1 << Itracker_MI_Next_Tran;*/
+				//synchronized (TheDelegatedTimerTask) {
+					UI_invalid = mItracker_dev.go_forward();
+					if (mItracker_dev.Backwardable==1) {
+						mItrackerState |= 1 << Itracker_State_isBackable;
+						Itracker_MI_State |= 1 << Itracker_MI_Previos_Tran;
+					}
+					if (mItracker_dev.Forwardable==0) {
+						mItrackerState &= ~(1 << Itracker_State_isForwardable);
+						Itracker_MI_State &= ~(1 << Itracker_MI_Next_Tran);
+					}
+
+					UpdateActionMenuItem();
+					if (UI_invalid == 1) {
+						//Well_View.increase_SingleWellColor(mItracker_dev.get_reverse_redo_coord());
+						Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
+						Well_View.set_focus_coord(mItracker_dev.get_focus_coord());
+						//Well_View.DrawBitmap();
+						//Well_View.invalidate();
+					}
+				//}
+
+				/*20131213 added by michael*/
+				write_logfile_msg("Redo");    				
+    			}
+    			break;
+    			
+    		case (4):
+    			if (tv.getText()=="Home") {
+					//mLayout_Content.removeAllViews();
+					//mLayout_Content.addView(myRadiogroup);
+					//setContentView(myRadiogroup);
+					Builder builder = new AlertDialog.Builder(I_Tacker_Activity.this);
+					AlertDialog dialog = builder.create();
+					dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
+					dialog.setTitle("Do you back to well plate selection?");
+					dialog.setMessage("Warning: the current task will be terminated!");
+					dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Yes", listenerAccept);
+					dialog.setButton(DialogInterface.BUTTON_POSITIVE, "No", listenerDoesNotAccept);
+					dialog.getWindow().setGravity(Gravity.TOP);
+					dialog.setIcon(R.drawable.ic_launcher1);
+					dialog.setCancelable(false);
+					dialog.show();
+					mMenuDrawer.toggleMenu();
+    			}
+    			break;
+    		}
+    	}
+    	Log.d(this.getComponentName().toShortString().toString(), item.mTitle);
 		update_item_state();
+		UpdateActionMenuItem();
 	}
 
     /*20131126 add by michael
