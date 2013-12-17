@@ -984,6 +984,8 @@ radio group to let user to choice well plate for i-tacker*/
 			if (log_file_buf != null) {
 				log_file_buf.flush();
 				log_file_buf.close();
+				Flush_Log_File = "flush log file: " + iTracker_logfile.getPath(); 
+				Show_Toast_Msg(Flush_Log_File);
 				log_file_buf = null;
 			}
 		} catch (IOException e) {
@@ -1335,11 +1337,16 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     public static String I_Tracker_Device_Tracking_On = "iTrack device tracking on";
     public static String I_Tracker_Device_Tracking_Off = "iTrack device tracking off";
     public static String I_Tracker_Device_Reset = "itrack device reset";
+    /*20131217 added by  michael*/
+    public static String Flush_Log_File = ""; 
     
     public void Show_Toast_Msg(String msg ) {
 		Toast mToastMsg;
 		
-    	mToastMsg = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT);
+		if (msg.contains("flush log file: "))
+			mToastMsg = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG);
+		else
+			mToastMsg = Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT);
     	TextView v = (TextView) mToastMsg.getView().findViewById(android.R.id.message);
     	v.setTextColor(Color.YELLOW);
     	v.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
@@ -1428,7 +1435,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						if (I_Tacker_Activity.mDebug_Itracker==true)
 							Toast.makeText(getApplicationContext(), "Can't satrt Itracker device", Toast.LENGTH_LONG).show();
 					}
-					Show_Toast_Msg(I_Tracker_Device_Tracking_On);    				
+					Show_Toast_Msg(I_Tracker_Device_Tracking_On);
+					mMenuDrawer.toggleMenu();
     			}
     			else
     				if (tv.getText()=="Pause") {
@@ -1556,7 +1564,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					AlertDialog dialog = builder.create();
 					dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
 					dialog.setTitle("Do you back to well plate selection?");
-					dialog.setMessage("Warning: the current task will be terminated!");
+					/*20131217 modified by michael*/
+					dialog.setMessage("Warning: the current pipetting session will be terminated!");
 					dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Yes", listenerAccept);
 					dialog.setButton(DialogInterface.BUTTON_POSITIVE, "No", listenerDoesNotAccept);
 					dialog.getWindow().setGravity(Gravity.TOP);
@@ -1633,22 +1642,38 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	 * (non-Javadoc)
 	 * @see com.example.demo.BaseListSample#update_item_state()
 	 */
+	/*20131217 modified by michael*/
+	static My_StateListDrawable d1, d2;
+	static Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+	static BitmapDrawable d3;
+	int last_item_state = -1;
 	@Override
 	protected void update_item_state() {
 		// TODO Auto-generated method stub
 		int i, j, start, item_state;
 		View v;
-        My_StateListDrawable d1, d2;
+		if (d3 == null) {
+        //My_StateListDrawable d1, d2;
         d1 = new My_StateListDrawable(this);
         d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0xFF);
         d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0x40);
         d2 = new My_StateListDrawable(this);
         d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0xFF);
         d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0x40);
-        Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
-        BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
+        //Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
+        //BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
+        d3 = new BitmapDrawable(getResources(), newbmp);
+		}
 		
 		item_state = Itracker_MI_State & Itracker_MI_MASK;
+
+		if (last_item_state == item_state)
+			return;
+		else
+			if (mList.getChildCount() != 0)
+				last_item_state = item_state;
+		/*if (item_state==0x1f)
+			return;*/
 		for (start = i = mList.getFirstVisiblePosition(), j = mList.getLastVisiblePosition(); i <= j; i++) {
 			if (mAdapter.getItemViewType(i)==0) {
 				v = mList.getChildAt(i-start);

@@ -222,3 +222,9 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 2.  實現選單click功能I_Tacker_Activity.onMenuItemClicked(...)
 3.  demo發現新bug，純單爪測試undo/redo都沒問題，單爪和多爪混合使用再操作undo/redo會發生錯誤，多爪單純橫向或多爪單純縱向使用不會有問題，多爪橫向和縱向使用會出問題。原因在於I_Tracke_Device.go_backward()及I_Tracke_Device.go_forward()
 裡並未更新解析最新的Coord_X_Count及Coord_Y_Count
+
+20131217
+1.  按下Run後關閉menudrawer，toast message for flush log file
+2.  well裡顯示目前偵測到的次數，384 well圓圈圈拿掉
+3.  修正I_Tacker_Activity.update_item_state()，如果菜單無須更新則直接返回，提高程式執行效能，初次修改請再多測試是否有問題
+4.  修正mGifRun.java裡Thread Runnable，mSurfaceHolder.lockCanvas(...)之後必須調用mSurfaceHolder.unlockCanvasAndPost(rCanvas)釋放畫布，不然會有一些奇怪的exception產生

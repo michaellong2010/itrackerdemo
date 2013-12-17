@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Paint.Style;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.PorterDuffXfermode;
 import android.util.DisplayMetrics;
@@ -36,7 +37,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
  mMaxTouchablePosY calculate from the upper region
  */	
     public float mMaxTouchablePosX, mMaxTouchablePosY;
-    public Paint mPaint, mPaint_text;
+    public Paint mPaint, mPaint_text, mPaint_transparent;
 
 /*20130318 added by michael*/
     public Paint mPaint_well_Stroke, mPaint_well_Fill;
@@ -77,6 +78,12 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		//Pain implement integration function of Pen&Brush in MFC
 		mPaint = new Paint();
 		mPaint_text = new Paint();
+		/*20131217 added by michael*/
+		mPaint_transparent = new Paint();
+		mPaint_transparent.setStyle(Style.FILL_AND_STROKE);
+		mPaint_transparent.setColor(Color.TRANSPARENT);
+		mPaint_transparent.setXfermode(Xfermode_src_out);
+		
 
 		/*20130318 added by michael*/
 		//create two Pain, one is stroke type the other is fill type
@@ -106,6 +113,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Label_cyChar = 5;
 			Border_left = Label_cxChar + 1;
 			Border_top = Label_cyChar + 1;
+			/*20131217 added by michael*/
+            this.mPaint_well_Stroke.setXfermode(null);
 		} else if (wells == Wells_384) {
 			mwell_pitch_x = 9.580d / 2;
 			mwell_pitch_y = 7.5d / 2;
@@ -115,6 +124,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Label_cyChar = 3;
 			Border_left = Label_cxChar + 1;
 			Border_top = Label_cyChar + 1;
+			/*20131217 added by michael*/
+			this.mPaint_well_Stroke.setXfermode(Xfermode_clear);
 		}
 		
 		Bmp_Well_Plate = Bitmap.createBitmap(600, 800, Bitmap.Config.ARGB_8888);
@@ -127,6 +138,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     	/*20131209 added by michael*/
     	lock1 = new Object();
     	lock2 = new Object();
+    	mPaint_transparent.setTextSize(convert_mm2pixel(Label_cxChar));
 	}
 
 	/*20130325 added by michael*/
@@ -231,6 +243,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		}
 		else
 			if (mWells == Wells_384) {
+				/*20131217 added by michael*/
+				mPaint_well_Stroke.setXfermode(this.Xfermode_clear);
 				mPaint_text.setColor(Color.WHITE);
 				mPaint_text.setTextSize(convert_mm2pixel(Label_cxChar));
 				//mPaint_text.setStyle(Paint.Style.STROKE);
@@ -407,7 +421,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	/*20130325 night added by michael*/
 	//only invalidate the well with histogram change
 	private void Invalidate_Single_Well(int color_index, int well_x, int well_y) {
-		int i, j, margin_x, margin_y;
+		int i, j, margin_x, margin_y, chrs;
 		int radius_pixels;
 		double mClient_well_pitch_x, mClient_well_pitch_y, adjust_radius_mm;
 		int Client_Border_left, Client_Border_top;
@@ -445,12 +459,14 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 				mPaint = mPaint_well_Fill;
 				//mPaint.setColor(Color.BLACK);
 				mPaint.setXfermode(Xfermode_clear);
-				Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
+				if (mWells == Wells_96)
+					Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
+				else
+					Canvas_Well_Plate.drawRect(margin_x-radius_pixels-2, margin_y-radius_pixels-2, margin_x+radius_pixels+2, margin_y+radius_pixels+2, mPaint);
 				mPaint.setXfermode(null);
 				//mPaint.setColor(Color.WHITE);
 				mPaint = mPaint_well_Stroke;
 				mPaint.setColor(Color.WHITE);
-				//mPaint.setXfermode(Xfermode_clear);
 			} else {
 				mPaint = mPaint_well_Fill;
 				if (color_index <= total_colors) {
@@ -460,8 +476,23 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 				}
 				mPaint.setXfermode(Xfermode_dst_over);
 			}
-			Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
-			mPaint.setXfermode(null);
+			if (mWells == Wells_96)
+			  Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
+			else
+				Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels + 2, mPaint);
+			if (mPaint == mPaint_well_Fill)
+				mPaint.setXfermode(null);
+			/*20131217 added by michael*/
+			//if (color_index > 0 && this.mWells == this.Wells_96) {
+			if (color_index > 0) {
+				chrs = Integer.toString(color_index).length();
+				if (chrs == 1) {
+					Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);
+				}
+				else {
+					Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);	
+				}
+			}
 			this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
 			
 			/*update the lower well*/
@@ -570,6 +601,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Border_top = Label_cyChar + 1;
 			/*20131213 added by michael*/
 			multi_pipettes_well_gap = 1;
+			/*20131217 added by michael*/
+			mPaint_well_Stroke.setXfermode(null);
 		} else if (well_type == Wells_384) {
 			mwell_pitch_x = 9.580d / 2;
 			mwell_pitch_y = 7.5d / 2;
@@ -581,9 +614,13 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Border_top = Label_cyChar + 1;
 			/*20131213 added by michael*/
 			multi_pipettes_well_gap = 2;
+			/*20131217 added by michael*/
+			mPaint_well_Stroke.setXfermode(Xfermode_clear);
 		}
 		mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
 		//this.invalidate();
+		/*20131213 added by michael*/
+		mPaint_transparent.setTextSize(convert_mm2pixel(Label_cxChar));
 	}
 	
 	/*20130327 added by michael*/

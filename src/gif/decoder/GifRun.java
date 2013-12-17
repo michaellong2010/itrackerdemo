@@ -63,14 +63,16 @@ public class GifRun implements Runnable, Callback {
 	@SuppressWarnings("static-access")
 	public void run() 
 	{ 
+		Canvas rCanvas;
 		while (surfaceExists) {
+			rCanvas = null;
 			try {
 				//if (triger_Update) {
 				if ((iTracker_activity.mItrackerState & (1 << iTracker_activity.Itracker_State_isConnect)) == 0) {
-					Canvas rCanvas = mSurfaceHolder.lockCanvas();
+					rCanvas = mSurfaceHolder.lockCanvas();
                     if (rCanvas != null) {
                       rCanvas.drawColor(background_color);
-					  mSurfaceHolder.unlockCanvasAndPost(rCanvas);
+					  //mSurfaceHolder.unlockCanvasAndPost(rCanvas);
                     }
                     break;
 					/*if (Visibility==1) {
@@ -86,22 +88,22 @@ public class GifRun implements Runnable, Callback {
 						Visibility = 1;
 					}*/
 					if ((iTracker_activity.mItrackerState & (1 << iTracker_activity.Itracker_State_isRunning)) == 1) {
-						Canvas rCanvas = mSurfaceHolder.lockCanvas();
+						rCanvas = mSurfaceHolder.lockCanvas();
 						rCanvas.drawBitmap(bmp1, 0, 0, new Paint());
 						// ImageView im = (ImageView)
 						// findViewById(R.id.imageView1);
 						// im.setImageBitmap(bmb);
-                        if (rCanvas != null)
-						  mSurfaceHolder.unlockCanvasAndPost(rCanvas);
+                        //if (rCanvas != null)
+						  //mSurfaceHolder.unlockCanvasAndPost(rCanvas);
 						bmp1 = decode.next();
 						Thread.sleep(600);
 						//triger_Update = true;
 					} else {
 						//bmb = decode.getFrame(0);
-						Canvas rCanvas = mSurfaceHolder.lockCanvas();
+						rCanvas = mSurfaceHolder.lockCanvas();
 						rCanvas.drawBitmap(bmp, 0, 0, new Paint());
-						if (rCanvas != null)
-						  mSurfaceHolder.unlockCanvasAndPost(rCanvas);
+						//if (rCanvas != null)
+						  //mSurfaceHolder.unlockCanvasAndPost(rCanvas);
 						break;
 						//triger_Update = false;
 					}
@@ -110,6 +112,11 @@ public class GifRun implements Runnable, Callback {
 				//Thread.sleep(600);
 			} catch (Exception ex) {
 
+			}
+			finally { 
+				/*20131217 added by michael*/
+				if (rCanvas != null)
+					  mSurfaceHolder.unlockCanvasAndPost(rCanvas);
 			}
 		}
 		
