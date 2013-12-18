@@ -39,6 +39,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -1064,6 +1065,8 @@ radio group to let user to choice well plate for i-tacker*/
 		ComponentName thisWidget = new ComponentName( this.getApplicationContext(), ExampleAppWidgetProvider.class );
 		AppWidgetManager.getInstance( this.getApplicationContext() ).updateAppWidget( thisWidget, views );
 		semaphore++;*/
+		/*Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://www.google.com"));
+		startActivity(browserIntent);*/
 	}
 	
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {

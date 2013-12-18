@@ -12,5 +12,7 @@
     
     <color name="caption_blue">#0000ff</color>
     <string name="hello_appwidget">Hello App Widgets!</string>
+    <string name="appwidget_name">iTrack</string>
+    <string name="advertise_appwidget1">Maestrogen Inc.</string>
     
 </resources>

@@ -45,7 +45,7 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
         <activity android:name="com.example.demo.LogFileDisplayActivity" android:theme="@style/AppTheme_title" android:screenOrientation="reversePortrait" android:launchMode="singleTask"/>
         <!-- 20131218 added by michael
         AppWidget example -->
-        <receiver android:name="com.example.demo.ExampleAppWidgetProvider" >
+        <receiver android:name="com.example.demo.ExampleAppWidgetProvider" android:label="@string/appwidget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -55,6 +55,16 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
                 android:resource="@xml/example_appwidget_info" />
         </receiver>
 
+        <!-- 20131219 added by michael
+        maestrogen AppWidget advertisement via browsing the home page -->
+        <receiver android:name="com.example.demo.MaestrogenAppWidgetProvider" android:label="@string/advertise_appwidget1">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ad1_appwidget_info" />
+        </receiver>
     </application>
 
 </manifest>
