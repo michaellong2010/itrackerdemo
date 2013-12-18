@@ -228,3 +228,10 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 2.  well裡顯示目前偵測到的次數，384 well圓圈圈拿掉
 3.  修正I_Tacker_Activity.update_item_state()，如果菜單無須更新則直接返回，提高程式執行效能，初次修改請再多測試是否有問題
 4.  修正mGifRun.java裡Thread Runnable，mSurfaceHolder.lockCanvas(...)之後必須調用mSurfaceHolder.unlockCanvasAndPost(rCanvas)釋放畫布，不然會有一些奇怪的exception產生
+
+20131218
+1.  iTracker處於Running時，host不斷會向device請求資料，此任務由worker thread負責不斷向device作polling，不預期插拔斷線造成廣播器接收到USB斷線，須要注意以下2行次序
+最好先停掉worker thread，避免worker thread繼續操作USB連線，而連線的相關物件已經被回收了
+						Stop_Refresh_iTracker_Data_Thread();
+						mItracker_dev.DeviceOffline();
+2.  加入app widget，點擊此widget以啟動iTacker activity app，滿足客戶要求icon大一些的須求

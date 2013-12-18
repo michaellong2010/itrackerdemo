@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/itracker_appwidget_layout"
+    android:minHeight="100dp"
+    android:minWidth="100dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="86400000"
+    android:widgetCategory="home_screen" >
+<!-- 
+android:initialLayout="@layout/example_appwidget_layout"
+android:updatePeriodMillis="86400000"
+android:configure="com.example.android.ExampleAppWidgetConfigure"
+android:initialKeyguardLayout="@layout/example_keyguard"
+android:previewImage="@drawable/preview" -->
+
+
+</appwidget-provider>

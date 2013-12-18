@@ -24,6 +24,7 @@ import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.PendingIntent;
 import android.app.WallpaperManager;
+import android.appwidget.AppWidgetManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -71,6 +72,7 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
+import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 import ar.com.daidalos.afiledialog.FileChooserActivity;
@@ -191,8 +193,10 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 				//UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
 				if (mItracker_dev != null && mItracker_dev.getDevice() != null) {
 					if (device.getProductId() == mItracker_dev.getDevice().getProductId() && device.getVendorId() == mItracker_dev.getDevice().getVendorId()) {
+						/*20131208 modified by michael
+						 * The following two lines order are very important¡Ait should terminated worker thread to halt operation USB connection objects then garbage recycle connection */
+						Stop_Refresh_iTracker_Data_Thread();  //first stop worker thread to avoid USB access error exception
 						mItracker_dev.DeviceOffline();
-						Stop_Refresh_iTracker_Data_Thread();
 						
 						/*20131213 modified by michael
 						 * Accident disconnection cause iTracker device off-line¡Ashould backup the last all of the menu item states */
@@ -1040,6 +1044,7 @@ radio group to let user to choice well plate for i-tacker*/
 		}		
 	}
 
+	static int semaphore = 0;
 	/*20131211 added by michael*/
 	public void OnBnClickLogFileItracker(View v) {
 		/*Intent it = new Intent(Intent.ACTION_MAIN);
@@ -1053,6 +1058,12 @@ radio group to let user to choice well plate for i-tacker*/
 		intent.putExtra(FileChooserActivity.INPUT_SHOW_FULL_PATH_IN_TITLE, true);
 		intent.putExtra(FileChooserActivity.INPUT_START_FOLDER, iTracker_Data_Dir);
 		startActivity(intent);
+	
+		/*RemoteViews views = new RemoteViews(getApplicationContext().getPackageName(), R.layout.example_appwidget_layout);
+		views.setTextViewText(R.id.textView1, "samephore: " + Integer.toString(semaphore));
+		ComponentName thisWidget = new ComponentName( this.getApplicationContext(), ExampleAppWidgetProvider.class );
+		AppWidgetManager.getInstance( this.getApplicationContext() ).updateAppWidget( thisWidget, views );
+		semaphore++;*/
 	}
 	
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {

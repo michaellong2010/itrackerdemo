@@ -43,6 +43,18 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
         Listing all iTracker meta data log file in folder /mnt/sdcard/*.txt -->
         <activity android:name="com.example.demo.LogFileChooserActivity" android:theme="@style/AppTheme_title" android:screenOrientation="reversePortrait" android:launchMode="singleTask"/>
         <activity android:name="com.example.demo.LogFileDisplayActivity" android:theme="@style/AppTheme_title" android:screenOrientation="reversePortrait" android:launchMode="singleTask"/>
+        <!-- 20131218 added by michael
+        AppWidget example -->
+        <receiver android:name="com.example.demo.ExampleAppWidgetProvider" >
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/example_appwidget_info" />
+        </receiver>
+
     </application>
 
 </manifest>

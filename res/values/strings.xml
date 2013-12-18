@@ -11,5 +11,6 @@
     <string name="btn_caption_logfile_itracker">Log File</string>
     
     <color name="caption_blue">#0000ff</color>
+    <string name="hello_appwidget">Hello App Widgets!</string>
     
 </resources>
