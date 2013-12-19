@@ -31,11 +31,11 @@ class My_StateListDrawable extends StateListDrawable {
         //height = (int)Math.round(drawable.getIntrinsicHeight()*0.75);
         width = drawable.getIntrinsicWidth();
         height = drawable.getIntrinsicHeight();
-        if (drawable.getIntrinsicWidth()==32 && drawable.getIntrinsicHeight()==32)
+        if (drawable.getIntrinsicWidth()==36 && drawable.getIntrinsicHeight()==36)
         	super.addState(stateSet, drawable);
         else {
-        width = 32;
-        height = 32;
+        width = 36;
+        height = 36;
         //drawable.setAlpha(alpha);
         d = (BitmapDrawable)zoomDrawable(drawable, width, height);
         //d.setAlpha(255);

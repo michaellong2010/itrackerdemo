@@ -37,7 +37,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
  mMaxTouchablePosY calculate from the upper region
  */	
     public float mMaxTouchablePosX, mMaxTouchablePosY;
-    public Paint mPaint, mPaint_text, mPaint_transparent;
+    public Paint mPaint, mPaint_text, mPaint_transparent, mPaint_transparent1;
 
 /*20130318 added by michael*/
     public Paint mPaint_well_Stroke, mPaint_well_Fill;
@@ -83,6 +83,11 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		mPaint_transparent.setStyle(Style.FILL_AND_STROKE);
 		mPaint_transparent.setColor(Color.TRANSPARENT);
 		mPaint_transparent.setXfermode(Xfermode_src_out);
+		/*20131219 added by michael*/
+		mPaint_transparent1 = new Paint();
+		mPaint_transparent1.setStyle(Style.FILL_AND_STROKE);
+		mPaint_transparent1.setColor(Color.WHITE);
+		mPaint_transparent1.setXfermode(Xfermode_src_over);
 		
 
 		/*20130318 added by michael*/
@@ -139,6 +144,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     	lock1 = new Object();
     	lock2 = new Object();
     	mPaint_transparent.setTextSize(convert_mm2pixel(Label_cxChar));
+    	mPaint_transparent1.setTextSize(convert_mm2pixel(Label_cxChar));
 	}
 
 	/*20130325 added by michael*/
@@ -486,11 +492,21 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			//if (color_index > 0 && this.mWells == this.Wells_96) {
 			if (color_index > 0) {
 				chrs = Integer.toString(color_index).length();
-				if (chrs == 1) {
-					Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);
+				if (color_index <= 6) {
+					if (chrs == 1) {
+						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);
+					}
+					else {
+						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);	
+					}
 				}
 				else {
-					Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);	
+					if (chrs == 1) {
+						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent1);
+					}
+					else {
+						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent1);	
+					}
 				}
 			}
 			this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
@@ -621,6 +637,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		//this.invalidate();
 		/*20131213 added by michael*/
 		mPaint_transparent.setTextSize(convert_mm2pixel(Label_cxChar));
+		mPaint_transparent1.setTextSize(convert_mm2pixel(Label_cxChar));
 	}
 	
 	/*20130327 added by michael*/

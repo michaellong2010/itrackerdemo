@@ -24,7 +24,7 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
         <activity android:name="I_Tacker_Activity" android:screenOrientation="reversePortrait" android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/> 
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <!-- <category android:name="android.intent.category.LAUNCHER"/> -->
             </intent-filter>
              <intent-filter>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -64,6 +64,18 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/ad1_appwidget_info" />
+        </receiver>
+        
+        <!-- 20131219 added by michael
+        digital lab bench home page hyperlink -->
+        <receiver android:name="com.example.demo.DigitalLabTechAppWidgetProvider" android:label="@string/advertise_appwidget2">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ad2_appwidget_info" />
         </receiver>
     </application>
 

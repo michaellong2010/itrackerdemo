@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.widget.RemoteViews;
 
@@ -36,6 +37,14 @@ public class ExampleAppWidgetProvider extends AppWidgetProvider {
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
 		views = new RemoteViews(context.getPackageName(), R.layout.itracker_appwidget_layout);
 		views.setImageViewResource(R.id.itracker_imagebutton1, R.drawable.itracker);
+		
+		// Create an Intent to launch ExampleActivity
+        Intent intent = new Intent(context, I_Tacker_Activity.class);
+        //intent.setAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        intent.setAction(Intent.ACTION_MAIN);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
+        
+		views.setOnClickPendingIntent(R.id.itracker_imagebutton1, pendingIntent);
 		appWidgetManager.updateAppWidget(appWidgetIds, views);
 		Log.d(Tag, "onUpdate");
 	}

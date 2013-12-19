@@ -235,3 +235,11 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 						Stop_Refresh_iTracker_Data_Thread();
 						mItracker_dev.DeviceOffline();
 2.  加入app widget，點擊此widget以啟動iTacker activity app，滿足客戶要求icon大一些的須求
+
+20131219
+1.  加入客戶的hyperlink appwidget，尚未補上logo或icon，appwidget的layout上ImageButton背景state drawable於正常enable state時以透明呈現
+2.  紫色太暗，因此當顯示次數大於6時以白色顯示數字
+3.  menudrawer item的icon高度從32增加到36
+4.  I_Tacker_Activity關掉intent-filter ACTION.MAIN
+5.  屏敝掉onLongClick
+6.  iTracker_DataRefreshTask()於UI_invalid_pipetting == 1時不須加delay，提高顯示反應速度

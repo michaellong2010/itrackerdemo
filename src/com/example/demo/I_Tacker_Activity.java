@@ -413,7 +413,7 @@ radio group to let user to choice well plate for i-tacker*/
 		//20130308 added by michael
 		 //*long click a view and display contextual button
 		 
-		Well_View.setOnLongClickListener(listener);
+		//Well_View.setOnLongClickListener(listener);
 		//Well_View.setOnClickListener(listener1);
 		mTouch_state = Touch_State.IDLE;
 		Well_View.setOnTouchListener(this);
@@ -875,12 +875,12 @@ radio group to let user to choice well plate for i-tacker*/
 						//if ((mItrackerState & (1 << Itracker_State_isForwardable)) == 0)
 							Itracker_MI_State &= ~(1 << Itracker_MI_Next_Tran);
 					//}
-				    		try {
-								Thread.sleep(650);
+				    		/*try {
+								Thread.sleep(50);
 							} catch (InterruptedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
-							}
+							}*/
 		    	}
 		    	else {
 		    		/*20130327 added by michael*/
@@ -1658,7 +1658,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	 */
 	/*20131217 modified by michael*/
 	static My_StateListDrawable d1, d2;
-	static Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+	static Bitmap newbmp = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888);
 	static BitmapDrawable d3;
 	int last_item_state = -1;
 	@Override
