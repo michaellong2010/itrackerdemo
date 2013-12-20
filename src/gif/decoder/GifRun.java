@@ -7,6 +7,8 @@ import com.example.demo.I_Tacker_Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.PorterDuff.Mode;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.SurfaceHolder;
@@ -64,6 +66,10 @@ public class GifRun implements Runnable, Callback {
 	public void run() 
 	{ 
 		Canvas rCanvas;
+		Paint paint, paint_clear;
+		paint = new Paint();
+		paint_clear = new Paint();
+		paint_clear.setXfermode(new PorterDuffXfermode(Mode.CLEAR));
 		while (surfaceExists) {
 			rCanvas = null;
 			try {
@@ -72,6 +78,7 @@ public class GifRun implements Runnable, Callback {
 					rCanvas = mSurfaceHolder.lockCanvas();
                     if (rCanvas != null) {
                       rCanvas.drawColor(background_color);
+                      rCanvas.drawBitmap(bmp, 0, 0, paint_clear);
 					  //mSurfaceHolder.unlockCanvasAndPost(rCanvas);
                     }
                     break;
@@ -89,7 +96,7 @@ public class GifRun implements Runnable, Callback {
 					}*/
 					if ((iTracker_activity.mItrackerState & (1 << iTracker_activity.Itracker_State_isRunning)) == 1) {
 						rCanvas = mSurfaceHolder.lockCanvas();
-						rCanvas.drawBitmap(bmp1, 0, 0, new Paint());
+						rCanvas.drawBitmap(bmp1, 0, 0, paint);
 						// ImageView im = (ImageView)
 						// findViewById(R.id.imageView1);
 						// im.setImageBitmap(bmb);
@@ -101,7 +108,7 @@ public class GifRun implements Runnable, Callback {
 					} else {
 						//bmb = decode.getFrame(0);
 						rCanvas = mSurfaceHolder.lockCanvas();
-						rCanvas.drawBitmap(bmp, 0, 0, new Paint());
+						rCanvas.drawBitmap(bmp, 0, 0, paint);
 						//if (rCanvas != null)
 						  //mSurfaceHolder.unlockCanvasAndPost(rCanvas);
 						break;

@@ -198,7 +198,11 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						 * The following two lines order are very important¡Ait should terminated worker thread to halt operation USB connection objects then garbage recycle connection */
 						Stop_Refresh_iTracker_Data_Thread();  //first stop worker thread to avoid USB access error exception
 						mItracker_dev.DeviceOffline();
-						
+
+						/*20131213 modified by michael*/
+						//mItrackerState = 0;
+						mItrackerState &= ~(1 << Itracker_State_isConnect); 
+
 						/*20131213 modified by michael
 						 * Accident disconnection cause iTracker device off-line¡Ashould backup the last all of the menu item states */
 						Itracker_MI_State_Before_Offline = Itracker_MI_State;
@@ -209,9 +213,6 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						/*20131208 modified by michael*/
 						//timerTaskPause();
 						Show_Toast_Msg(I_Tracker_Device_DisCon);
-						/*20131213 modified by michael*/
-						//mItrackerState = 0;
-						mItrackerState &= 1 << Itracker_State_isConnect; 
 					}
 				}
 			}
@@ -1660,7 +1661,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	static My_StateListDrawable d1, d2;
 	static Bitmap newbmp = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888);
 	static BitmapDrawable d3;
-	int last_item_state = -1;
+	int last_item_state = -1, change_item_state = 0;
 	@Override
 	protected void update_item_state() {
 		// TODO Auto-generated method stub
@@ -1684,12 +1685,16 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		if (last_item_state == item_state)
 			return;
 		else
-			if (mList.getChildCount() != 0)
+			if (mList.getChildCount() != 0) {
+				if (last_item_state != -1)
+					change_item_state = last_item_state ^ item_state;
 				last_item_state = item_state;
+
+			}
 		/*if (item_state==0x1f)
 			return;*/
 		for (start = i = mList.getFirstVisiblePosition(), j = mList.getLastVisiblePosition(); i <= j; i++) {
-			if (mAdapter.getItemViewType(i)==0) {
+			if (mAdapter.getItemViewType(i)==0 && (change_item_state & (1 << i)) != 0) {
 				v = mList.getChildAt(i-start);
 				switch (i) {
 				/*20131203 added by michael
