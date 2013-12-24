@@ -243,3 +243,16 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 4.  I_Tacker_Activity關掉intent-filter ACTION.MAIN
 5.  屏敝掉onLongClick
 6.  iTracker_DataRefreshTask()於UI_invalid_pipetting == 1時不須加delay，提高顯示反應速度
+
+20131224
+1.  worker Thread創造出來，預設priority會繼承自UI thread priority，必須將執行優先調到background priority，否則會與UI thread競爭，易造成UI thread被堵塞而發生ANR(android not respond)
+2.  從2013/4/8初版demo，I_Tracker_Device裡就存在一個不明顯bug，mOutRequestPool與mInRequestPool用來維持住目前連線傳送USB所須的request IN或OUT ACK實例，這些request會與最新連線USB相關操作物件實例有關
+    request.initialize(mDeviceConnection, mEndpointOut);  //這行代碼告訴我們USB每個IN或OUT request與當下最新連線的mDeviceConnection及mEndpointOut實例有關
+    
+            因此當我們USB發生斷線時，從新連線時不可以用上一次連線遺留在pool裡的IN 和 OUT ACK request實例，先前app還沒很大時，可能插拔很多次才會顯現此問題；隨著我們app資源消耗大，很快地插拔一次就發生問題
+//device DETACHED 
+	public void DeviceOffline() {
+		setInterface(null, null);
+		mOutRequestPool.clear();  //清空所有本次USB connection的OUT request
+		mInRequestPool.clear();  //清空所有本次USB connection的IN request
+	}            

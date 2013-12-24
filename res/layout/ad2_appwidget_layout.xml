@@ -4,6 +4,14 @@
     android:layout_height="match_parent"
     android:orientation="vertical" >
 
+    <ImageButton
+        android:id="@+id/maestrogen_ad_imagebutton1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/btn_default_holo_light"
+        android:src="@drawable/orange_only_square" >
+    </ImageButton>
+    
     <TextView
         android:id="@+id/digital_lab_bench_ad_textView1"
         android:layout_width="wrap_content"

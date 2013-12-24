@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:previewImage="@drawable/orange_only_square"
     android:initialLayout="@layout/ad2_appwidget_layout"
-    android:minHeight="50dp"
+    android:minHeight="100dp"
     android:minWidth="200dp"
     android:minResizeWidth="100dp"
     android:minResizeHeight="30dp"
@@ -10,6 +11,4 @@
     android:widgetCategory="home_screen"    
 >
     
-
-    <!-- android:previewImage="@drawable/maestrogen_logo1" -->
 </appwidget-provider>

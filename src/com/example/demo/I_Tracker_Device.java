@@ -8,6 +8,7 @@ import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.concurrent.locks.ReentrantLock;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -18,6 +19,8 @@ import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.hardware.usb.UsbRequest;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -67,6 +70,8 @@ public class I_Tracker_Device {
     protected int Action_flag = ACTION_None;
     /*20131213 added by michael*/
     protected int multi_pipettes_well_gap = 0, Well_Plate_Type = 0;
+    /*20131224 added by michael*/
+    private final ReentrantLock lock3 = new ReentrantLock();
     
     public I_Tracker_Device(Context context) {
     	mContext = context;
@@ -200,6 +205,8 @@ public class I_Tracker_Device {
 //device DETACHED 
 	public void DeviceOffline() {
 		setInterface(null, null);
+		mOutRequestPool.clear();
+		mInRequestPool.clear();
 	}
 	
 	public boolean isDeviceOnline() {
@@ -378,6 +385,7 @@ public class I_Tracker_Device {
 		int i = 0, x, y, j, k, chr = 'A';
 		int Need_Update_UI = 0;
 		String line = new String();
+		ToneGenerator toneG;
 		
 		/*20131210 added by michael
 		 * if Valid_Coord_Buf is locked by iTracker device¡Athen skip the iteration for data processing*/
@@ -391,6 +399,17 @@ public class I_Tracker_Device {
 			Coord_X_Count = (Valid_Coord_Buf[i] >>> Coord_X_Count_shift) & Coord_X_Count_Mask;
 			Coord_Y_Count = (Valid_Coord_Buf[i] >>> Coord_Y_Count_shift) & Coord_X_Count_Mask;
 			
+			/*20131223 added by michael
+			 * add beep tone¡Abeep1 for single pipetting¡Abeep2 for multiple pipetting*/
+			
+			toneG = new ToneGenerator(AudioManager.STREAM_SYSTEM, 100);
+			if (Coord_X_Count > 1 || Coord_Y_Count > 1) {
+				toneG.startTone(ToneGenerator.TONE_PROP_BEEP2, 1000);
+			}
+			else
+				if (Coord_X_Count == 1 && Coord_Y_Count == 1) {
+					toneG.startTone(ToneGenerator.TONE_PROP_BEEP, 1000);
+				}
 /*			if (itracker_dev.Valid_Coord_Buf[i].Coord_X_Count == 1
 					&& itracker_dev.Valid_Coord_Buf[i].Coord_Y_Count == 1) {					
 			} else if (itracker_dev.Valid_Coord_Buf[i].Coord_X_Count == 1

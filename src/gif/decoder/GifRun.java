@@ -70,6 +70,7 @@ public class GifRun implements Runnable, Callback {
 		paint = new Paint();
 		paint_clear = new Paint();
 		paint_clear.setXfermode(new PorterDuffXfermode(Mode.CLEAR));
+		//Log.d("Status indicator", "thread priority: " + android.os.Process.getThreadPriority(android.os.Process.myTid()));
 		while (surfaceExists) {
 			rCanvas = null;
 			try {
@@ -141,11 +142,18 @@ public class GifRun implements Runnable, Callback {
 	{
 		if (t.getState()==Thread.State.TERMINATED) {
 			t = new Thread(this);
+			/*20131224 added by michael
+			 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+			t.setPriority(Thread.currentThread().getPriority() - 1);
 			t.start();
 		}
 		else
-			if (t.getState()==Thread.State.NEW)
+			if (t.getState()==Thread.State.NEW) {
+				/*20131224 added by michael
+				 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+				t.setPriority(Thread.currentThread().getPriority() - 1);
 				t.start();
+			}
 		surfaceExists=true;
 		Log.d("surfaceview create", t.getState().toString());
 	}
@@ -169,11 +177,18 @@ public class GifRun implements Runnable, Callback {
 		/*Log.d("Thread status", t.getState().toString());*/
 		if (t.getState()==Thread.State.TERMINATED) {
 			t = new Thread(this);
+			/*20131224 added by michael
+			 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+			t.setPriority(Thread.currentThread().getPriority() - 1);
 			t.start();
 		}
 		else
-			if (t.getState()==Thread.State.NEW)
+			if (t.getState()==Thread.State.NEW) {
+				/*20131224 added by michael
+				 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+				t.setPriority(Thread.currentThread().getPriority() - 1);
 				t.start();
+			}
 		surfaceExists=true;
 		/*if (surfaceExists) {
 			triger_Update = true;

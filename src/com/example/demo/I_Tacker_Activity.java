@@ -926,11 +926,17 @@ radio group to let user to choice well plate for i-tacker*/
 		if (iTracker_polling_thread.getState()==Thread.State.TERMINATED) {
 			AllowRefresh_iTrackerData = true;
 			iTracker_polling_thread = new Thread(iTracker_DataRefreshTask);
+			/*20131224 added by michael
+			 * before starting a thread¡Ait usually should set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+			iTracker_polling_thread.setPriority(Thread.currentThread().getPriority() - 1);
 			iTracker_polling_thread.start();
 		}
 		else
 			if (iTracker_polling_thread.getState()==Thread.State.NEW) {
 				AllowRefresh_iTrackerData = true;
+				/*20131224 added by michael
+				 * before starting a thread¡Ait usually should set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+				iTracker_polling_thread.setPriority(Thread.currentThread().getPriority() - 1);
 				iTracker_polling_thread.start();
 			}
 	}
@@ -1406,6 +1412,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		case Itracker_MI_Start:
     			if (tv.getText()=="Run") {
 					if (Connect_Itracker()) {
+						mMenuDrawer.toggleMenu();
+						Show_Toast_Msg(I_Tracker_Device_Tracking_On);
+						
 						mItrackerState |= 1 << Itracker_State_isRunning;
 						Itracker_MI_State ^= 1 << Itracker_MI_Start;
 						Itracker_MI_State ^= 1 << Itracker_MI_Pause;
@@ -1450,8 +1459,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						if (I_Tacker_Activity.mDebug_Itracker==true)
 							Toast.makeText(getApplicationContext(), "Can't satrt Itracker device", Toast.LENGTH_LONG).show();
 					}
-					Show_Toast_Msg(I_Tracker_Device_Tracking_On);
-					mMenuDrawer.toggleMenu();
+					//mMenuDrawer.toggleMenu();
+					//Show_Toast_Msg(I_Tracker_Device_Tracking_On);
     			}
     			else
     				if (tv.getText()=="Pause") {
@@ -1593,7 +1602,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		}
     	}
     	Log.d(this.getComponentName().toShortString().toString(), item.mTitle);
-		update_item_state();
+		//update_item_state();
 		UpdateActionMenuItem();
 	}
 
@@ -1686,15 +1695,22 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			return;
 		else
 			if (mList.getChildCount() != 0) {
-				if (last_item_state != -1)
+				if (last_item_state != -1) {
 					change_item_state = last_item_state ^ item_state;
+					//last_item_state = item_state;
+				}
+				else {
+					//last_item_state = item_state;
+					change_item_state = 0x1f;
+				}
 				last_item_state = item_state;
 
 			}
 		/*if (item_state==0x1f)
 			return;*/
 		for (start = i = mList.getFirstVisiblePosition(), j = mList.getLastVisiblePosition(); i <= j; i++) {
-			if (mAdapter.getItemViewType(i)==0 && (change_item_state & (1 << i)) != 0) {
+			//if (mAdapter.getItemViewType(i)==0 && (change_item_state & (1 << i)) != 0) {
+			if (mAdapter.getItemViewType(i)==0) {
 				v = mList.getChildAt(i-start);
 				switch (i) {
 				/*20131203 added by michael
