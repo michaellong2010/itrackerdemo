@@ -13,6 +13,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.xmlpull.v1.XmlPullParser;
 
@@ -346,6 +349,8 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	Thread iTracker_polling_thread;
 	//Runnable iTracker_DataRefreshTask;
 	boolean AllowRefresh_iTrackerData = false;
+	/*20131226 added by michael*/
+	ThreadPoolExecutor polling_data_executor;
 	/*20131212 added by michael
 	 * output log file to record information*/
 	File sdcard = Environment.getExternalStorageDirectory();
@@ -362,7 +367,8 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 		//timerStart();
 		mTimer = new Timer();
 		mHandler= new Handler();
-		iTracker_polling_thread = new Thread(iTracker_DataRefreshTask);
+		//iTracker_polling_thread = new Thread(iTracker_DataRefreshTask);
+		polling_data_executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 //disable android sleep mode to avoid when system awake up again will yield the USB attach event once again 
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 /*20130306 added by michael
@@ -801,6 +807,7 @@ radio group to let user to choice well plate for i-tacker*/
 	};
 	
 	protected class TheTimerTask extends TimerTask {
+		boolean result = false;
 	    @Override public void run() {
 /*	        mCount++; 
 	        mTextView.setText("Count="+mCount); // WRONG
@@ -809,7 +816,8 @@ radio group to let user to choice well plate for i-tacker*/
 	        String formattedDate = df.format(c.getTime());
 	        mTmpView.setText(formattedDate);*/
 	    	/*****  Run in Timer thread  *****/
-	    	mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0);
+	    	result = false;
+	    	result = mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0);
 	    	/*20130318 added by michael*/
 	    	//deal with the following Itracker data
 	    	/*mItracker_dev.coord_index;
@@ -819,7 +827,9 @@ radio group to let user to choice well plate for i-tacker*/
 	    	mItracker_dev.Valid_Coord_Seq_Index;
 	    	mItracker_dev.Valid_Coord_Back_For;*/
 			//synchronized (TheDelegatedTimerTask) {
-	    	UI_invalid_pipetting = mItracker_dev.Process_Itracker_Data();
+	    	UI_invalid_pipetting = 0;
+	    	if (result)
+	    		UI_invalid_pipetting = mItracker_dev.Process_Itracker_Data();
 			//}
 	    	//Well_View.setWellColor();
 	    	//Well_View.setWellColor(mItracker_dev.Valid_Coord_Histogram);
@@ -876,12 +886,12 @@ radio group to let user to choice well plate for i-tacker*/
 						//if ((mItrackerState & (1 << Itracker_State_isForwardable)) == 0)
 							Itracker_MI_State &= ~(1 << Itracker_MI_Next_Tran);
 					//}
-				    		/*try {
-								Thread.sleep(50);
+				    		try {
+								Thread.sleep(10);
 							} catch (InterruptedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
-							}*/
+							}
 		    	}
 		    	else {
 		    		/*20130327 added by michael*/
@@ -923,37 +933,45 @@ radio group to let user to choice well plate for i-tacker*/
 	/*20131208 added by michael
 	 * instead of using timer thread to request iTracker data continuously¡Acreate a newly worker thread to  retrieve the iTracker data*/
 	protected void Start_Refresh_iTracker_Data_Thread() {
-		if (iTracker_polling_thread.getState()==Thread.State.TERMINATED) {
+/*		if (iTracker_polling_thread.getState()==Thread.State.TERMINATED) {
 			AllowRefresh_iTrackerData = true;
 			iTracker_polling_thread = new Thread(iTracker_DataRefreshTask);
-			/*20131224 added by michael
-			 * before starting a thread¡Ait usually should set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+			20131224 added by michael
+			 * before starting a thread¡Ait usually should set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND 
 			iTracker_polling_thread.setPriority(Thread.currentThread().getPriority() - 1);
 			iTracker_polling_thread.start();
 		}
 		else
 			if (iTracker_polling_thread.getState()==Thread.State.NEW) {
 				AllowRefresh_iTrackerData = true;
-				/*20131224 added by michael
-				 * before starting a thread¡Ait usually should set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+				20131224 added by michael
+				 * before starting a thread¡Ait usually should set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND 
 				iTracker_polling_thread.setPriority(Thread.currentThread().getPriority() - 1);
 				iTracker_polling_thread.start();
-			}
+			}*/
+		AllowRefresh_iTrackerData = true;
+		this.polling_data_executor.execute(this.iTracker_DataRefreshTask);
 	}
 
 	protected void Stop_Refresh_iTracker_Data_Thread() {
 		//if the thread state is New then exit the loop runnable by setting the variable AllowRefresh_iTrackerData=false
 		AllowRefresh_iTrackerData = false;
 		//if (iTracker_polling_thread.getState() == Thread.State.NEW) {
-			boolean retry = true;
+/*			boolean retry = true;
 			while (retry) {
 				try {
 					iTracker_polling_thread.join();
 					retry = false;
 				} catch (InterruptedException e) {
 				}
-			}
+			}*/
 		//}
+		try {
+			this.polling_data_executor.awaitTermination(100, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override

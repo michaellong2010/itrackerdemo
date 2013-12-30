@@ -2,6 +2,11 @@
 package gif.decoder;
 
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import com.example.demo.I_Tacker_Activity;
 
 import android.graphics.Bitmap;
@@ -32,6 +37,7 @@ public class GifRun implements Runnable, Callback {
 	Thread t;
 	boolean triger_Update = false;
 	int background_color;
+	ThreadPoolExecutor refresh_executor;
 	
 	public void LoadGiff(SurfaceView v, android.content.Context theTHIS, int R_drawable)
 	{		
@@ -45,7 +51,7 @@ public class GifRun implements Runnable, Callback {
 			gifCount = decode.getFrameCount();
 			bmp1 = bmp = decode.getFrame(0);
 			surfaceExists=true;
-			t = new Thread(this);
+			//t = new Thread(this);
 			//t.start();
 			iTracker_activity = (I_Tacker_Activity) theTHIS;
 			mSurfaceView = v;
@@ -60,6 +66,9 @@ public class GifRun implements Runnable, Callback {
 			    //Drawable d = activity.getResources().getDrawable(a.resourceId);
 				background_color = theTHIS.getResources().getColor(android.R.color.background_dark);
 			}
+			
+			int NUMBER_OF_CORES = Runtime.getRuntime().availableProcessors();
+			refresh_executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(NUMBER_OF_CORES);
 	}
 
 	@SuppressWarnings("static-access")
@@ -140,56 +149,68 @@ public class GifRun implements Runnable, Callback {
 
 	public void surfaceCreated(SurfaceHolder holder) 
 	{
-		if (t.getState()==Thread.State.TERMINATED) {
+		surfaceExists=true;
+/*		if (t.getState()==Thread.State.TERMINATED) {
 			t = new Thread(this);
-			/*20131224 added by michael
-			 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+			20131224 added by michael
+			 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND 
 			t.setPriority(Thread.currentThread().getPriority() - 1);
 			t.start();
 		}
 		else
 			if (t.getState()==Thread.State.NEW) {
-				/*20131224 added by michael
-				 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+				20131224 added by michael
+				 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND 
 				t.setPriority(Thread.currentThread().getPriority() - 1);
 				t.start();
-			}
-		surfaceExists=true;
-		Log.d("surfaceview create", t.getState().toString());
+			}*/
+		Log.d("complete work count:", Integer.toString((int)refresh_executor.getCompletedTaskCount()));
+		Log.d("work queue count:", Integer.toString((int)refresh_executor.getQueue().size()));
+		refresh_executor.execute(this);
+		//Log.d("surfaceview create", t.getState().toString());
 	}
 
 	public void surfaceDestroyed(SurfaceHolder holder) {
 		
 		surfaceExists=false;
 		triger_Update = false;
-		Log.d("surfaceview destroy", t.getState().toString());
-        boolean retry = true;
+		//Log.d("surfaceview destroy", t.getState().toString());
+        /*boolean retry = true;
         while (retry) {
             try {
                 t.join();
                 retry = false;
             } catch (InterruptedException e) {
             }
-        }
+        }*/
+		try {
+			refresh_executor.awaitTermination(100, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public void Resume_thread() {
+		surfaceExists=true;
 		/*Log.d("Thread status", t.getState().toString());*/
-		if (t.getState()==Thread.State.TERMINATED) {
+/*		if (t.getState()==Thread.State.TERMINATED) {
 			t = new Thread(this);
-			/*20131224 added by michael
-			 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+			20131224 added by michael
+			 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND 
 			t.setPriority(Thread.currentThread().getPriority() - 1);
 			t.start();
 		}
 		else
 			if (t.getState()==Thread.State.NEW) {
-				/*20131224 added by michael
-				 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND */
+				20131224 added by michael
+				 * before starting a thread¡Ait would be better to set the adaptive worker thread priority less than main thread¡A such as Process.THREAD_PRIORITY_BACKGROUND 
 				t.setPriority(Thread.currentThread().getPriority() - 1);
 				t.start();
-			}
-		surfaceExists=true;
+			}*/
+		Log.d("complete work count:", Integer.toString((int)refresh_executor.getCompletedTaskCount()));
+		Log.d("work queue count:", Integer.toString((int)refresh_executor.getQueue().size()));
+		refresh_executor.execute(this);
 		/*if (surfaceExists) {
 			triger_Update = true;
 		}*/

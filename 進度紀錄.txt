@@ -255,4 +255,10 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 		setInterface(null, null);
 		mOutRequestPool.clear();  //清空所有本次USB connection的OUT request
 		mInRequestPool.clear();  //清空所有本次USB connection的IN request
-	}            
+	}
+
+20131227
+1.  status indicator更新thread改成由ThreadPoolExecutor類實現，更加有效率重覆執行thread，我們不用去管context資源回收利用
+2.  iTrack device data pooling thread改成由ThreadPoolExecutor類實現
+3.  getOutRequest(...)和getInRequest(...)每個request都要重新做endpoint與connection確認，目地是為了更能補捉到usb不預期拔除或斷線
+    request.initialize(mDeviceConnection, mEndpointIn)

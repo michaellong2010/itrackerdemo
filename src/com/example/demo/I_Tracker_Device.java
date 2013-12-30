@@ -381,11 +381,11 @@ public class I_Tracker_Device {
 	mItracker_dev.Valid_Coord_Seq_Index;
 	mItracker_dev.Valid_Coord_Back_For;*/
 	//if need update well plate UI return 1 else return 0
+	ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_SYSTEM, 100);
 	public int Process_Itracker_Data() {
 		int i = 0, x, y, j, k, chr = 'A';
 		int Need_Update_UI = 0;
 		String line = new String();
-		ToneGenerator toneG;
 		
 		/*20131210 added by michael
 		 * if Valid_Coord_Buf is locked by iTracker device¡Athen skip the iteration for data processing*/
@@ -402,7 +402,6 @@ public class I_Tracker_Device {
 			/*20131223 added by michael
 			 * add beep tone¡Abeep1 for single pipetting¡Abeep2 for multiple pipetting*/
 			
-			toneG = new ToneGenerator(AudioManager.STREAM_SYSTEM, 100);
 			if (Coord_X_Count > 1 || Coord_Y_Count > 1) {
 				toneG.startTone(ToneGenerator.TONE_PROP_BEEP2, 1000);
 			}
@@ -563,26 +562,46 @@ public class I_Tracker_Device {
     // get an OUT request from our pool
     public UsbRequest getOutRequest() {
         //synchronized(mOutRequestPool) {
-            if (mOutRequestPool.isEmpty()) {
-                UsbRequest request = new UsbRequest();
-                request.initialize(mDeviceConnection, mEndpointOut);
-                return request;
-            } else {
-                return mOutRequestPool.removeFirst();
-            }
+		UsbRequest request;
+		/*
+		 * 20131227 modified by michael validation the request
+		 */
+		if (mOutRequestPool.isEmpty()) {
+			request = new UsbRequest();
+			if (request.initialize(mDeviceConnection, mEndpointOut))
+				return request;
+			else
+				return null;
+		} else {
+			request = mOutRequestPool.removeFirst();
+			if (request.initialize(mDeviceConnection, mEndpointOut))
+				return request;
+			else
+				return null;
+		}
         //}
     }	
 
     // get an IN request from the pool
     public UsbRequest getInRequest() {
         //synchronized(mInRequestPool) {
-            if (mInRequestPool.isEmpty()) {
-                UsbRequest request = new UsbRequest();
-                request.initialize(mDeviceConnection, mEndpointIn);
-                return request;
-            } else {
-                return mInRequestPool.removeFirst();
-            }
+		UsbRequest request;
+		/*
+		 * 20131227 modified by michael validation the request
+		 */
+		if (mInRequestPool.isEmpty()) {
+			request = new UsbRequest();
+			if (request.initialize(mDeviceConnection, mEndpointIn))
+				return request;
+			else
+				return null;
+		} else {
+			request = mInRequestPool.removeFirst();
+			if (request.initialize(mDeviceConnection, mEndpointIn))
+				return request;
+			else
+				return null;
+		} 
         //}
     }
 
@@ -603,10 +622,12 @@ public class I_Tracker_Device {
 	//device IOCTL
     //public synchronized boolean Itracker_IOCTL(int itracker_cmd, int debug) {
     public boolean Itracker_IOCTL(int itracker_cmd, int debug) {
+    	boolean result = false;
+    	
     	synchronized(lock1) {
 		message.set(itracker_cmd, 0, 0, null, debug);
-		message.process_command(0);
-		if (itracker_cmd==CMD_T.HID_CMD_ITRACKER_DATA) {
+		result = message.process_command(0);
+		if (itracker_cmd==CMD_T.HID_CMD_ITRACKER_DATA && result) {
 			Itracker_dev_data = message.mDataBuffer.asIntBuffer();
 			coord_index = Itracker_dev_data.get(1);
 			//Valid_Coord_Buf = new int [Max_Coord_Buf];
@@ -616,7 +637,10 @@ public class I_Tracker_Device {
 			/*20131210 added by michael*/
 			buffer_locked = Itracker_dev_data.get(Itracker_dev_data.limit()-2);
 		}
-		return true;
+		if (result)
+			return true;
+		else
+			return false;
     	}
 	}
 
@@ -724,8 +748,12 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	    	boolean result;
 	    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 	    	UsbRequest request = getOutRequest();
-	    	result =  send_request(request, byte_buf);
-	    	mOutRequestPool.add(request);
+	    	if (request != null) {
+	    		result =  send_request(request, byte_buf);
+	    		mOutRequestPool.add(request);
+	    	}
+	    	else
+	    		result = false;
 	    	return result;
 	    	/*show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 	    	request.setClientData(this);
@@ -743,8 +771,12 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	    	boolean result;
 	    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 	    	UsbRequest request = getInRequest();
-	    	result = send_request(request, byte_buf);
-	    	mInRequestPool.add(request);
+	    	if (request != null) {
+	    		result = send_request(request, byte_buf);
+	    		mInRequestPool.add(request);
+	    	}
+	    	else
+	    		result = false;
 	    	return result;
 	    	/*show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 	    	request.setClientData(this);
@@ -759,7 +791,7 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	    }
 	    //process a a complete command transaction
 	    //write command and data to device & read command and data from device
-	    public void process_command(int debug) {
+	    public boolean process_command(int debug) {
 	    	//Out a transaction from host to device
 	    	boolean result;
 	    	byte [] byte_buf;
@@ -779,7 +811,8 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 			switch(command) {
 			case HID_CMD_ITRACKER_SETTING:
 				mDataBuffer.putInt(Well_Plate_Mode);
-		    	result = write_out(mDataBuffer, mDataBuffer.limit());
+				if (result)
+					result = write_out(mDataBuffer, mDataBuffer.limit());
 		    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 		    	if (result)
 					Log.d(Tag, "write data complete");
@@ -793,13 +826,14 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 			//In a transaction from device to host
 			switch(command) {
 			case HID_CMD_ITRACKER_DATA:
-				result = read_in(mDataBuffer, mDataBuffer.limit());
+				if (result)
+					result = read_in(mDataBuffer, mDataBuffer.limit());
 				show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 		    	//if (result)
 					//Log.d(Tag, "write data complete");
 				break;
 			}
-			
+			return result;
 	    }
 	    
 		// sets the fields in the command header
@@ -842,7 +876,12 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 				arg1 = 0;
 				arg2 = 0;
 				break;
-				
+
+			case HID_CMD_ITRACKER_STOP:
+				arg1 = 0;
+				arg2 = 0;
+				break;
+
 			case HID_CMD_ITRACKER_DATA:
 /*			case HID_CMD_ITRACKER_DATA:
 				if (debug)
