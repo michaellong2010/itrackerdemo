@@ -8,6 +8,8 @@ import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import android.content.BroadcastReceiver;
@@ -382,6 +384,23 @@ public class I_Tracker_Device {
 	mItracker_dev.Valid_Coord_Back_For;*/
 	//if need update well plate UI return 1 else return 0
 	ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_SYSTEM, 100);
+	ThreadPoolExecutor play_sound_executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	Runnable play_beep_sound = new Runnable() {
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			toneG.stopTone();
+			if (Coord_X_Count > 1 || Coord_Y_Count > 1) {
+				toneG.startTone(ToneGenerator.TONE_PROP_BEEP2, 1000);
+			}
+			else
+				if (Coord_X_Count == 1 && Coord_Y_Count == 1) {
+					toneG.startTone(ToneGenerator.TONE_PROP_BEEP, 1000);
+				}
+		}
+		
+	};  
 	public int Process_Itracker_Data() {
 		int i = 0, x, y, j, k, chr = 'A';
 		int Need_Update_UI = 0;
@@ -402,13 +421,14 @@ public class I_Tracker_Device {
 			/*20131223 added by michael
 			 * add beep tone¡Abeep1 for single pipetting¡Abeep2 for multiple pipetting*/
 			
-			if (Coord_X_Count > 1 || Coord_Y_Count > 1) {
+			/*if (Coord_X_Count > 1 || Coord_Y_Count > 1) {
 				toneG.startTone(ToneGenerator.TONE_PROP_BEEP2, 1000);
 			}
 			else
 				if (Coord_X_Count == 1 && Coord_Y_Count == 1) {
 					toneG.startTone(ToneGenerator.TONE_PROP_BEEP, 1000);
-				}
+				}*/
+			play_sound_executor.execute(play_beep_sound);
 /*			if (itracker_dev.Valid_Coord_Buf[i].Coord_X_Count == 1
 					&& itracker_dev.Valid_Coord_Buf[i].Coord_Y_Count == 1) {					
 			} else if (itracker_dev.Valid_Coord_Buf[i].Coord_X_Count == 1
