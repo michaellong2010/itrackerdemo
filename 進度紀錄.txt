@@ -262,3 +262,6 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 2.  iTrack device data pooling thread改成由ThreadPoolExecutor類實現
 3.  getOutRequest(...)和getInRequest(...)每個request都要重新做endpoint與connection確認，目地是為了更能補捉到usb不預期拔除或斷線
     request.initialize(mDeviceConnection, mEndpointIn)
+
+20140127
+新增doc資料夾，存放客戶反饋意見及需求經會後討論列表等文件
