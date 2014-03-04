@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -7,10 +8,14 @@ import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.util.List;
+
+import net.simonvt.menudrawer.SlidingDrawer;
 
 public class MenuAdapter extends BaseAdapter {
 
@@ -82,7 +87,8 @@ public class MenuAdapter extends BaseAdapter {
         return true;
     }
 
-    @Override
+    @SuppressLint("NewApi")
+	@Override
     public View getView(int position, View convertView, ViewGroup parent) {
         View v = convertView;
         Object item = getItem(position);
@@ -96,7 +102,7 @@ public class MenuAdapter extends BaseAdapter {
 
             ((TextView) v).setText(((Category) item).mTitle);
 
-        } else {
+        } else if (item instanceof Item) {
             if (v == null) {
                 v = LayoutInflater.from(mContext).inflate(R.layout.menu_row_item, parent, false);
             }
@@ -104,7 +110,11 @@ public class MenuAdapter extends BaseAdapter {
             tv = (TextView) v;
             tv.setText(((Item) item).mTitle);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                tv.setCompoundDrawablesRelativeWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
+            	if (((Item) item).mIconRes != 0)
+            		tv.setCompoundDrawablesRelativeWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
+            	else
+            		if (((Item) item).mDrawable != null)
+            			tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mDrawable, null, null, null);
             } else {
                 //tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mIconRes, 0, 0, 0);
                   tv.setCompoundDrawablesWithIntrinsicBounds(((Item) item).mDrawable, null, null, null);
@@ -124,6 +134,29 @@ public class MenuAdapter extends BaseAdapter {
           		      Color.rgb (0xac, 0xa8, 0x99)            			  
           		   }
           		));
+        }
+        else if (item instanceof Item_spinner) {
+            if (v == null) {
+                v = LayoutInflater.from(mContext).inflate(R.layout.menu_row_spinner, parent, false);
+            }
+            
+            Spinner spinner=(Spinner) v.findViewById(R.id.spinner1);
+            ArrayAdapter<String> adapter=new ArrayAdapter<String>(mContext, R.layout.simple_spinner_item, ((Item_spinner) item).spinner_items);
+            adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+            spinner.setAdapter(adapter);
+            if (((Item_spinner) item).mOnItemSelectedListener != null)
+              spinner.setOnItemSelectedListener(((Item_spinner) item).mOnItemSelectedListener);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+            	//spinner.setDropDownHorizontalOffset(((BaseListSample) this.mContext).mMenuDrawer.spinner_dropDownHorizontalOffset);
+            	//spinner.setDropDownHorizontalOffset(-100);
+            	spinner.setDropDownVerticalOffset(-100);
+            
+        	/*if (BaseListSample.this.mMenuDrawer instanceof SlidingDrawer)
+                right = ViewHelper.getLeft(mContentContainer);
+          	else
+          		right = ViewHelper.getRight(this.mMenuContainer);*/
+
+            //spinner.setOnItemSelectedListener(listener);
         }
 
         v.setTag(R.id.mdActiveViewPosition, position);

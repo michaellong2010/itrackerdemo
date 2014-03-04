@@ -2,6 +2,7 @@ package com.example.demo;
 
 import java.util.Arrays;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -10,10 +11,13 @@ import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.PorterDuffXfermode;
+import android.os.Build;
 import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
+@SuppressLint("NewApi")
 public class I_Tracker_Well_Plate_View extends ImageView {
     static final int Wells_96 = 96;
     static final int Wells_384 = 384;
@@ -68,13 +72,39 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     PorterDuffXfermode Xfermode_dst = new PorterDuffXfermode(Mode.DST);
 /*20131209 added by michael*/
     Object lock1, lock2;
+/*20140129 added by michael*/
+    DisplayMetrics metrics;
+
+/*20140129 added by michael*/
+    public int screen_width_pixel() {
+    	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+    		return metrics.widthPixels;
+    	}
+    	else
+    		return 600;
+    }
+    public int screen_height_pixel() {
+    	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+    		return metrics.heightPixels;
+    	}
+    	else
+    		return 800;
+    }
 /*20131213 added by michael*/
     protected int multi_pipettes_well_gap = 0; 
 	public I_Tracker_Well_Plate_View(Context context, int wells) {
 		super(context);
 		mWells = wells;
 		mContext = context;
-		mMaxTouchablePosX = 600;
+    	/*20140129 added by michael*/
+    	metrics = new DisplayMetrics();
+    	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+    		((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(metrics);
+    	}
+    	else {
+    		((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getMetrics((metrics));
+    	}
+		mMaxTouchablePosX = screen_width_pixel();
 		//Pain implement integration function of Pen&Brush in MFC
 		mPaint = new Paint();
 		mPaint_text = new Paint();
@@ -110,7 +140,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     		Arrays.fill(Well_Color_index[i], 0x00);
 		
 		if (wells == Wells_96) {
-			mwell_pitch_x = 9.580d;
+			//mwell_pitch_x = 9.580d;
+			mwell_pitch_x = 8.0d;
 			mwell_pitch_y = 7.5d;
 			X_holes = 12;
 			Y_holes = 8;
@@ -133,7 +164,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			this.mPaint_well_Stroke.setXfermode(Xfermode_clear);
 		}
 		
-		Bmp_Well_Plate = Bitmap.createBitmap(600, 800, Bitmap.Config.ARGB_8888);
+		Bmp_Well_Plate = Bitmap.createBitmap(screen_width_pixel(), screen_height_pixel(), Bitmap.Config.ARGB_8888);
 		Canvas_Well_Plate = new Canvas();
 		Canvas_Well_Plate.setBitmap(Bmp_Well_Plate);
 		//Canvas_Well_Plate = new Canvas(Bmp_Well_Plate);
@@ -243,6 +274,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
             		Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint_well_Stroke);
             	}
             }
+            Draw_Client_Well_Region(Canvas_Well_Plate, 5, 70);
             //Draw_Client_Well_Region(Canvas_Well_Plate, 8, 93);
             //Draw_Client_Well_Region(Canvas_Well_Plate, 7, 93);
             //mMaxTouchablePosY = margin_y + radius_pixels;
@@ -418,10 +450,14 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	}
 	
 	public int convert_mm2pixel(double value) {
-		DisplayMetrics metrics = new DisplayMetrics();
-		((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getMetrics(metrics);
+		//DisplayMetrics metrics = new DisplayMetrics();
+		//((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(metrics);
 		
-		return (int) (0.75*value * metrics.xdpi * (1.0f/25.4f));
+		//return (int) (0.75*value * metrics.xdpi * (1.0f/25.4f));
+		return (int) (value * metrics.densityDpi * (1.0f/25.4f) * (12.7 / 12.1));
+		//return (int) (value * metrics.densityDpi * (1.0f/25.4f));
+		
+		//return (int) ((metrics.densityDpi/metrics.xdpi) * (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, (float) value,  metrics)));
 	}
 	
 	/*20130325 night added by michael*/
@@ -607,7 +643,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		mWells = well_type;
 
 		if (well_type == Wells_96) {
-			mwell_pitch_x = 9.580d;
+			//mwell_pitch_x = 9.580d;
+			mwell_pitch_x = 9.1d;
 			mwell_pitch_y = 7.5d;
 			X_holes = 12;
 			Y_holes = 8;

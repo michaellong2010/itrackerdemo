@@ -46,7 +46,7 @@
 
     <style name="MenuDrawerStyle" parent="Widget.MenuDrawer">
         <item name="mdActiveIndicator">@drawable/menu_arrow_start</item>
-        <item name="mdMenuSize">180dp</item>
+        <item name="mdMenuSize">240dp</item>
     </style>
 
     <!-- Application theme. -->
@@ -80,4 +80,19 @@
         <item name="android:windowNoTitle">false</item>
         <item name="android:windowActionBar">true</item>
     </style>
+    
+    <!-- 20140221 added by michael
+    custom preference dialog style -->
+    <style name="CenterDialog" parent="@android:style/Theme.Dialog">
+        <item name="android:windowTitleStyle">@style/CenterDialogTitle</item>
+        <item name="android:windowNoTitle">false</item>
+    </style>
+
+    <style name="CenterDialogTitle" parent="@android:style/TextAppearance.DialogWindowTitle">
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:scrollHorizontally">true</item>
+        <item name="android:background">#FF555555</item>
+    </style>
+
 </resources>

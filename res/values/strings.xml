@@ -17,4 +17,11 @@
     <string name="advertise_appwidget2">DIgital Lab Bench</string>
     <string name="ad2_hyperlink">www.digitallabbench.com</string>
     
+    <!-- 20140211 added by michael 
+    some preference string -->
+    <string name="preference_pipetting_mode">Pipetting Detection Mode：</string>
+    <string name="ok_button_caption">OK</string>
+    <string name="cancel_button_caption">Cancel</string>
+    <string name="checkbox_caption">Adjust pipetting detection sensitivity</string>
+    
 </resources>

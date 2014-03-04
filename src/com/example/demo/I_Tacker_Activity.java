@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -22,9 +23,11 @@ import org.xmlpull.v1.XmlPullParser;
 import net.simonvt.menudrawer.MenuDrawer;
 import net.simonvt.menudrawer.Position;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
+import android.app.Dialog;
 import android.app.PendingIntent;
 import android.app.WallpaperManager;
 import android.appwidget.AppWidgetManager;
@@ -55,6 +58,7 @@ import android.util.Xml;
 import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -68,15 +72,20 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.RemoteViews;
+import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import ar.com.daidalos.afiledialog.FileChooserActivity;
@@ -85,6 +94,7 @@ import ar.com.daidalos.afiledialog.FileChooserDialog;
 import com.example.demo.I_Tracker_Device.CMD_T;
 
 
+@SuppressLint("InlinedApi")
 public class I_Tacker_Activity extends BaseListSample implements OnCheckedChangeListener, OnTouchListener, MenuAdapter.OnRetrieveItemEnable {
 	
 	FrameLayout mLayout_Content;
@@ -358,6 +368,15 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	File iTracker_MetaData = new File(iTracker_Data_Dir);
 	File iTracker_logfile;
 	static BufferedWriter log_file_buf;
+	/*20140211 added by michael
+	 * preference dialog*/
+	public Dialog preference_dialog;
+	LinearLayout preference_dialog_layout;
+	/*20140303 added by michael
+	 * current pipetting detection mode selection*/
+	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
+	boolean Adjust_Detection_Sensitivity = false, Cur_Adjust_Detection_Sensitivity;
+	int Detection_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -411,7 +430,7 @@ radio group to let user to choice well plate for i-tacker*/
 		
 		Well_View = new I_Tracker_Well_Plate_View(this, I_Tracker_Well_Plate_View.Wells_384);
 		Well_View.setId(R.id.ID_well_plate_view);
-		FrameLayout.LayoutParams lp =  new FrameLayout.LayoutParams(600, 800);
+		FrameLayout.LayoutParams lp =  new FrameLayout.LayoutParams(Well_View.screen_width_pixel(), Well_View.screen_height_pixel());
 		Well_View.setLayoutParams(lp);
 		mTmpTextView.setTextColor(getResources().getColor(android.R.color.holo_green_light));
 		
@@ -1227,7 +1246,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	java.lang.Process p;
     	
     	try {
-			p = Runtime.getRuntime().exec("su");
+			p = Runtime.getRuntime().exec("/system/xbin/su-new");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			os.writeBytes("service call activity 42 s16 com.android.systemui\n");
 			os.flush();
@@ -1251,7 +1270,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	java.lang.Process p;
     	
     	try {
-			p = Runtime.getRuntime().exec("am startservice -n com.android.systemui/.SystemUIService\n");
+			/*p = Runtime.getRuntime().exec("/system/xbin/su-new am startservice -n com.android.systemui/.SystemUIService\n");
+			p.waitFor();
+			p.destroy();*/
+			p = Runtime.getRuntime().exec("/system/xbin/su-new");
+			DataOutputStream os = new DataOutputStream(p.getOutputStream());
+			os.writeBytes("am startservice -n com.android.systemui/.SystemUIService\n");
+			os.flush();
+			os.close();
 			p.waitFor();
 			p.destroy();
 		} catch (Exception e) {
@@ -1617,6 +1643,109 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					mMenuDrawer.toggleMenu();
     			}
     			break;
+    		
+    		/*20140221 added by michael
+    		 * preference setting */
+    		case (5):
+    			mMenuDrawer.toggleMenu();
+				preference_dialog = new Dialog(this, R.style.CenterDialog);
+				preference_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_preference, null);
+				Spinner spinner = (Spinner) preference_dialog_layout.findViewById(R.id.spinner1);
+				ArrayList<String> spinner_items = new ArrayList<String>();
+				spinner_items.add("Auto Mode");
+				spinner_items.add("Single Well Mode");
+				spinner_items.add("8 Well Mode");
+				spinner_items.add("12 Well Mode");
+				ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), R.layout.simple_spinner_item, spinner_items);
+				adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+				spinner.setAdapter(adapter);
+				spinner.setOnItemSelectedListener(Pipetting_mode_selection);
+				if (Pipetting_Mode == -1) {
+				  int spinner_adapter_item_count = spinner.getCount();
+				  if (spinner_adapter_item_count > 0)
+					  spinner.setSelection(0);
+				}
+				else
+					spinner.setSelection(Pipetting_Mode);
+				
+				Button dlgbtn_cancel, dlgbtn_ok;
+				dlgbtn_cancel = (Button) preference_dialog_layout.findViewById(R.id.button2_cancel);
+				// dlgbtn_cancel.setOnClickListener(null);
+				dlgbtn_cancel.setOnClickListener(new View.OnClickListener() {
+					@Override
+					public void onClick(View v) { // TODO
+						preference_dialog.dismiss();
+					}
+				});
+				dlgbtn_ok = (Button) preference_dialog_layout.findViewById(R.id.button1_ok);
+				dlgbtn_ok.setOnClickListener(new View.OnClickListener() {
+					@Override
+					public void onClick(View v) { // TODO
+						Pipetting_Mode = Cur_Pipetting_Mode;
+						Adjust_Detection_Sensitivity = Cur_Adjust_Detection_Sensitivity;
+						Detection_Sensitivity_Level = Cur_Detection_Sensitivity_Level;
+						preference_dialog.dismiss();
+					}
+				});
+				
+				CheckBox checkbox1;
+				checkbox1 = (CheckBox) preference_dialog_layout.findViewById(R.id.checkBox1);
+				checkbox1.setChecked(Adjust_Detection_Sensitivity);
+				SeekBar seekbar1;
+				seekbar1 = (SeekBar) preference_dialog_layout.findViewById(R.id.seekBar1);
+ 			    seekbar1.setEnabled(Adjust_Detection_Sensitivity);
+				checkbox1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+					
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+						// TODO Auto-generated method stub
+						Cur_Adjust_Detection_Sensitivity = isChecked;
+						SeekBar seekbar1;
+						seekbar1 = (SeekBar) preference_dialog_layout.findViewById(R.id.seekBar1);
+						seekbar1.setEnabled(isChecked);
+					}
+				});
+				if (Detection_Sensitivity_Level==-1)
+					Detection_Sensitivity_Level = seekbar1.getProgress();
+				else
+					seekbar1.setProgress(Detection_Sensitivity_Level);
+				seekbar1.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+					
+					@Override
+					public void onStopTrackingTouch(SeekBar seekBar) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+					@Override
+					public void onStartTrackingTouch(SeekBar seekBar) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+					@Override
+					public void onProgressChanged(SeekBar seekBar, int progress,
+							boolean fromUser) {
+						// TODO Auto-generated method stub
+						Cur_Detection_Sensitivity_Level = progress;
+					}
+				});
+
+				//preference_dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+				preference_dialog.getWindow().setGravity(Gravity.TOP);
+				//preference_dialog.setContentView(R.layout.dialog_preference);
+				preference_dialog.setContentView(preference_dialog_layout);
+				preference_dialog.setTitle("Preference");
+				preference_dialog.setCancelable(true);
+
+				/*20140303 added by michael
+				 * change the dialog 
+				 * dialog construct hierarchical like activity¡Ait's framework with a window¡BdecorView*/
+				TextView dlg_title;
+				dlg_title = (TextView) preference_dialog.getWindow().getDecorView().findViewById(android.R.id.title);
+				//dlg_title.setText("Change Dialog");
+    			preference_dialog.show();
+    			break;
     		}
     	}
     	Log.d(this.getComponentName().toShortString().toString(), item.mTitle);
@@ -1633,7 +1762,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	protected void setItemsData(List<Object> items) {
 		// TODO Auto-generated method stub
         My_StateListDrawable d1;
-        Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
+        Bitmap newbmp = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888); 
         BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
 
         d1 = new My_StateListDrawable(this);
@@ -1677,8 +1806,20 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0xFF);
         d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0x40);
         items.add(new Item("Home", d1));
+        
+        /*20140207 added by michael
+         * use spinner to implement combobox for selection of pipetting scanning methods*/
+        Item_spinner item_spinner;
+        item_spinner = new Item_spinner(new String [] {"Single-well", "Multiple-well", "Auto"}, Pipetting_mode_selection);
+        //items.add(item_spinner);
+        
+        //R.layout.dialog_preference
+        items.add(new Item("Preference", d3));
 	}
 
+	public void Preference_Dialog_Cancel(View v) {
+		return;
+	}
 	/*20131126 add by michael
 	 * take View.setEnabled() to update the menu item view state enabled/disabled textColor & compoundDrawable appearance in ListView
 	 * (non-Javadoc)
@@ -1883,4 +2024,24 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		}*/
 
     }
+	
+	/*20140210 added by michael
+	 *collapse the single-well¡Bmultiple-well mode¡Bauto mode selections into a spinner as one item within menudrawer listview menu*/
+	AdapterView.OnItemSelectedListener Pipetting_mode_selection = new AdapterView.OnItemSelectedListener() {
+
+		@Override
+		public void onItemSelected(AdapterView<?> parent, View view,
+				int position, long id) {
+			// TODO Auto-generated method stub
+			Log.d(Tag, "spinner selection");
+			Cur_Pipetting_Mode = position;
+		}
+
+		@Override
+		public void onNothingSelected(AdapterView<?> parent) {
+			// TODO Auto-generated method stub
+			Log.d(Tag, "spinner no selection");
+		}
+		
+	};
 }

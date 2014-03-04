@@ -265,3 +265,37 @@ Runnable iTracker_DataRefreshTask = new Runnable() {
 
 20140127
 新增doc資料夾，存放客戶反饋意見及需求經會後討論列表等文件
+
+20140129
+1.  I_Tracker_Well_Plate_View類新增screen_width_pixel()和screen_height_pixel()方法回傳螢幕顯示資訊
+2.  2014/01月新進一台RockChip平板，root super user無法使用，/system/xbin/su須更換成可以用的
+//不知為何新平板os版本4.2.2內附su無法正常使用，只好放上舊平板版本os 4.0.3的su
+root@android:/ # mount -o rw,remount -t ext4 /dev/block/mtdblock8 /system
+c:\...\adb -s 0EK7I2V7FP push su /system/xbin/su-new
+root@android:/ # chmod 06755 /system/xbin/su-new
+3.  JELLY_BEAN_MR1後調用getRealMetrics(...)來取得display metrics好處解析度點數就是真正的，無需再考慮system bar有無隱藏了
+    	metrics = new DisplayMetrics();
+    	if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+    		((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(metrics);
+    	}
+    	else {
+    		((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getMetrics((metrics));
+    	}
+4.  繪製實物長度牽涉到mm換算成pixel數，舊的那台densityDpi=120，換算短邊長度應為12.7cm但卻只有12.1cm，表示densityDpi不夠精確，乘上修正系數(12.7/12.1)就會得到正確pixels；2014/1月新RockChip平板到貨，它的densityDpi=160，解析度
+1024x768，長邊長度16.256cm，短邊長度12.192cm，長邊與短邊與實際量測到是一樣的，故修正系數為1
+	public int convert_mm2pixel(double value) {
+		return (int) (value * metrics.densityDpi * (1.0f/25.4f) * (12.7 / 12.1));
+	}
+
+20140207~20140303
+1.  Preference Dialog，客制化dialog，dialog的UI框架語activity很相似，最上層由PhoneWindow及DecorView組成，偵測模式選擇single、8、12、auto，用spinner(combobox)下拉選單選擇，敏感度調整以seekbar供拖曳調整
+	/ * preference dialog & it's layout*/
+	public Dialog preference_dialog;
+	LinearLayout preference_dialog_layout;
+
+2.  Preference Dialog項目初始化成上次關閉終值XXX，使用者調整變更設定，即時變更設定值會存放在Cur_XXX，待按下"Ok"扭把Cur_XXX回存至XXX，"Cancel"則放棄變更
+    /*20140303 added by michael
+	 * current pipetting detection mode selection*/
+	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
+	boolean Adjust_Detection_Sensitivity = false, Cur_Adjust_Detection_Sensitivity;
+	int Detection_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;

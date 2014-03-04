@@ -24,7 +24,7 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
         <activity android:name="I_Tacker_Activity" android:screenOrientation="reversePortrait" android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/> 
-                <!-- <category android:name="android.intent.category.LAUNCHER"/> -->
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
              <intent-filter>
                 <category android:name="android.intent.category.DEFAULT"/>
