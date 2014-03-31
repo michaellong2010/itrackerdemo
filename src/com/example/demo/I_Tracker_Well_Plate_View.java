@@ -454,8 +454,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		//((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(metrics);
 		
 		//return (int) (0.75*value * metrics.xdpi * (1.0f/25.4f));
-		return (int) (value * metrics.densityDpi * (1.0f/25.4f) * (12.7 / 12.1));
-		//return (int) (value * metrics.densityDpi * (1.0f/25.4f));
+		//return (int) (value * metrics.densityDpi * (1.0f/25.4f) * (12.7 / 12.1));
+		return (int) (value * metrics.densityDpi * (1.0f/25.4f));
 		
 		//return (int) ((metrics.densityDpi/metrics.xdpi) * (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, (float) value,  metrics)));
 	}
@@ -657,7 +657,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			/*20131217 added by michael*/
 			mPaint_well_Stroke.setXfermode(null);
 		} else if (well_type == Wells_384) {
-			mwell_pitch_x = 9.580d / 2;
+			mwell_pitch_x = 9.1d / 2;
 			mwell_pitch_y = 7.5d / 2;
 			X_holes = 24;
 			Y_holes = 16;

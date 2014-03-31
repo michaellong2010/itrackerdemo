@@ -298,4 +298,7 @@ root@android:/ # chmod 06755 /system/xbin/su-new
 	 * current pipetting detection mode selection*/
 	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
 	boolean Adjust_Detection_Sensitivity = false, Cur_Adjust_Detection_Sensitivity;
-	int Detection_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
+	int Pipetting_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
+	
+20140304~20140312
+1.  Preference Dialog加上seekbar數據顯示，按下"ok"後若iTrack device此時是停止的，直接對iTrack device送出HID_CMD_ITRACKER_SETTING命令；若此時iTrack運行中則送HID_CMD_ITRACKER_STOP再呼叫Connect_Itracker()

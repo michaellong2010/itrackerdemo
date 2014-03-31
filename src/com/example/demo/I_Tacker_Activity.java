@@ -376,7 +376,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	 * current pipetting detection mode selection*/
 	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
 	boolean Adjust_Detection_Sensitivity = false, Cur_Adjust_Detection_Sensitivity;
-	int Detection_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
+	int Pipetting_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -1033,7 +1033,7 @@ radio group to let user to choice well plate for i-tacker*/
 			if (log_file_buf != null) {
 				log_file_buf.flush();
 				log_file_buf.close();
-				Flush_Log_File = "flush log file: " + iTracker_logfile.getPath(); 
+				Flush_Log_File = "log file saved: " + iTracker_logfile.getPath(); 
 				Show_Toast_Msg(Flush_Log_File);
 				log_file_buf = null;
 			}
@@ -1652,18 +1652,20 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				preference_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_preference, null);
 				Spinner spinner = (Spinner) preference_dialog_layout.findViewById(R.id.spinner1);
 				ArrayList<String> spinner_items = new ArrayList<String>();
-				spinner_items.add("Auto Mode");
-				spinner_items.add("Single Well Mode");
-				spinner_items.add("8 Well Mode");
-				spinner_items.add("12 Well Mode");
+				spinner_items.add("Auto-channel Pipet");
+				spinner_items.add("Single-channel Pipet");
+				spinner_items.add("8-channel Pipet");
+				spinner_items.add("12-channel Pipet");
 				ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), R.layout.simple_spinner_item, spinner_items);
 				adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
 				spinner.setAdapter(adapter);
 				spinner.setOnItemSelectedListener(Pipetting_mode_selection);
 				if (Pipetting_Mode == -1) {
 				  int spinner_adapter_item_count = spinner.getCount();
-				  if (spinner_adapter_item_count > 0)
+				  if (spinner_adapter_item_count > 0) {
 					  spinner.setSelection(0);
+					  Pipetting_Mode = 0;
+				  }
 				}
 				else
 					spinner.setSelection(Pipetting_Mode);
@@ -1683,8 +1685,25 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					public void onClick(View v) { // TODO
 						Pipetting_Mode = Cur_Pipetting_Mode;
 						Adjust_Detection_Sensitivity = Cur_Adjust_Detection_Sensitivity;
-						Detection_Sensitivity_Level = Cur_Detection_Sensitivity_Level;
+						Pipetting_Sensitivity_Level = Cur_Detection_Sensitivity_Level;
 						preference_dialog.dismiss();
+						
+						/*20140306 added by michael*/
+						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode);
+						mItracker_dev.set_pipetting_detection_sensitivity_level(Adjust_Detection_Sensitivity, Pipetting_Sensitivity_Level);
+						if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
+							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+							if (Connect_Itracker()) {
+								
+							}
+							else {
+								if (I_Tacker_Activity.mDebug_Itracker==true)
+									Toast.makeText(getApplicationContext(), "Can't changing preference", Toast.LENGTH_LONG).show();
+							}
+						}
+						else {
+							mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 1);							
+						}
 					}
 				});
 				
@@ -1703,12 +1722,24 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						SeekBar seekbar1;
 						seekbar1 = (SeekBar) preference_dialog_layout.findViewById(R.id.seekBar1);
 						seekbar1.setEnabled(isChecked);
+						
+						/*20140312 added by michael*/
+						TextView seekbar_value;
+						seekbar_value = (TextView) preference_dialog_layout.findViewById(R.id.textView2);
+						if (isChecked==true) {
+							seekbar_value.setVisibility(View.VISIBLE);
+							if (Cur_Detection_Sensitivity_Level==-1)
+								Cur_Detection_Sensitivity_Level = seekbar1.getProgress();
+							seekbar_value.setText(Integer.toString(Cur_Detection_Sensitivity_Level) + "%"); 
+						}
+						else
+							seekbar_value.setVisibility(View.INVISIBLE);
 					}
 				});
-				if (Detection_Sensitivity_Level==-1)
-					Detection_Sensitivity_Level = seekbar1.getProgress();
+				if (Pipetting_Sensitivity_Level==-1)
+					Pipetting_Sensitivity_Level = seekbar1.getProgress();
 				else
-					seekbar1.setProgress(Detection_Sensitivity_Level);
+					seekbar1.setProgress(Pipetting_Sensitivity_Level);
 				seekbar1.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 					
 					@Override
@@ -1728,9 +1759,23 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 							boolean fromUser) {
 						// TODO Auto-generated method stub
 						Cur_Detection_Sensitivity_Level = progress;
+						TextView seekbar_value;
+						seekbar_value = (TextView) preference_dialog_layout.findViewById(R.id.textView2);
+						seekbar_value.setText(Integer.toString(Cur_Detection_Sensitivity_Level) + "%");
 					}
 				});
 
+				/*20140311 added by michael*/
+				TextView seekbar_value;
+				seekbar_value = (TextView) preference_dialog_layout.findViewById(R.id.textView2);
+				if (Adjust_Detection_Sensitivity==true) {
+					seekbar_value.setVisibility(View.VISIBLE);
+					if (Pipetting_Sensitivity_Level==-1)
+						Pipetting_Sensitivity_Level = seekbar1.getProgress();
+					seekbar_value.setText(Integer.toString(Pipetting_Sensitivity_Level) + "%"); 
+				}
+				else
+					seekbar_value.setVisibility(View.INVISIBLE);
 				//preference_dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 				preference_dialog.getWindow().setGravity(Gravity.TOP);
 				//preference_dialog.setContentView(R.layout.dialog_preference);

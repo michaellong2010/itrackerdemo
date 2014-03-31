@@ -72,6 +72,8 @@ public class I_Tracker_Device {
     protected int Action_flag = ACTION_None;
     /*20131213 added by michael*/
     protected int multi_pipettes_well_gap = 0, Well_Plate_Type = 0;
+    /*20140306 added by michael*/
+    protected int Pipetting_Mode = 0, Pipetting_Sensitivity_Level = -1;
     /*20131224 added by michael*/
     private final ReentrantLock lock3 = new ReentrantLock();
     
@@ -374,6 +376,18 @@ public class I_Tracker_Device {
 			multi_pipettes_well_gap = 2;
 	}
 
+	/*20140306 added by michael*/
+	public void set_pipetting_detection_mode(int mode) {
+		Pipetting_Mode = mode;
+	}
+	
+	public void set_pipetting_detection_sensitivity_level(boolean use_custom_sensitivity, int Level) {
+		if (use_custom_sensitivity==true)
+			Pipetting_Sensitivity_Level = Level;
+		else
+			Pipetting_Sensitivity_Level = -1;
+	}
+	
 	/*20130318 added by michael*/
 	//deal with the following Itracker data
 	/*mItracker_dev.coord_index;
@@ -831,6 +845,10 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 			switch(command) {
 			case HID_CMD_ITRACKER_SETTING:
 				mDataBuffer.putInt(Well_Plate_Mode);
+				/*20140306 added by michael
+				 * pipetting detection  mode & detection sensitivity level */
+				mDataBuffer.putInt(Pipetting_Mode);
+				mDataBuffer.putInt(Pipetting_Sensitivity_Level);
 				if (result)
 					result = write_out(mDataBuffer, mDataBuffer.limit());
 		    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
