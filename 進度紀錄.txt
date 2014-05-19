@@ -302,3 +302,7 @@ root@android:/ # chmod 06755 /system/xbin/su-new
 	
 20140304~20140312
 1.  Preference Dialog加上seekbar數據顯示，按下"ok"後若iTrack device此時是停止的，直接對iTrack device送出HID_CMD_ITRACKER_SETTING命令；若此時iTrack運行中則送HID_CMD_ITRACKER_STOP再呼叫Connect_Itracker()
+
+20140328
+1.  客戶給的更高解析度logo圖檔orange_only_square1.png，測試後仍然有鋸齒狀
+2.  Preference Dialog加上RelativeLayout把CheckBox、TextView分別對齊齊至列的左或右
