@@ -25,7 +25,7 @@ public class DigitalLabTechAppWidgetProvider extends AppWidgetProvider {
 		Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://" + context.getResources().getString(R.string.ad2_hyperlink)));
 		//startActivity(browserIntent);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, browserIntent, 0);
-        views.setOnClickPendingIntent(R.id.digital_lab_bench_ad_textView1, pendingIntent);
+        views.setOnClickPendingIntent(R.id.customer_ad_imagebutton1, pendingIntent);
 		appWidgetManager.updateAppWidget(appWidgetIds, views);
 		Log.d(Tag, "onUpdate");
 	}

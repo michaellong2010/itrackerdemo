@@ -34,6 +34,11 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	int label_pixels_x, label_pixels_y;
 	double Border_left;
 	double Border_top;
+/*20140616 added by michael
+ * total UI viewable region dimension 
+ */
+	double Viewable_height, Viewable_width;
+
 /*
  20130311 added by michael
  touchable ROI (0, 0)~(mMaxTouchablePosX, mMaxTouchablePosY)
@@ -151,6 +156,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Border_top = Label_cyChar + 1;
 			/*20131217 added by michael*/
             this.mPaint_well_Stroke.setXfermode(null);
+            Viewable_height = 60;
 		} else if (wells == Wells_384) {
 			mwell_pitch_x = 9.580d / 2;
 			mwell_pitch_y = 7.5d / 2;
@@ -162,6 +168,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Border_top = Label_cyChar + 1;
 			/*20131217 added by michael*/
 			this.mPaint_well_Stroke.setXfermode(Xfermode_clear);
+			Viewable_height = 60;
 		}
 		
 		Bmp_Well_Plate = Bitmap.createBitmap(screen_width_pixel(), screen_height_pixel(), Bitmap.Config.ARGB_8888);
@@ -169,7 +176,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		Canvas_Well_Plate.setBitmap(Bmp_Well_Plate);
 		//Canvas_Well_Plate = new Canvas(Bmp_Well_Plate);
 		setImageBitmap(Bmp_Well_Plate);
-		mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
+		//mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
+		mMaxTouchablePosY = (float)convert_mm2pixel(Viewable_height);
 		
     	/*20131209 added by michael*/
     	lock1 = new Object();
@@ -183,10 +191,29 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	 * this bitmap then set to I_Tracker_Well_Plate_View Canvas
 	*/
 	public void DrawBitmap() {
-		int i, j, margin_x, margin_y;
+		//int i, j, margin_x, margin_y;
+		int i, j;
+		float margin_x, margin_y;
 		int chr = 'A';
-		int radius_pixels;
+		//int radius_pixels;
+		float radius_pixels;
+		double mDisplay_well_pitch_x, mDisplay_well_pitch_y;
+		double label_width, label_height;
 
+		if (mWells == Wells_96) {
+			mDisplay_well_pitch_x = (Viewable_width - Border_left) / X_holes;
+			mDisplay_well_pitch_y = (Viewable_height - Border_top) / Y_holes;
+		}
+		else {
+			mDisplay_well_pitch_x = (Viewable_width - Border_left) / X_holes;
+			mDisplay_well_pitch_y = (Viewable_height - Border_top) / Y_holes;
+		}
+        //Border_top = (mDisplay_well_pitch_x > mDisplay_well_pitch_y) ? mDisplay_well_pitch_y : mDisplay_well_pitch_x;
+        //Border_left = Border_top -2;
+		//Label_cxChar = Border_top - 1;
+		//Label_cyChar = Label_cxChar;
+		label_width = Label_cxChar / Math.pow(2, 0.5);  
+		label_height = Label_cyChar / Math.pow(2, 0.5); 
 		/* clear the whole bitmap content */
 		mPaint_well_Stroke.setXfermode(new PorterDuffXfermode(Mode.CLEAR));  
     	Canvas_Well_Plate.drawPaint(mPaint_well_Stroke);
@@ -203,14 +230,14 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			for (i = 0, margin_x = 0, margin_y = convert_mm2pixel(Label_cyChar); i < X_holes; i++) {
 				//label_pixels_x = convert_mm2pixel(Label_cxChar * Integer.toString(i + 1).length());
 
-				if (mwell_pitch_x > (Label_cxChar * Integer.toString(i + 1).length()))
+				if (mDisplay_well_pitch_x > (label_width * Integer.toString(i + 1).length()))
 					
 /*					 margin_x = convert_mm2pixel(Border_left) +
 					 convert_mm2pixel(i * mwell_pitch_x) +
 					 (convert_mm2pixel(mwell_pitch_x) - label_pixels_x) / 2;*/
 					 
 					margin_x = convert_mm2pixel((2 * Border_left + 2 * i
-							* mwell_pitch_x + mwell_pitch_x - (Label_cxChar * Integer.toString(i + 1).length())) / 2);
+							* mDisplay_well_pitch_x + mDisplay_well_pitch_x - (label_width * Integer.toString(i + 1).length())) / 2);
 				else
 					
 /*					margin_x = convert_mm2pixel(Border_left) +
@@ -218,29 +245,29 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					 convert_mm2pixel(mwell_pitch_x)) / 2;*/
 					 
 					margin_x = convert_mm2pixel((2 * Border_left + 2 * i
-							* mwell_pitch_x + (Label_cxChar * Integer.toString(i + 1).length()) - mwell_pitch_x) / 2);
+							* mDisplay_well_pitch_x + (label_width * Integer.toString(i + 1).length()) - mDisplay_well_pitch_x) / 2);
 
 				Canvas_Well_Plate.drawText(Integer.toString(i + 1), margin_x, margin_y, mPaint_text);
 			}
 
 			
             for (i = 0, margin_x = 0, margin_y = 0; i < Y_holes; i++) {
-				if (mwell_pitch_y > Label_cyChar)
+				if (mDisplay_well_pitch_y > label_height)
 					margin_y = convert_mm2pixel((2 * Border_top + 2 * i
-							* mwell_pitch_y + mwell_pitch_y - Label_cyChar + 2 * Label_cyChar) / 2);
+							* mDisplay_well_pitch_y + mDisplay_well_pitch_y - label_height + 2 * label_height) / 2);
 				else
 					margin_y = convert_mm2pixel((2 * Border_top + 2 * i
-							* mwell_pitch_y + Label_cyChar - mwell_pitch_y + 2 * Label_cyChar) / 2);
+							* mDisplay_well_pitch_y + label_height - mDisplay_well_pitch_y + 2 * label_height) / 2);
 				Canvas_Well_Plate.drawText(Character.toString((char) (chr + i)), margin_x, margin_y, mPaint_text);
             }
             
-            radius_pixels = (mwell_pitch_x > mwell_pitch_y) ? convert_mm2pixel((mwell_pitch_y-0.8)/2):convert_mm2pixel((mwell_pitch_x-0.8)/2);
+            radius_pixels = (mDisplay_well_pitch_x > mDisplay_well_pitch_y) ? convert_mm2pixel((mDisplay_well_pitch_y-1)/2):convert_mm2pixel((mDisplay_well_pitch_x-1)/2);
             //mPaint.setColor(Color.BLUE);
             //mPaint.setStyle(Paint.Style.FILL_AND_STROKE);
             for (i = 0; i < Y_holes; i++) {
-            	margin_y = convert_mm2pixel((2*Border_top+mwell_pitch_y+i*2*mwell_pitch_y)/2);
-            	for (j = 0, margin_x = convert_mm2pixel((2*Border_left+mwell_pitch_x)/2); j < X_holes; j++) {
-            		margin_x = convert_mm2pixel((2*Border_left+mwell_pitch_x+j*2*mwell_pitch_x)/2);
+            	margin_y = convert_mm2pixel((2*Border_top+mDisplay_well_pitch_y+i*2*mDisplay_well_pitch_y)/2);
+            	for (j = 0, margin_x = convert_mm2pixel((2*Border_left+mDisplay_well_pitch_x)/2); j < X_holes; j++) {
+            		margin_x = convert_mm2pixel((2*Border_left+mDisplay_well_pitch_x+j*2*mDisplay_well_pitch_x)/2);
 
 /*//     			   memdc.Ellipse(Border_left+(i+1)*m_pitch_to_pixels-10, Border_top+(j+1)*m_pitch_to_pixels-10, Border_left+(i+1)*m_pitch_to_pixels+10, Border_top+(j+1)*m_pitch_to_pixels+10);
     				if (!Valid_Coord_Histogram[i][j]) {
@@ -274,7 +301,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
             		Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint_well_Stroke);
             	}
             }
-            Draw_Client_Well_Region(Canvas_Well_Plate, 5, 70);
+            //Draw_Client_Well_Region(Canvas_Well_Plate, 5, 70);
             //Draw_Client_Well_Region(Canvas_Well_Plate, 8, 93);
             //Draw_Client_Well_Region(Canvas_Well_Plate, 7, 93);
             //mMaxTouchablePosY = margin_y + radius_pixels;
@@ -289,14 +316,14 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 				for (i = 0, margin_x = 0, margin_y = convert_mm2pixel(Label_cyChar); i < X_holes; i++) {
 					//label_pixels_x = convert_mm2pixel(Label_cxChar * Integer.toString(i + 1).length());
 
-					if (mwell_pitch_x > (Label_cxChar * Integer.toString(i + 1).length()))
+					if (mDisplay_well_pitch_x > (label_width * Integer.toString(i + 1).length()))
 						
 	/*					 margin_x = convert_mm2pixel(Border_left) +
 						 convert_mm2pixel(i * mwell_pitch_x) +
 						 (convert_mm2pixel(mwell_pitch_x) - label_pixels_x) / 2;*/
 						 
 						margin_x = convert_mm2pixel((2 * Border_left + 2 * i
-								* mwell_pitch_x + mwell_pitch_x - (Label_cxChar * Integer.toString(i + 1).length())) / 2);
+								* mDisplay_well_pitch_x + mDisplay_well_pitch_x - (label_width * Integer.toString(i + 1).length())) / 2);
 					else
 						
 	/*					margin_x = convert_mm2pixel(Border_left) +
@@ -304,27 +331,27 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 						 convert_mm2pixel(mwell_pitch_x)) / 2;*/
 						 
 						margin_x = convert_mm2pixel((2 * Border_left + 2 * i
-								* mwell_pitch_x + (Label_cxChar * Integer.toString(i + 1).length()) - mwell_pitch_x) / 2);
+								* mDisplay_well_pitch_x + (label_width * Integer.toString(i + 1).length() - mDisplay_well_pitch_x)) / 2);
 
 					Canvas_Well_Plate.drawText(Integer.toString(i + 1), margin_x, margin_y, mPaint_text);
 				}
 
 	            for (i = 0, margin_x = 0, margin_y = 0; i < Y_holes; i++) {
-					if (mwell_pitch_y > Label_cyChar)
+					if (mDisplay_well_pitch_y > label_height)
 						margin_y = convert_mm2pixel((2 * Border_top + 2 * i
-								* mwell_pitch_y + mwell_pitch_y - Label_cyChar + 2 * Label_cyChar) / 2);
+								* mDisplay_well_pitch_y + mDisplay_well_pitch_y - label_height + 2 * label_height) / 2);
 					else
 						margin_y = convert_mm2pixel((2 * Border_top + 2 * i
-								* mwell_pitch_y + Label_cyChar - mwell_pitch_y + 2 * Label_cyChar) / 2);
+								* mDisplay_well_pitch_y + label_height - mDisplay_well_pitch_y + 2 * label_height) / 2);
 					Canvas_Well_Plate.drawText(Character.toString((char) (chr + i)), margin_x, margin_y, mPaint_text);
 	            }
-	            radius_pixels = (mwell_pitch_x > mwell_pitch_y) ? convert_mm2pixel((mwell_pitch_y-0.8)/2):convert_mm2pixel((mwell_pitch_x-0.8)/2);
+	            radius_pixels = (mDisplay_well_pitch_x > mDisplay_well_pitch_y) ? convert_mm2pixel((mDisplay_well_pitch_y-1)/2):convert_mm2pixel((mDisplay_well_pitch_x-1)/2);
 	            //mPaint.setColor(Color.BLUE);
 	            //mPaint.setStyle(Paint.Style.FILL_AND_STROKE);
 	            for (i = 0; i < Y_holes; i++) {
-	            	margin_y = convert_mm2pixel((2*Border_top+mwell_pitch_y+i*2*mwell_pitch_y)/2);
-	            	for (j = 0, margin_x = convert_mm2pixel((2*Border_left+mwell_pitch_x)/2); j < X_holes; j++) {
-	            		margin_x = convert_mm2pixel((2*Border_left+mwell_pitch_x+j*2*mwell_pitch_x)/2);
+	            	margin_y = convert_mm2pixel((2*Border_top+mDisplay_well_pitch_y+i*2*mDisplay_well_pitch_y)/2);
+	            	for (j = 0, margin_x = convert_mm2pixel((2*Border_left+mDisplay_well_pitch_x)/2); j < X_holes; j++) {
+	            		margin_x = convert_mm2pixel((2*Border_left+mDisplay_well_pitch_x+j*2*mDisplay_well_pitch_x)/2);
 	            		//pick up the correspond pen&brush setting for Paint
 					//synchronized (Well_Color_index) {
 						/*if (Well_Color_index[j][i] == 0) {
@@ -362,9 +389,12 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	
 	private void Draw_Client_Well_Region(Canvas canvas, int Client_Border_left, int Client_Border_top)
 	{
-		int i, j, margin_x, margin_y;
+		//int i, j, margin_x, margin_y;
+		int i, j;
+		float margin_x, margin_y;
 		int chr = 'A';
-		int radius_pixels;
+		//int radius_pixels;
+		float radius_pixels;
 //Pain implement integration function of Pen&Brush in MFC
 		//Paint mPaint = new Paint();
 		double mClient_well_pitch_x, mClient_well_pitch_y;
@@ -449,13 +479,13 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		mPaint_well_Stroke.setStrokeWidth(convert_mm2pixel(0.5));
 	}
 	
-	public int convert_mm2pixel(double value) {
+	public float convert_mm2pixel(double value) {
 		//DisplayMetrics metrics = new DisplayMetrics();
 		//((WindowManager)mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(metrics);
 		
 		//return (int) (0.75*value * metrics.xdpi * (1.0f/25.4f));
 		//return (int) (value * metrics.densityDpi * (1.0f/25.4f) * (12.7 / 12.1));
-		return (int) (value * metrics.densityDpi * (1.0f/25.4f));
+		return (float) (value * metrics.densityDpi * (1.0f/25.4f));
 		
 		//return (int) ((metrics.densityDpi/metrics.xdpi) * (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, (float) value,  metrics)));
 	}
@@ -463,67 +493,102 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	/*20130325 night added by michael*/
 	//only invalidate the well with histogram change
 	private void Invalidate_Single_Well(int color_index, int well_x, int well_y) {
-		int i, j, margin_x, margin_y, chrs;
-		int radius_pixels;
+		//int i, j, margin_x, margin_y, chrs;
+		int i, j, chrs;
+		float margin_x, margin_y;
+		//int radius_pixels;
+		float radius_pixels;
 		double mClient_well_pitch_x, mClient_well_pitch_y, adjust_radius_mm;
-		int Client_Border_left, Client_Border_top;
+		double Client_Border_left, Client_Border_top;
+		double mDisplay_well_pitch_x, mDisplay_well_pitch_y;
 
 		//mPaint_well_Stroke.setStrokeWidth(convert_mm2pixel(1));
-		mClient_well_pitch_x = (mwell_pitch_x > mwell_pitch_y) ? mwell_pitch_x : mwell_pitch_y;
-		mClient_well_pitch_y = (mwell_pitch_x > mwell_pitch_y) ? mwell_pitch_x : mwell_pitch_y;
+		mClient_well_pitch_x = mwell_pitch_x;
+		mClient_well_pitch_y = mwell_pitch_y;
+		if (mWells == Wells_96) {
+			mDisplay_well_pitch_x = (Viewable_width - Border_left) / X_holes;
+			mDisplay_well_pitch_y = (Viewable_height - Border_top) / Y_holes;
+		}
+		else {
+			mDisplay_well_pitch_x = (Viewable_width - Border_left) / X_holes;
+			mDisplay_well_pitch_y = (Viewable_height - Border_top) / Y_holes;
+		}
+        //Border_top = (mDisplay_well_pitch_x > mDisplay_well_pitch_y) ? mDisplay_well_pitch_y : mDisplay_well_pitch_x;
+        //Border_left = Border_top;
+		//mClient_well_pitch_x = (mwell_pitch_x > mwell_pitch_y) ? mwell_pitch_x : mwell_pitch_y;
+		//mClient_well_pitch_y = (mwell_pitch_x > mwell_pitch_y) ? mwell_pitch_x : mwell_pitch_y;
 		//mClient_well_pitch_x = mClient_well_pitch_y - 0.11;
 		//mClient_well_pitch_y = mClient_well_pitch_x - 0.09;
 		if (mWells==Wells_96) {
-			adjust_radius_mm = 6;
+			//adjust_radius_mm = 6;
+			adjust_radius_mm = 3;
 			//mClient_well_pitch_x = mClient_well_pitch_y - 0.12;
 			//mClient_well_pitch_y = mClient_well_pitch_x - 0.1;
-			mClient_well_pitch_x = mClient_well_pitch_y - 0.11;
-			mClient_well_pitch_y = mClient_well_pitch_x - 0.09;
-			Client_Border_left = 7;
-			Client_Border_top = 93;
+			//mClient_well_pitch_x = mClient_well_pitch_y - 0.11;
+			//mClient_well_pitch_y = mClient_well_pitch_x - 0.09;
+			//Client_Border_left = 7;
+			//Client_Border_top = 93;
+			Client_Border_left = 5.5;
+			Client_Border_top = 90;
 		}
 		else {
-			adjust_radius_mm = 1.3;
+			adjust_radius_mm = 2;
 			//mClient_well_pitch_x = mClient_well_pitch_y - 0.1;
 			//mClient_well_pitch_y = mClient_well_pitch_x - 0.08;
-			mClient_well_pitch_x = mClient_well_pitch_y - 0.115;
-			mClient_well_pitch_y = mClient_well_pitch_x - 0.09;
-			Client_Border_left = 7;
-			Client_Border_top = 94;
+			//mClient_well_pitch_x = mClient_well_pitch_y - 0.115;
+			//mClient_well_pitch_y = mClient_well_pitch_x - 0.09;
+			//Client_Border_left = 7;
+			//Client_Border_top = 94;
+			Client_Border_left = 5.5;
+			Client_Border_top = 89.5;
 		}
 			
 		//if (mWells==Wells_96) {
 			/*update the upper well*/
-            radius_pixels = (mwell_pitch_x > mwell_pitch_y) ? convert_mm2pixel((mwell_pitch_y-0.8)/2):convert_mm2pixel((mwell_pitch_x-0.8)/2);
-            margin_y = convert_mm2pixel((2*Border_top+mwell_pitch_y+well_y*2*mwell_pitch_y)/2);
-            margin_x = convert_mm2pixel((2*Border_left+mwell_pitch_x+well_x*2*mwell_pitch_x)/2);
+            radius_pixels = (mDisplay_well_pitch_x > mDisplay_well_pitch_y) ? convert_mm2pixel((mDisplay_well_pitch_y-1)/2):convert_mm2pixel((mDisplay_well_pitch_x-1)/2);
+            margin_y = convert_mm2pixel((2*Border_top+mDisplay_well_pitch_y+well_y*2*mDisplay_well_pitch_y)/2);
+            margin_x = convert_mm2pixel((2*Border_left+mDisplay_well_pitch_x+well_x*2*mDisplay_well_pitch_x)/2);
 			if (color_index==0) {
 				mPaint = mPaint_well_Fill;
 				//mPaint.setColor(Color.BLACK);
 				mPaint.setXfermode(Xfermode_clear);
 				if (mWells == Wells_96)
-					Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
-				else
 					Canvas_Well_Plate.drawRect(margin_x-radius_pixels-2, margin_y-radius_pixels-2, margin_x+radius_pixels+2, margin_y+radius_pixels+2, mPaint);
+				else
+					Canvas_Well_Plate.drawRect(margin_x-radius_pixels-3, margin_y-radius_pixels-3, margin_x+radius_pixels+3, margin_y+radius_pixels+3, mPaint);
 				mPaint.setXfermode(null);
 				//mPaint.setColor(Color.WHITE);
+				/*mPaint = mPaint_well_Stroke;
+				mPaint.setColor(Color.WHITE);
+				if (mWells == Wells_96)
+					  Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels+1, mPaint);*/
+			} else {
 				mPaint = mPaint_well_Stroke;
 				mPaint.setColor(Color.WHITE);
-			} else {
+				if (mWells == Wells_96)
+					  Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
+
 				mPaint = mPaint_well_Fill;
 				if (color_index <= total_colors) {
 					mPaint.setColor(Mark_Color_Table[color_index - 1]);
 				} else {
 					mPaint.setColor(Mark_Color_Table[total_colors - 1]);
 				}
-				mPaint.setXfermode(Xfermode_dst_over);
+				//mPaint.setXfermode(Xfermode_dst_over);
+				mPaint.setXfermode(Xfermode_src_over);
+				
+				if (mWells == Wells_96)
+					  Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels-1, mPaint);
+				else
+					Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels+2, mPaint);
+				mPaint.setXfermode(null);
 			}
-			if (mWells == Wells_96)
+			/*if (mWells == Wells_96)
 			  Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
 			else
-				Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels + 2, mPaint);
+				Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels+2, mPaint);
 			if (mPaint == mPaint_well_Fill)
-				mPaint.setXfermode(null);
+				mPaint.setXfermode(null);*/
 			/*20131217 added by michael*/
 			//if (color_index > 0 && this.mWells == this.Wells_96) {
 			if (color_index > 0) {
@@ -545,7 +610,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					}
 				}
 			}
-			this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
+			this.invalidate((int)(margin_x-radius_pixels-3), (int)(margin_y-radius_pixels-3), (int)(margin_x+radius_pixels+3), (int)(margin_y+radius_pixels+3));
 			
 			/*update the lower well*/
 			radius_pixels = (mClient_well_pitch_x > mClient_well_pitch_y) ? convert_mm2pixel((mClient_well_pitch_y-adjust_radius_mm)/2):convert_mm2pixel((mClient_well_pitch_x-adjust_radius_mm)/2);
@@ -559,14 +624,14 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					mPaint.setXfermode(null);
 					mPaint = mPaint_well_Stroke;
 					Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
-					this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
+					this.invalidate((int)(margin_x-radius_pixels), (int)(margin_y-radius_pixels), (int)(margin_x+radius_pixels), (int)(margin_y+radius_pixels));
 				}
 				else {
 					mPaint = mPaint_well_Fill;
 					mPaint.setXfermode(Xfermode_clear);
 					Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
 					mPaint.setXfermode(null);
-					this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
+					this.invalidate((int)(margin_x-radius_pixels), (int)(margin_y-radius_pixels), (int)(margin_x+radius_pixels), (int)(margin_y+radius_pixels));
 					/*mPaint = mPaint_well_Fill;
 					mPaint.setColor(Color.BLACK);
 					Canvas_Well_Plate.drawRect(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels, mPaint);
@@ -582,7 +647,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					mPaint.setColor(Mark_Color_Table[total_colors - 1]);
 				}
 				Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
-				this.invalidate(margin_x-radius_pixels, margin_y-radius_pixels, margin_x+radius_pixels, margin_y+radius_pixels);
+				this.invalidate((int)(margin_x-radius_pixels), (int)(margin_y-radius_pixels), (int)(margin_x+radius_pixels), (int)(margin_y+radius_pixels));
 			}
 		/*}
 		else if (mWells==Wells_384){
@@ -619,6 +684,9 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	
 	
 	public void ResetWell() {
+    	/*20140616 added by michael
+    	 * reset the valid coordinate count*/
+    	Last_Coord_X_Count = Last_Coord_Y_Count = 0;
     	for (int i = 0; i < Well_Color_index.length; i++)
     		Arrays.fill(Well_Color_index[i], 0x00);
     	//Canvas_Well_Plate.drawColor(Color.BLUE, PorterDuff.Mode.CLEAR);
@@ -644,8 +712,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 
 		if (well_type == Wells_96) {
 			//mwell_pitch_x = 9.580d;
-			mwell_pitch_x = 9.1d;
-			mwell_pitch_y = 7.5d;
+			mwell_pitch_x = 9.25d;
+			mwell_pitch_y = 9.25d;
 			X_holes = 12;
 			Y_holes = 8;
 			Label_cxChar = 5;
@@ -656,9 +724,12 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			multi_pipettes_well_gap = 1;
 			/*20131217 added by michael*/
 			mPaint_well_Stroke.setXfermode(null);
+			/*20140616 added by michael*/
+			Viewable_height = 60;
+			Viewable_width = 116; 
 		} else if (well_type == Wells_384) {
-			mwell_pitch_x = 9.1d / 2;
-			mwell_pitch_y = 7.5d / 2;
+			mwell_pitch_x = 9.25d / 2;
+			mwell_pitch_y = 9.25d / 2;
 			X_holes = 24;
 			Y_holes = 16;
 			Label_cxChar = 3.3;
@@ -669,8 +740,13 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			multi_pipettes_well_gap = 2;
 			/*20131217 added by michael*/
 			mPaint_well_Stroke.setXfermode(Xfermode_clear);
+			/*20140616 added by michael*/
+			Viewable_height = 60;
+			Viewable_width = 116;
 		}
-		mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
+        /*20140616 modified by michael*/
+		//mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
+		mMaxTouchablePosY = (float)convert_mm2pixel(Viewable_height);
 		//this.invalidate();
 		/*20131213 added by michael*/
 		mPaint_transparent.setTextSize(convert_mm2pixel(Label_cxChar));

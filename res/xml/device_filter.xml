@@ -23,5 +23,5 @@
     <!-- <usb-device vendor-id="1367" product-id="8200" /> -->
     
     <!-- <usb-device vendor-id="1046" product-id="20512" class="3" subclass="0" protocol="0"/> -->
-    <usb-device vendor-id="1046" product-id="20512" class="3" subclass="0" protocol="0"/>
+    <usb-device vendor-id="1046" product-id="20512" class="255" subclass="0" protocol="0"/>
 </resources>

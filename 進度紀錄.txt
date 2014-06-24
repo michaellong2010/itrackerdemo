@@ -306,3 +306,56 @@ root@android:/ # chmod 06755 /system/xbin/su-new
 20140328
 1.  客戶給的更高解析度logo圖檔orange_only_square1.png，測試後仍然有鋸齒狀
 2.  Preference Dialog加上RelativeLayout把CheckBox、TextView分別對齊齊至列的左或右
+
+20140519~20140612
+1.  /mnt/sdcard/寫入權限問題，在AndroidManifest.xml加入以下修正
+    <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+2.  人因科技平板充電與USB孔共用，開孔位置在另一測短邊，調整AndroidManifest.xml的activity屬性screenOrientation，從"reversePortrait"改為"portrait"
+3.  2014/1買的rockchip調用usb host api發生讀入時無限block無法返回，不管調用方式是使用asynchronized或synchronize，一樣都會發生block。I_Tracker_Device.java成員函式進行一些修改，依舊無法解決read in block現象，最終解決方式是修改
+USB class從原本HID class調成vendor-specific，HID只支持EP_INT及EP_CONTROL兩種Endpoint type，vendor-specific class則可以支持EP_bulk，device端FW須修改一些USB的descriptor，app端修改device_filter.xml
+
+private boolean send_request(UsbRequest request, ByteBuffer byte_buf) {
+                boolean queue_result; 
+	    	queue_result = request.queue(byte_buf, byte_buf.limit());  //多了檢查排入usb queue是否成功
+	    	if (queue_result==true) {
+                }
+......
+}
+private boolean write_out(ByteBuffer byte_buf, int length) {
+}
+private boolean read_in(ByteBuffer byte_buf, int length) {
+  byte_count = mDeviceConnection.bulkTransfer(mEndpointIn, read_buf, length, 0); //改成調用同步usb傳輸
+}
+4.  原本surfaceView上的icon顯示/不顯示表示USB有無連線，是否會撥放動畫表示app是否處於running狀態。拆成running_status_v與connection_status_v分別顯示
+ImageView running_status_v, connection_status_v;
+5.  每次拔插後app處於停止使用者必須重新按下"Run"才能繼續執行，或者app檢查mItrackerState記錄恢復斷線前狀態。當app和device連線並且運行時，突然拔除usb cable，引發斷線事件，此時device實際是運作狀態，因此app裡記錄device的狀態變量
+mItrackerState於ACTION_USB_DEVICE_DETACHED回調的broadcastreceiver裡不變更連線狀態，下回重新連上usb cable，intent-filter action=ACTION_USB_DEVICE_ATTACHED，判斷mItrackerState可偵測到是拔除再重新插上。
+6.  USB斷線畫面alpha值0.5，USB連線後且app處於停止時alpha值0.75，USB連線後且app處於運行則alpha值1；調用Well_View.setalpha(double=0~1.0f)，double=0.0f表示全透明，double=1.0f表示不透明
+7.  裝置端struct I_tracker_type縮小Max_Coord_Buf數值，從100改成10，sizeof(I_tracker_type)=4+4+4*Max_Coord_Buf+4+4=4*4+4*10=56，只須one page(256 bytes)傳輸；原本sizeof(I_tracker_type)=408，須要two page(512 byte)傳輸
+struct I_tracker_type {
+  int Is_Running;
+  int coord_index;
+  Well_Coord_t Valid_Coord_Buf[Max_Coord_Buf];
+/*20131103 added by michael
+notify host if the Valid_Coord_Buf locked*/
+  int buffer_locked;
+  Well_Coord_t Newest_Valid_Coord;
+};
+
+20140616 送樣demo
+1.  已知12爪偵測還有些尚未解決的問題
+2.  I_Tracker_Well_Plate_View.java修改很多
+(1)  double Viewable_height, Viewable_width;  //UI可視操作區長和寬(mm)
+(2)  margin_x、margin_y、radius_pixels存放點數改成float
+(3)  text size是以對角線衡量，因此字體的x寬和y高須除以根號2，如此計算label間拒才正確，label就會對齊circle中心
+		label_width = Label_cxChar / Math.pow(2, 0.5);  
+		label_height = Label_cyChar / Math.pow(2, 0.5);
+(4)  mwell_pitch_x與mwell_pitch_y先前分別是9.x與7.x，這是不合理的，因為平板長和寬的dpi是一樣的，兩者應該是相等的，現在間距計算公式都調整精確，兩者數值是一樣的，視情形可做相近微調
+
+20140624
+1.  隱藏Navigation bar後，時常無法再度顯現；show_system_bar()和hide_system_bar()調用下達shell命令後delay一段時間讓命令完全徹底執行完畢，如此就不會有問題
+2.  備份wallpaper須於隱藏Navigation bar之前完成，程式結束前回存桌面圖示
+3.  客戶端url網址變更成  http://www.smartlabbench.com/
+4.  客戶圓形logo調整至適當解析放至桌面顯示才不會有鋸齒狀

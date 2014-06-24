@@ -40,7 +40,7 @@ public class I_Tracker_Device {
     public static final int Itracker_USB_VID = 0x0416;
     public static final int Itracker_USB_PID = 0x5020;
     //public static final int Itracker_USB_PID = 0xC142;
-    public static final int Itracker_USB_class = 0x03;
+    public static final int Itracker_USB_class = 0xff;
     //public static final int Itracker_USB_class = 0xff;
     public static final int Itracker_USB_subclass = 0x00;
     public static final int Itracker_USB_protocol = 0x00;
@@ -659,22 +659,31 @@ public class I_Tracker_Device {
     	boolean result = false;
     	
     	synchronized(lock1) {
+    	if (isDeviceOnline()) {
 		message.set(itracker_cmd, 0, 0, null, debug);
 		result = message.process_command(0);
 		if (itracker_cmd==CMD_T.HID_CMD_ITRACKER_DATA && result) {
 			Itracker_dev_data = message.mDataBuffer.asIntBuffer();
+			if (Itracker_dev_data.limit()==64) {
 			coord_index = Itracker_dev_data.get(1);
 			//Valid_Coord_Buf = new int [Max_Coord_Buf];
 			Arrays.fill(Valid_Coord_Buf, 0x00);
 			Itracker_dev_data.position(2);
 			Itracker_dev_data.get(Valid_Coord_Buf);
 			/*20131210 added by michael*/
-			buffer_locked = Itracker_dev_data.get(Itracker_dev_data.limit()-2);
+			//buffer_locked = Itracker_dev_data.get(Itracker_dev_data.limit()-2);
+			buffer_locked = Itracker_dev_data.get(12);
+			}
+			else
+				return false;
 		}
 		if (result)
 			return true;
 		else
 			return false;
+    	}
+    	else
+    		return false;
     	}
 	}
 
@@ -697,8 +706,8 @@ int Well_Plate_Mode;
 	};
 Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 */
-	public static final int Max_Coord_Buf = 100;
-	public static final int SZ_I_tracker_type = (2*Integer.SIZE+Max_Coord_Buf*Integer.SIZE) / Byte.SIZE;
+	public static final int Max_Coord_Buf = 10;
+	public static final int SZ_I_tracker_type = (4*Integer.SIZE+Max_Coord_Buf*Integer.SIZE) / Byte.SIZE;
 	/* #define PAGE_SIZE 256 */
 	public static final int PAGE_SIZE = 256;
 	// #define HID_CMD_SIGNATURE 0x43444948
@@ -766,21 +775,29 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	    public static final int HID_CMD_ITRACKER_SETTING = 0x86;
 
 	    private boolean send_request(UsbRequest request, ByteBuffer byte_buf) {
+	    	boolean queue_result; 
 	    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 	    	request.setClientData(this);
-			request.queue(byte_buf, byte_buf.limit());
+	    	queue_result = request.queue(byte_buf, byte_buf.limit());
 			
+	    	if (queue_result==true) {
 			request = mDeviceConnection.requestWait();
 			CMD_T message = (CMD_T)request.getClientData();
 			if (this==message)
 				return true;
+	    	}
 			show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber());
 			return false;
 	    }
 	    
 	    private boolean write_out(ByteBuffer byte_buf, int length) {
-	    	boolean result;
+	    	boolean result = false;
+	    	//byte[] write_buf;
+	    	//int byte_count = 0;
 	    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
+	    	//write_buf = byte_buf.array();
+	    	//byte_count = mDeviceConnection.bulkTransfer(mEndpointOut, write_buf, length, 10000);
+	    	//return result;
 	    	UsbRequest request = getOutRequest();
 	    	if (request != null) {
 	    		result =  send_request(request, byte_buf);
@@ -802,16 +819,28 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	    }
 	    
 	    private boolean read_in(ByteBuffer byte_buf, int length) {
-	    	boolean result;
+	    	boolean result = false;
+	    	byte[] read_buf;
+	    	int byte_count = 0;
 	    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
-	    	UsbRequest request = getInRequest();
+	    	read_buf = byte_buf.array();
+	    	//Log.d("knight", "buffer length: " + Integer.toString(read_buf.length));
+	    	byte_count = mDeviceConnection.bulkTransfer(mEndpointIn, read_buf, length, 0);
+	    	//Log.d("knight", "receive bytes " + Integer.toString(byte_count));
+	    	if (byte_count != length || length==0) {
+	    		Log.d("knight", "receive bytes " + Integer.toString(byte_count));
+	    	    return false;
+	    	}
+	    	else
+	    		return true;
+	    	/*UsbRequest request = getInRequest();
 	    	if (request != null) {
 	    		result = send_request(request, byte_buf);
 	    		mInRequestPool.add(request);
 	    	}
 	    	else
 	    		result = false;
-	    	return result;
+	    	return result;*/
 	    	/*show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 	    	request.setClientData(this);
 	    	request.queue(byte_buf, byte_buf.limit());
@@ -840,6 +869,7 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 			
 			mDataBuffer.clear();
 			mDataBuffer.limit((arg2-arg1)*PAGE_SIZE);
+			//Log.d("knight", "Datat buffer capacity: " + Integer.toString(mDataBuffer.capacity()));
 			int command;
 			command = (int) cmd&0xff; 
 			switch(command) {
@@ -1055,7 +1085,7 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 				
 				for (i = 0; i < mInterface.getEndpointCount(); i++) {
 					UsbEndpoint ep = mInterface.getEndpoint(i);
-					if (ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT) {
+					if (ep.getType() == UsbConstants.USB_ENDPOINT_XFER_BULK) {
 						if (ep.getDirection() == UsbConstants.USB_DIR_OUT) {
 					    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber());
 							mEndpointOut = ep;

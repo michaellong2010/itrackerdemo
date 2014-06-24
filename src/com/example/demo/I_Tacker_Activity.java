@@ -3,6 +3,7 @@ package com.example.demo;
 import gif.decoder.GifRun;
 
 import java.io.BufferedWriter;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileWriter;
@@ -79,6 +80,7 @@ import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -214,6 +216,8 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 
 						/*20131213 modified by michael*/
 						//mItrackerState = 0;
+						/*20140605 note by michael
+						 * if you want to resume the device running status before usb disconnection¡Ait should comment out the line and keep 'mItrackerState' unchanged */
 						mItrackerState &= ~(1 << Itracker_State_isConnect); 
 
 						/*20131213 modified by michael
@@ -377,6 +381,8 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
 	boolean Adjust_Detection_Sensitivity = false, Cur_Adjust_Detection_Sensitivity;
 	int Pipetting_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
+	/*20140605 added by michael*/
+	ImageView running_status_v, connection_status_v;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -429,6 +435,10 @@ radio group to let user to choice well plate for i-tacker*/
 		d = tmp_Button.getBackground();*/
 		
 		Well_View = new I_Tracker_Well_Plate_View(this, I_Tracker_Well_Plate_View.Wells_384);
+		/*20140605 added by michael
+		 * create Well_View background drawable via calling setBackgroundColor()*/
+		//Well_View.setBackgroundColor(0xFF000000);
+		//mMenuDrawer.setBackgroundColor(0xFF000000);
 		Well_View.setId(R.id.ID_well_plate_view);
 		FrameLayout.LayoutParams lp =  new FrameLayout.LayoutParams(Well_View.screen_width_pixel(), Well_View.screen_height_pixel());
 		Well_View.setLayoutParams(lp);
@@ -718,7 +728,17 @@ radio group to let user to choice well plate for i-tacker*/
 		mIntentFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
 		mIntentFilter.addAction(ACTION_USB_PERMISSION);
 		registerReceiver(mReceiver, mIntentFilter);
-		
+
+		/*20140624 added by michael*/
+		//back up the original wall paper¡Athe action should be done before stop the system service com.android.systemui/SystemUI
+		mOrigWallpaper = WallpaperManager.getInstance(this);
+		mOrigWallpaper_drawable = mOrigWallpaper.getDrawable();
+		if (mOrigWallpaper_drawable instanceof BitmapDrawable) {
+			mOrigWallpaper_bitmap = ((BitmapDrawable)mOrigWallpaper_drawable).getBitmap();
+		}
+		else
+			mOrigWallpaper_bitmap = null;
+
 		/*20130317 added by michael*/
 		mRequest_USB_permission = false;
 		EnumerationDevice(getIntent());
@@ -730,11 +750,11 @@ radio group to let user to choice well plate for i-tacker*/
                 "com.android.systemui.SystemUIService"));
 		/*20130320 added by michael*/
 		//back up the original wall paper
-		mOrigWallpaper = WallpaperManager.getInstance(this);
+		/*mOrigWallpaper = WallpaperManager.getInstance(this);
 		mOrigWallpaper_drawable = mOrigWallpaper.getDrawable();
 		if (mOrigWallpaper_drawable instanceof BitmapDrawable) {
 			mOrigWallpaper_bitmap = ((BitmapDrawable)mOrigWallpaper_drawable).getBitmap(); 
-		}
+		}*/
 		//Bitmap icon = BitmapFactory.
 		getResources();
 		
@@ -780,10 +800,23 @@ radio group to let user to choice well plate for i-tacker*/
 		//lp2.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, RelativeLayout.TRUE);
 		//lp2.addRule(RelativeLayout.BELOW, R.id.ID_OverflowMenuButton);
 		lp2.setMargins(0, (int)(Well_View.mMaxTouchablePosY-32)/2, 0, 0);
-		mIndicators_Layout.addView(surf_v, lp2);
+		//mIndicators_Layout.addView(surf_v, lp2);
 		surf_v.setOnClickListener(listener1);
 		mGif = new  GifRun();
 		mGif.LoadGiff(surf_v, this, R.drawable.status_32x32);
+		
+		/*20140605 added by michael*/
+		running_status_v = new ImageView(this);
+		lp2 = new RelativeLayout.LayoutParams(32, 32);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+		lp2.setMargins(0, (int)(Well_View.mMaxTouchablePosY-32)/2, 0, 0);
+		mIndicators_Layout.addView(running_status_v, lp2);
+		
+		connection_status_v = new ImageView(this);
+		lp2 = new RelativeLayout.LayoutParams(32, 32);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+		lp2.setMargins(0, (int)(Well_View.mMaxTouchablePosY-32), 0, 0);
+		mIndicators_Layout.addView(connection_status_v, lp2);
 	}
 
 	@Override
@@ -889,8 +922,10 @@ radio group to let user to choice well plate for i-tacker*/
 				 */
 				/*****  Run in worker thread  *****/
 				
-				mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0);
-				UI_invalid_pipetting = mItracker_dev.Process_Itracker_Data();
+				if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0))
+				  UI_invalid_pipetting = mItracker_dev.Process_Itracker_Data();
+                else
+				   UI_invalid_pipetting = 0;
 				
 		    	//queue a Runnable task into UI thread
 			    //synchronized (TheDelegatedTimerTask) {
@@ -1173,6 +1208,16 @@ radio group to let user to choice well plate for i-tacker*/
 
 //Exit the i-tracker demo activity
 	public void OnBnClickExitItracker(View v) {
+		/*20140624 added by michael
+		 * restore the original wallpaper
+		 * */
+		try {
+			if (mOrigWallpaper_bitmap != null)
+				mOrigWallpaper.setBitmap(mOrigWallpaper_bitmap);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		this.finish();
 	}
 	
@@ -1228,8 +1273,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	//mItracker_dev.setInterface();
 /*    	Log.d(Tag, "cmd type size:"+Integer.toString(I_Tracker_Device.CMD_T.SZ_CMD_T));*/
 		if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 1)
-				&& mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_START, 1))
+				&& mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_START, 1)) {
 			return true;
+		}
 		return false;
     }
     
@@ -1244,13 +1290,28 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     File systemUIapkFile = new File("/system/app/SystemUI.apk");
     public void hide_system_bar() {
     	java.lang.Process p;
+    	byte [] buff;
+    	int readed;
+    	String result;
     	
+    	result = "kkk";
+    	buff = new byte [100];
     	try {
 			p = Runtime.getRuntime().exec("/system/xbin/su-new");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
+			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("service call activity 42 s16 com.android.systemui\n");
+			try { Thread.sleep(5000); } catch(Exception ex) {}
+            while( is.available() > 0) {
+                readed = is.read(buff);
+                if ( readed <= 0 ) break;
+                String seg = new String(buff,0,readed);   
+                result = result + seg; //result is a string to show in textview
+            }
+            Log.d(Tag, "shell exit code: " + result);
 			os.flush();
 			os.close();
+			is.close();
 			p.waitFor();
 			p.destroy();
 		} catch (Exception e) {
@@ -1268,14 +1329,28 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 
     public void show_system_bar() {
     	java.lang.Process p;
+    	byte [] buff;
+    	int readed;
+    	String result;
     	
+    	result = "kkk";
+    	buff = new byte [100];    	
     	try {
 			/*p = Runtime.getRuntime().exec("/system/xbin/su-new am startservice -n com.android.systemui/.SystemUIService\n");
 			p.waitFor();
 			p.destroy();*/
 			p = Runtime.getRuntime().exec("/system/xbin/su-new");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
+			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("am startservice -n com.android.systemui/.SystemUIService\n");
+			try { Thread.sleep(5000); } catch(Exception ex) {}
+            while( is.available() > 0) {
+                readed = is.read(buff);
+                if ( readed <= 0 ) break;
+                String seg = new String(buff,0,readed);   
+                result = result + seg; //result is a string to show in textview
+            }
+            Log.d(Tag, "shell exit code: " + result);
 			os.flush();
 			os.close();
 			p.waitFor();
@@ -1365,9 +1440,39 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
     			UsbDevice device = (UsbDevice) intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
     			if (mItracker_dev.Enumeration(device)) {
-    				Itracker_MI_State = 1 << Itracker_MI_Start;
+    				/*20140605 modified by michael
+    				 * when device is running and unplug the usb cable will cause disconnection¡Athe device still running
+    				 * when reconnect the cable and enumeration device success¡Aapp resume the last running status of device */
+    				if ((mItrackerState &( 1 << Itracker_State_isConnect))==1) {
+    					Itracker_MI_State ^= 1 << Itracker_MI_Pause;
+    					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+    					if (Connect_Itracker()) {
+    						if (log_file_buf == null) {
+    							try {
+    								create_logfile(generate_logfilename());
+    								write_logfile_msg("Start a new pipetting session");
+    							} catch (IOException e) {
+    								// TODO Auto-generated catch block
+    								e.printStackTrace();
+    							}
+    						}
+    						else {
+    							write_logfile_msg("Resume");
+    						}
+    						Itracker_MI_State |= 1 << Itracker_MI_Stop;
+    						if ((mItrackerState & (1<<Itracker_State_isBackable)) != 0)
+    							Itracker_MI_State |= 1 << Itracker_MI_Previos_Tran;
+    						
+    						if ((mItrackerState & (1<<Itracker_State_isForwardable)) != 0)
+    							Itracker_MI_State |= 1 << Itracker_MI_Next_Tran;
+    						
+    					}
+    				}
+    				else
+    					Itracker_MI_State = 1 << Itracker_MI_Start;
     				Show_Toast_Msg(I_Tracker_Device_Conn);
     				mItrackerState |= 1 << Itracker_State_isConnect;
+    				
     				//if (mGif != null)
     					//mGif.Resume_thread();
     			}
@@ -1984,8 +2089,36 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		
 		/*20131203 added by michael
 		 * trigger a update event to update canvas on the SurfaceView for the status indicator*/
-		if (mGif != null)
-			mGif.Resume_thread();
+		/*20140604 modified by michael
+		 * comment out source code¡Acustomer suggest using another static icons denote the usb connect/disconnect and device running/not running
+		 * 3 profile mode denote by different alpha value
+		 */
+		//if (mGif != null)
+			//mGif.Resume_thread();
+		if (running_status_v != null) {
+		if ((mItrackerState & (1 << Itracker_State_isConnect)) == 0) {
+			running_status_v.setImageDrawable(getResources().getDrawable(R.drawable.red_circle));
+			//running_status_v.setImageResource(R.drawable.pause1);
+			connection_status_v.setImageResource(R.drawable.usb_disconnection);
+			//Well_View.getBackground().setAlpha(255);
+			Well_View.setAlpha(0.5f);
+		}
+		else {
+			connection_status_v.setImageResource(R.drawable.usb_connection);
+			if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
+				running_status_v.setImageDrawable(getResources().getDrawable(R.drawable.green_circle));
+				//running_status_v.setImageResource(R.drawable.pause1);
+				//Well_View.getBackground().setAlpha(0);
+				Well_View.setAlpha(1.0f);
+			}
+			else {
+				running_status_v.setImageDrawable(getResources().getDrawable(R.drawable.red_circle));
+				//running_status_v.setImageResource(R.drawable.run1);
+				//Well_View.getBackground().setAlpha(255);
+				Well_View.setAlpha(0.75f);
+			}
+		}
+		}
 	}
 
 	/*20131127 added by michael
