@@ -76,6 +76,15 @@ public class I_Tracker_Device {
     protected int Pipetting_Mode = 0, Pipetting_Sensitivity_Level = -1;
     /*20131224 added by michael*/
     private final ReentrantLock lock3 = new ReentrantLock();
+    /*20140731 added by michael*/
+	public int Fw_Version_Code;
+	public String Fw_Version_Name, Fw_md5_checksum;
+	public int Hw_Version_Code;
+	public byte[] fw_header_bytes = new byte[256];
+	/*20140811 added by michael*/
+/*	char Version_Name[48];
+	int bin_size;
+	unsigned char check_digits[16];*/
     
     public I_Tracker_Device(Context context) {
     	mContext = context;
@@ -115,8 +124,17 @@ public class I_Tracker_Device {
     	/*20131208 added by michael*/
     	lock1 = new Object();
     	lock2 = new Object();
+    	
+    	/*20140731 added by michael*/
+    	Reset_Device_Info();
     }
     
+    /*20140731 added by michael*/
+    public void Reset_Device_Info() {
+    	Fw_Version_Code = -1;
+    	Fw_Version_Name = "";
+    	Fw_md5_checksum = "";
+    }
 /*    private void RegisterReceiver() {
     	IntentFilter int_filter;
     	
@@ -483,7 +501,7 @@ public class I_Tracker_Device {
 							}
 						}						
 					}
-					Log.d(Tag, line);
+					//Log.d(Tag, line);
 					I_Tacker_Activity.write_logfile_msg(line);
 /*					if (pItrackerDlg->Valid_Coord_Back_For != pItrackerDlg->Valid_Coord_Seq_Index)
 						  pItrackerDlg->Valid_Coord_Seq_Index = pItrackerDlg->Valid_Coord_Back_For;
@@ -519,9 +537,9 @@ public class I_Tracker_Device {
 	public void for_test() {
 		int i = 0, x, y;
 		
-		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_SETTING, 1);
+		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_SETTING, 0, 0, null, 1);
 		show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
-		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_START, 1);
+		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_START, 0, 0, null, 1);
 		show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 		
 		try {
@@ -530,7 +548,7 @@ public class I_Tracker_Device {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_DATA, 1);
+		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_DATA, 0, 0, null, 1);
 		show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
 		byte [] byte_buf = message.mDataBuffer.array();
 		show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"data bytes:  "+message.mDataBuffer.limit()+"\n");
@@ -590,7 +608,7 @@ public class I_Tracker_Device {
 		//Itracker_dev_data
 		
 		//message.mDataBuffer.asIntBuffer()
-		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+		Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
 	}
 	
     // get an OUT request from our pool
@@ -655,12 +673,13 @@ public class I_Tracker_Device {
 	/*20130314 added by michael*/	
 	//device IOCTL
     //public synchronized boolean Itracker_IOCTL(int itracker_cmd, int debug) {
-    public boolean Itracker_IOCTL(int itracker_cmd, int debug) {
+    //public boolean Itracker_IOCTL(int itracker_cmd, int debug) {
+    public boolean Itracker_IOCTL(int itracker_cmd, int arg0, int arg1, byte[] dataBytes, int debug) {
     	boolean result = false;
     	
     	synchronized(lock1) {
     	if (isDeviceOnline()) {
-		message.set(itracker_cmd, 0, 0, null, debug);
+		message.set(itracker_cmd, arg0, arg1, dataBytes, debug);
 		result = message.process_command(0);
 		if (itracker_cmd==CMD_T.HID_CMD_ITRACKER_DATA && result) {
 			Itracker_dev_data = message.mDataBuffer.asIntBuffer();
@@ -677,6 +696,46 @@ public class I_Tracker_Device {
 			else
 				return false;
 		}
+		else
+			if (itracker_cmd==CMD_T.HID_CMD_ITRACKER_FW_HEADER && result) {
+				 /* refer sizeof(struct FW_Header)
+				struct FW_Header {
+	                  int Version_Code;
+	                  char Version_Name[48];
+	                  int bin_size;
+	                  int HW_Version_Code;
+	                  unsigned char check_digits[16];
+                };*/
+				//System.arraycopy(message.mDataBuffer.array(), 0, dataBytes, 0, (arg1-arg0)*PAGE_SIZE);
+				StringBuffer sb = new StringBuffer("");
+				byte b;
+				message.mDataBuffer.get(dataBytes, 0, (arg1-arg0)*PAGE_SIZE);
+				System.arraycopy(dataBytes, 0, fw_header_bytes, 0, (arg1-arg0)*PAGE_SIZE);
+				message.mDataBuffer.order(ByteOrder.LITTLE_ENDIAN);				
+				/*message.mDataBuffer.position(0);
+				message.mDataBuffer.position(4);
+				message.mDataBuffer.position(52);
+				message.mDataBuffer.position(56);*/
+				message.mDataBuffer.position(0);
+				Fw_Version_Code = message.mDataBuffer.getInt();
+				message.mDataBuffer.position(4);
+				for (int i = 0; i < 48; i++) {
+					b = message.mDataBuffer.get();
+					if (b!=0x00)
+						sb.append(new String(new byte []{b}));
+					else
+						break;
+				}
+				Fw_Version_Name = sb.toString();
+				sb.delete(0, sb.length());
+				message.mDataBuffer.position(56);
+				Hw_Version_Code = message.mDataBuffer.getInt();
+				message.mDataBuffer.position(60);
+				for (int i = 0; i < 16; i++) {
+					sb.append(Integer.toString((message.mDataBuffer.get() & 0xff) + 0x100, 16).substring(1));
+				}
+				this.Fw_md5_checksum = sb.toString();
+			}
 		if (result)
 			return true;
 		else
@@ -708,6 +767,9 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 */
 	public static final int Max_Coord_Buf = 10;
 	public static final int SZ_I_tracker_type = (4*Integer.SIZE+Max_Coord_Buf*Integer.SIZE) / Byte.SIZE;
+	/*20140731 added by michael
+	 * size of struct FW_Header */
+	public static final int SZ_I_track_fw_header = (Integer.SIZE + 48 * Byte.SIZE + Integer.SIZE + Integer.SIZE + 16 * Byte.SIZE) / Byte.SIZE;
 	/* #define PAGE_SIZE 256 */
 	public static final int PAGE_SIZE = 256;
 	// #define HID_CMD_SIGNATURE 0x43444948
@@ -773,7 +835,15 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	    public static final int HID_CMD_ITRACKER_STOP = 0x83;
 	    public static final int HID_CMD_ITRACKER_DATA = 0x85;
 	    public static final int HID_CMD_ITRACKER_SETTING = 0x86;
-
+	    /*20140731 added by michael
+	     * app should query firmware header to retrieve version information
+	     * */
+	    public static final int HID_CMD_ITRACKER_FW_HEADER = 0xA1;
+	    /*20140806 added by michael
+	     * transfer FW bin data to device
+	     * */
+	    public static final int HID_CMD_ITRACKER_FW_UPGRADE = 0xA0;
+	    
 	    private boolean send_request(UsbRequest request, ByteBuffer byte_buf) {
 	    	boolean queue_result; 
 	    	show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
@@ -867,11 +937,16 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 				stream_debug(byte_buf);
 			}*/
 			
-			mDataBuffer.clear();
-			mDataBuffer.limit((arg2-arg1)*PAGE_SIZE);
+			/*mDataBuffer.clear();
+			mDataBuffer.limit((arg2-arg1)*PAGE_SIZE);*/
 			//Log.d("knight", "Datat buffer capacity: " + Integer.toString(mDataBuffer.capacity()));
 			int command;
-			command = (int) cmd&0xff; 
+			command = (int) cmd&0xff;
+			if (command != CMD_T.HID_CMD_ITRACKER_FW_UPGRADE) {
+				mDataBuffer.clear();
+				mDataBuffer.limit((arg2-arg1)*PAGE_SIZE);
+			}
+			//In a transaction from host to device¡AOUT
 			switch(command) {
 			case HID_CMD_ITRACKER_SETTING:
 				mDataBuffer.putInt(Well_Plate_Mode);
@@ -885,13 +960,20 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 		    	if (result)
 					Log.d(Tag, "write data complete");
 				break;
+			case HID_CMD_ITRACKER_FW_UPGRADE:
+				if (result)
+					result = write_out(mDataBuffer, mDataBuffer.limit());
+		    	/*show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
+		    	if (result)
+					Log.d(Tag, "write firmware bin data complete");*/
+				break;
 			}
 			
 /*			if (debug != 0) {
 				byte_buf = mDataBuffer.array();
 				stream_debug(byte_buf);
 			}*/	    	
-			//In a transaction from device to host
+			//In a transaction from device to host¡AIN
 			switch(command) {
 			case HID_CMD_ITRACKER_DATA:
 				if (result)
@@ -900,7 +982,13 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 		    	//if (result)
 					//Log.d(Tag, "write data complete");
 				break;
-			}
+			
+			/*20140731 added by michael*/
+	        case HID_CMD_ITRACKER_FW_HEADER:
+	        	if (result)
+	        		result = read_in(mDataBuffer, mDataBuffer.limit());
+	        	break;
+			}			
 			return result;
 	    }
 	    
@@ -970,6 +1058,25 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 					arg2 = (SZ_I_tracker_type / PAGE_SIZE) + 1;
 				else
 					arg2 = (SZ_I_tracker_type / PAGE_SIZE);
+				break;
+				
+			case HID_CMD_ITRACKER_FW_HEADER:
+				if (debug != 0)
+					Log.d(Tag, ">>> Retrieve i-track running firmware header\n");
+				arg1 = 0;
+				remainder = SZ_I_track_fw_header % PAGE_SIZE;
+				if (remainder != 0)
+					arg2 = (SZ_I_track_fw_header / PAGE_SIZE) + 1;
+				else
+					arg2 = (SZ_I_track_fw_header / PAGE_SIZE);
+				break;
+				
+			case HID_CMD_ITRACKER_FW_UPGRADE:
+				arg1 = argu0;
+				arg2 = argu1;
+				mDataBuffer.clear();
+				mDataBuffer.limit(arg2*PAGE_SIZE);
+				mDataBuffer.put(data, 0, arg2*PAGE_SIZE);
 				break;
 			}
 			len = CMD_T.SZ_CMD_T - 4; /* Not include checksum */

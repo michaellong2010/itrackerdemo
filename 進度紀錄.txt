@@ -359,3 +359,53 @@ notify host if the Valid_Coord_Buf locked*/
 2.  備份wallpaper須於隱藏Navigation bar之前完成，程式結束前回存桌面圖示
 3.  客戶端url網址變更成  http://www.smartlabbench.com/
 4.  客戶圓形logo調整至適當解析放至桌面顯示才不會有鋸齒狀
+
+20140721
+思考軟體版本更新問題
+1.  APP的執行相當依賴於android framework版本，新APP若有訪問到新android framework，在舊有的android版本則無法順利被執行
+(1)  訪問新API或者新成員變量，AndroidManifest.xml下minSdkVersion更正成可編譯之最小版本；也就是只要呼叫新API
+(2)  調用新常數或新靜態成員變量則編譯時期會出現警告訊息，使用者須自行加上以執行時期版本檢查
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+}
+else {
+}
+2.  平板、硬體版號、軟體版號(含OEM版號)，intra & inter dependency
+3.  每換新一批新平板，螢幕border大小及顯示位置調整後以一組參數寫入preference file，後續維修換平板，新平板機構調整完成再寄送給客戶
+4.  auto update目地就是客戶不用知道它的硬體裝置細節，自動搜找合適版本安裝
+(1)  由工廠模式設定HW rev，FW根據HW rev執行正確配置
+(2)  app則是只要一使用到新framework API則產生一個分支
+
+20140730
+新增繼承類InternalHandler
+
+20140731~20140812
+1.  實現app讀取firmware header，使用者有可能拿同一台平板接不同套i-track裝置，因此i-track裝置連線及斷線時即時更新裝置資訊
+2.  為了每次傳送page size = 256 bytes，修改I_Tracker_Device.Itracker_IOCTL(...)參數
+I_Tracker_Device方法  public boolean Itracker_IOCTL(int itracker_cmd, int debug) 傳入參數修正成
+public boolean Itracker_IOCTL(int itracker_cmd, int arg0, int arg1, byte[] databyte, int debug)
+3.  device端128k flash重新配置，為了實現自動更新功能，將128k切成兩塊64k，一塊APROM另一塊data flash；LDROM須重新改寫，device從LDROM開機，比對data flash與APROM兩者的firmware header，決策是否將data flash同步刷新至APROM裡；
+app執行更新將最新的firmware傳送至device，先刷至data flash，然後重啟裝置從LDROM執行將data flash同步至APROM
+4.  I_Tracker_Device類新增HID_CMD_ITRACKER_FW_HEADER及HID_CMD_ITRACKER_FW_UPGRADE兩個命令
+(1)  HID_CMD_ITRACKER_FW_HEADER：從device端讀出data flash裡firmware header
+(2)  HID_CMD_ITRACKER_FW_UPGRADE：對device端data flash進行更新，bin區先更新，firmware header最後更新，如此可以避免中途意外造成corrupt
+5.  考量未來有可能大變動MCU腳位功能配置，為了能全部共用同一個firmware，firmware header硬體板本指示裝置執行那一組硬體配置，硬體配置出廠時就固定了，升級firmware不會被變更
+6.  i-track裝置端firmware與server端firmware版本比對規則
+(1)  MD5 check sum不一樣表示兩者有差異
+(2)  Version_Code及Version_Name比對 ，Version_Name組成格式Major.Minor.Release_Date
+7.  i-track app AndroidManifest.xml版本資訊versionCode及versionName，versionName組成格式Major.Minor.Release_Date，調用android installer安裝*.apk，同一app若已經安裝，installer進行min SDK、安全憑證比對、versionCode三項檢查
+，通過這些檢查後才會進行升級安裝，發行新版時的versionCode須大於等於舊版versionCode。
+versionCode  1 --- 2 --- 3 --- 4 --- 5 --- 6
+versionName 1.0.x---------------------------
+versionName                  2.0.x----------
+
+8.  app升級firmware及app本身，使用者按下"About"選項，似服器上找iTrack_md5_list_app_ver_<major>.txt，其中<major>為AndroidManifest.xml裡取得，iTrack_md5_list_app_ver_<major>.txt記錄最新版本app及firmware的md5 checksum，若
+md5 checksum不同則視為"out-of-date"，此時允許使用者按下對話盒上的"Upgrade"進行下載更新檔，各檔名
+(1)  iTrack_md5_list_app_ver_<app versionName major>.txt
+(2)  ads7953.bin、ads7953.release、ads7953.image，請用工具將keil C編譯後可執行檔*.bin做封裝產生*.image及*.release；*.image大小為64k
+*.image == ^*.bin & .... & <firmware header>^
+*.release == ^<firmware header> & *.bin
+(3)  ItrackerDemo-20131125-google-repo_app_ver_<app versionName major>.apk
+
+20140815
+待結案處理，i-track device firmware巨量升級次數測試，以及還未更新完畢前不允許"About"視窗被取消消失
+about_dialog.setCancelable(false);  //當按下Upgrade，屏蔽掉取消dialog

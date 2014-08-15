@@ -6,18 +6,35 @@ import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.xmlpull.v1.XmlPullParser;
 
@@ -38,6 +55,12 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -47,10 +70,12 @@ import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Message;
 import android.os.Process;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -73,6 +98,8 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.MimeTypeMap;
+import android.webkit.URLUtil;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -82,6 +109,7 @@ import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
@@ -106,7 +134,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 	//SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd-HHmmss");
 	static SimpleDateFormat df1 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	Handler  mHandler;
+	InternalHandler  mHandler;
 
 	public final String Tag = "I_Tracker_Activity";
 	Timer    mTimer;
@@ -230,6 +258,10 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						/*20131208 modified by michael*/
 						//timerTaskPause();
 						Show_Toast_Msg(I_Tracker_Device_DisCon);
+						/*20140730 added by michael
+						 * when disconnect i-track device then reset mItrack_dev device fw & hw info*/
+						mItracker_dev.Reset_Device_Info();
+						Refresh_About_Dialog();
 					}
 				}
 			}
@@ -246,6 +278,11 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 							mItrackerState |= 1 << Itracker_State_isConnect;
 							//mGif.Resume_thread();
 							//UpdateActionMenuItem();
+							/*20140731 added by michael
+							 * User granted usb operation permission¡Ai-track device online and */
+							Running_Firmware_MD5_checksum();
+							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_HEADER, 0, 1, dataBytes, 1);
+							Refresh_About_Dialog();
 						}
 					} else {
 						Log.d(Tag, "permission denied for device " + device);
@@ -301,7 +338,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 		Stop_Refresh_iTracker_Data_Thread();
 		if ((mItrackerState & (1<<Itracker_State_isRunning)) != 0) {
 			mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
-			mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+			mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
 		}					
 		/*20130318 added by michael*/
 		//timer thread has stop, so below is UI thread running only
@@ -364,7 +401,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	//Runnable iTracker_DataRefreshTask;
 	boolean AllowRefresh_iTrackerData = false;
 	/*20131226 added by michael*/
-	ThreadPoolExecutor polling_data_executor;
+	ThreadPoolExecutor polling_data_executor, general_task_executor;
 	/*20131212 added by michael
 	 * output log file to record information*/
 	File sdcard = Environment.getExternalStorageDirectory();
@@ -374,8 +411,9 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	static BufferedWriter log_file_buf;
 	/*20140211 added by michael
 	 * preference dialog*/
-	public Dialog preference_dialog;
-	LinearLayout preference_dialog_layout;
+	public Dialog preference_dialog = null, about_dialog = null;
+	LinearLayout preference_dialog_layout, about_dialog_layout;
+	Spinner spinner = null;
 	/*20140303 added by michael
 	 * current pipetting detection mode selection*/
 	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
@@ -383,6 +421,40 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	int Pipetting_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
 	/*20140605 added by michael*/
 	ImageView running_status_v, connection_status_v;
+	/*20140729 added by michael*/
+	public URL url;
+	private ArrayList<URL> url_list = new ArrayList<URL>();
+	private Iterator URL_set_itrator;
+	final String Http_Repo_Host = "https://googledrive.com/host/0By-Tp-CAFbFyc042TGZmeWFfZWs/";
+	private String MD5_list_filename = "iTrack_md5_list.txt"; 
+	public String files_MD5_list = Http_Repo_Host + MD5_list_filename;
+	public String app_filename = "ItrackerDemo-20131125-google-repo.apk";
+	public String firmware_filename = "ads7953.release";
+	//final String iTrack_Cache_Dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//";
+	public String iTrack_Cache_Dir;
+	public String DL_fileExtenstion, DL_filename;
+	/*20140813 added by michael
+	 * dataBytes used by UI thread¡AdataBytes1 used by worker thread */
+	byte[] dataBytes = new byte[1024];
+	byte[] dataBytes1 = new byte[1024];
+	FileInputStream fis;
+	FileOutputStream fos;
+	public static final String PREFS_NAME = "MyPrefsFile";
+	private SharedPreferences preference;
+	private Editor preference_editor;
+	private int versionCode;
+	private String versionName;
+	private String [] parsed_version;
+	private static final int Msg_Refresh_About_Dlg = 0x10;
+	private static final int Msg_Upgrade_App = 0x11;
+	private static final int Msg_Upgrade_Firmware = 0x12;
+	private static final int Msg_Show_Upgrade_Progress = 0x13;
+	private static final int Msg_Upgrade_Error = 0x14;
+	private static final int Msg_Next_Download = 0x15;
+	public ProgressBar inderterminate_progressbar;
+	public boolean app_up_to_date = false, firmware_up_to_date = false, force_upgrade = false;
+	public String Upgrade_Error_Message;
+	public TextView about_status_msg = null;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -391,9 +463,10 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 		mLayout_Content.addView(mTmpTextView);
 		//timerStart();
 		mTimer = new Timer();
-		mHandler= new Handler();
+		mHandler= new InternalHandler();
 		//iTracker_polling_thread = new Thread(iTracker_DataRefreshTask);
 		polling_data_executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		general_task_executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 //disable android sleep mode to avoid when system awake up again will yield the USB attach event once again 
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 /*20130306 added by michael
@@ -422,6 +495,9 @@ radio group to let user to choice well plate for i-tacker*/
         /*20131211 added by michael*/
 		setContentView(R.layout.well_plate_selection);
 		myWellPlateSelection = (LinearLayout) findViewById(R.id.ID_well_plate_selection);
+		
+		/*20140728 added by michael*/
+		mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_NONE);
 		
 		/*XmlPullParser parser = getResources().getXml(R.layout.well_plate_selection);
 		AttributeSet attributes = Xml.asAttributeSet(parser);
@@ -541,7 +617,7 @@ radio group to let user to choice well plate for i-tacker*/
 					//timerTaskPause();
 					Stop_Refresh_iTracker_Data_Thread();
 					mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
-					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
 					mItrackerState &= ~(1 << Itracker_State_isRunning);
 					Show_Toast_Msg(I_Tracker_Device_Tracking_Off);
 					
@@ -817,6 +893,38 @@ radio group to let user to choice well plate for i-tacker*/
 		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
 		lp2.setMargins(0, (int)(Well_View.mMaxTouchablePosY-32), 0, 0);
 		mIndicators_Layout.addView(connection_status_v, lp2);
+		
+		/*20140730 added by michael*/
+		preference = this.getSharedPreferences(PREFS_NAME, 0);
+		preference_editor = preference.edit();
+		String md5_checksum = Running_App_MD5_checksum();
+		Log.d(Tag, "running app md5 checksum: " + md5_checksum);
+		preference_editor.putString("local app checksum", md5_checksum);
+		preference_editor.commit();
+		//Running_App_MD5_checksum();
+		
+    	PackageManager pm = getPackageManager();
+    	PackageInfo pkginfo =null;
+    	ApplicationInfo App_Info =null;
+    	
+    	try {
+    		pkginfo = pm.getPackageInfo(getPackageName(), 0);
+			//App_Info = pm.getApplicationInfo(this.getPackageName(), 0);
+    		App_Info = pkginfo.applicationInfo;
+		} catch (NameNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	versionCode = pkginfo.versionCode;
+    	versionName = pkginfo.versionName;
+    	parsed_version = versionName.split(Pattern.quote("."));
+    	MD5_list_filename = "iTrack_md5_list.txt";
+    	MD5_list_filename = MD5_list_filename.substring(0, MD5_list_filename.indexOf("."));
+    	MD5_list_filename = MD5_list_filename + "_app_ver_" + parsed_version[0] + ".txt";
+    	files_MD5_list = Http_Repo_Host + MD5_list_filename;
+    	
+    	Log.d(Tag, "usb host feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.host")));
+    	Log.d(Tag, "usb accessory feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.accessory")));
 	}
 
 	@Override
@@ -869,7 +977,7 @@ radio group to let user to choice well plate for i-tacker*/
 	        mTmpView.setText(formattedDate);*/
 	    	/*****  Run in Timer thread  *****/
 	    	result = false;
-	    	result = mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0);
+	    	result = mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0, 0, null, 0);
 	    	/*20130318 added by michael*/
 	    	//deal with the following Itracker data
 	    	/*mItracker_dev.coord_index;
@@ -922,7 +1030,7 @@ radio group to let user to choice well plate for i-tacker*/
 				 */
 				/*****  Run in worker thread  *****/
 				
-				if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0))
+				if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0, 0, null, 0))
 				  UI_invalid_pipetting = mItracker_dev.Process_Itracker_Data();
                 else
 				   UI_invalid_pipetting = 0;
@@ -1149,7 +1257,15 @@ radio group to let user to choice well plate for i-tacker*/
 	}
 	
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		
+		/*20140805 added by michael
+		 * Restarting App after upgrade app*/
+		if (requestCode==1000) {
+			Log.d(Tag, "ResultCode: " + Integer.toString(resultCode));
+			/*intent = getIntent();
+			finish();
+			startActivity(intent);*/
+			Refresh_About_Dialog();
+		}		
 	}
 	
     public void OnBnClick_96_Well_Plate(View v) throws IOException {
@@ -1272,8 +1388,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     public boolean Connect_Itracker() {
     	//mItracker_dev.setInterface();
 /*    	Log.d(Tag, "cmd type size:"+Integer.toString(I_Tracker_Device.CMD_T.SZ_CMD_T));*/
-		if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 1)
-				&& mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_START, 1)) {
+		if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 0, 0, null, 1)
+				&& mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_START, 0, 0, null, 1)) {
 			return true;
 		}
 		return false;
@@ -1301,7 +1417,12 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("service call activity 42 s16 com.android.systemui\n");
-			try { Thread.sleep(5000); } catch(Exception ex) {}
+			try { //Thread.sleep(5000);
+				os.flush();
+				p.wait(100);
+			} 
+			catch(Exception ex) {
+			}
             while( is.available() > 0) {
                 readed = is.read(buff);
                 if ( readed <= 0 ) break;
@@ -1343,7 +1464,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("am startservice -n com.android.systemui/.SystemUIService\n");
-			try { Thread.sleep(5000); } catch(Exception ex) {}
+			try { 
+				//Thread.sleep(5000);
+				os.flush();
+				p.wait(100);
+			} catch(Exception ex) {}
             while( is.available() > 0) {
                 readed = is.read(buff);
                 if ( readed <= 0 ) break;
@@ -1423,6 +1548,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				mItrackerState |= 1 << Itracker_State_isConnect;
 				//if (mGif != null)
 					//mGif.Resume_thread();
+				/*20140731 added by michael
+				 * read i-track device firmware md5 checksum immediately when i-track device attach*/
+				Running_Firmware_MD5_checksum();
+				mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_HEADER, 0, 1, dataBytes, 1);
+				Refresh_About_Dialog();
 			} else {
 //if isDeviceOnline() return true, send a permission request to communicate with device
 				if (mItracker_dev.isDeviceOnline()) {
@@ -1445,7 +1575,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				 * when reconnect the cable and enumeration device success¡Aapp resume the last running status of device */
     				if ((mItrackerState &( 1 << Itracker_State_isConnect))==1) {
     					Itracker_MI_State ^= 1 << Itracker_MI_Pause;
-    					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+    					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
     					if (Connect_Itracker()) {
     						if (log_file_buf == null) {
     							try {
@@ -1475,6 +1605,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				
     				//if (mGif != null)
     					//mGif.Resume_thread();
+    				/*20140731 added by michael
+    				 * read i-track device firmware md5 checksum immediately when i-track device attach*/
+    				Running_Firmware_MD5_checksum();
+    				mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_HEADER, 0, 1, dataBytes, 1);
+    				Refresh_About_Dialog();
     			}
     			else {
     				Itracker_MI_State = 0;
@@ -1542,7 +1677,672 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     protected Position getDrawerPosition() {
         return Position.START;
     }
+    
+    /*20140729 added by michael*/
+    /* Checks if external storage is available for read and write */
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
 
+    /*20140729 added by michael*/
+    /* Checks if external storage is available to at least read */
+    public boolean isExternalStorageReadable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state) ||
+            Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+    
+    /*20140729 added by michael*/
+    private class DownloadFilesTask extends AsyncTask<URL, Integer, Integer> {
+    	public boolean isDownloadSuccess, isTaskFinish;
+
+		@Override
+		protected Integer doInBackground(URL... urls) {
+			// TODO Auto-generated method stub
+			HttpURLConnection connection = null;
+			int fileLength = -1, nRead_Bytes;
+			InputStream input = null;
+			OutputStream output = null;
+			long totalSize = 0;
+			Message message;
+			
+			isDownloadSuccess = false;
+			isTaskFinish = false;
+			try {
+				connection = (HttpURLConnection) urls[0].openConnection();
+				connection .setRequestProperty("Accept-Encoding", "identity");
+				connection.setInstanceFollowRedirects(true);
+				connection.connect();
+
+				DL_fileExtenstion = MimeTypeMap.getFileExtensionFromUrl(urls[0].toString());
+				DL_filename = URLUtil.guessFileName(urls[0].toString(), null, DL_fileExtenstion);
+				iTrack_Cache_Dir = I_Tacker_Activity.this.getCacheDir().getPath() + "//";
+				if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+	                 Log.d(Tag, "Server returned HTTP " + connection.getResponseCode() + " " + connection.getResponseMessage());
+	                 I_Tacker_Activity.this.Upgrade_Error_Message = DL_filename + ", " + "Server returned HTTP " + connection.getResponseCode() + " " + connection.getResponseMessage();
+	     			 message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, Upgrade_Error_Message);
+					 message.sendToTarget();
+	                 
+	                 if (connection.getResponseCode() == 301) {
+	                	 connection.setInstanceFollowRedirects(false);
+	                	 String redirect_link = connection.getHeaderField("Location");
+	                	 Log.d(Tag, redirect_link);
+	                	 connection.connect();
+	                 }
+	                 else {
+	                 }
+				}
+				
+				/*DL_fileExtenstion = MimeTypeMap.getFileExtensionFromUrl(urls[0].toString());
+				DL_filename = URLUtil.guessFileName(urls[0].toString(), null, DL_fileExtenstion);
+				iTrack_Cache_Dir = I_Tacker_Activity.this.getCacheDir().getPath() + "//";*/
+				if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Show_Upgrade_Progress);
+		            message.sendToTarget();					
+					fileLength = connection.getContentLength();
+					input = connection.getInputStream();
+					/*DL_fileExtenstion = MimeTypeMap.getFileExtensionFromUrl(urls[0].toString());
+					DL_filename = URLUtil.guessFileName(urls[0].toString(), null, DL_fileExtenstion);
+					iTrack_Cache_Dir = I_Tacker_Activity.this.getCacheDir().getPath() + "//";*/
+					//iTrack_Cache_Dir = "/cache//";
+					Log.d(Tag, iTrack_Cache_Dir + DL_filename + DL_fileExtenstion);
+					output = new FileOutputStream(iTrack_Cache_Dir + DL_filename);
+					
+		             while ((nRead_Bytes = input.read(dataBytes1)) != -1) {
+		                 totalSize += nRead_Bytes;
+		                 // publishing the progress....
+		                 if (fileLength > 0) // only if total length is known
+		                     publishProgress((int) (totalSize * 100 / fileLength));
+		                 output.write(dataBytes1, 0, nRead_Bytes);
+		             }
+					isDownloadSuccess = true;
+				}
+				else {
+					isDownloadSuccess = false;
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				isDownloadSuccess = false;
+			}
+			finally {
+				try {
+					if (output != null)
+						output.close();
+					if (input != null)
+						input.close();
+
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+				if (connection != null)
+					connection.disconnect();
+	         }
+			
+			isTaskFinish = true;
+            
+			/*20140731 added by michael
+			 * download finish */
+			if (DL_filename!=null && DL_filename.equals(MD5_list_filename)) {
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Refresh_About_Dlg);
+	            message.sendToTarget();
+			}
+			else
+				if (DL_filename!=null && DL_filename.equals(app_filename)) {
+					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_App);
+		            message.sendToTarget();					
+				}
+				else
+					if (DL_filename!=null && DL_filename.equals(firmware_filename)) {
+						message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Firmware);
+			            message.sendToTarget();
+					}
+
+			if (isDownloadSuccess==false)
+			  return -1;
+			else {
+				return 0;
+			}
+		}    	
+    }
+    
+    /*20140730 added by michael
+     * validation a given string is the md5 checksum*/
+    public boolean isValidMD5(String s) {
+    	if (s!=null)
+    		return s.matches("[a-fA-F0-9]{32}");
+    	else
+    		return false;
+    }
+    
+    /*20140730 added by michael*/
+    private class InternalHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {			
+        	switch (msg.what) {
+        	  case Msg_Upgrade_Error:
+        		  if (about_status_msg != null)
+        			  about_status_msg.setText((String) msg.obj);
+        		  break;
+        	  case Msg_Show_Upgrade_Progress:
+        		  inderterminate_progressbar.setVisibility(View.VISIBLE);        	      
+        	      break;
+        	  case Msg_Refresh_About_Dlg:
+        		  Refresh_About_Dialog();
+        		  inderterminate_progressbar.setVisibility(View.INVISIBLE);
+        		  break;
+        	  case Msg_Upgrade_App:
+        		  general_task_executor.execute(upgrade_app_runnable);
+        		  break;
+
+        	  case Msg_Upgrade_Firmware:
+        		  general_task_executor.execute(upgrade_firmware_runnable);
+        		  break;
+        	}
+        }
+    }
+    
+    /*20140730 added by michael*/
+    private String Running_App_MD5_checksum() {
+		PackageManager pm = getPackageManager();
+		ApplicationInfo App_Info =null;
+		MessageDigest md =null;
+		//FileInputStream fis = null;
+		int nReadBytes = 0;
+		StringBuffer sb = new StringBuffer("");
+
+		Log.d(Tag, "Running package: " + this.getPackageName());
+		try {
+			App_Info = pm.getApplicationInfo(this.getPackageName(), 0);
+		} catch (NameNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (App_Info != null) {
+			Log.d(Tag, "Source dir: " + App_Info.sourceDir);
+			Log.d(Tag, "Source dir: " + App_Info.publicSourceDir);
+
+		    try {
+		    	md = MessageDigest.getInstance("MD5");
+				fis = new FileInputStream(App_Info.sourceDir);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		    
+		    
+		    try {
+				while ((nReadBytes = fis.read(dataBytes)) != -1) {
+				    md.update(dataBytes, 0, nReadBytes);
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			};
+		   
+		    byte[] mdbytes = md.digest();
+		  //convert the byte to hex format
+		    for (int i = 0; i < mdbytes.length; i++) {
+		    	Log.d(Tag, "integer: " + Integer.toHexString((mdbytes[i])));
+		    	Log.d(Tag, "integer1: " + Integer.toString(((mdbytes[i] & 0xff) + 0x100), 16).substring(1));
+		    	sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
+		    }
+		    Log.d(Tag, "MD5 checksum: " + sb.toString());
+		}
+
+    	return sb.toString();
+    }
+    
+    /*20140731 added by michael*/
+    private String Running_Firmware_MD5_checksum() {
+    	return null;
+    }
+    
+    /*20140731 added by michael
+     * get current installed i-track app brief version description*/
+    public String getAppDesc() {
+    	//return "versionCode=" + Integer.toString(versionCode) + "  " + "versionName=" + versionName;
+    	return Integer.toString(versionCode) + "---"  + versionName;
+    }
+    
+    public String getFirmwareDesc() {
+    	//return "versionCode=" + mItracker_dev.Fw_Version_Code + "  " + "versionName=" + mItracker_dev.Fw_Version_Name;
+    	return Integer.toString(mItracker_dev.Fw_Version_Code) + "---" +  mItracker_dev.Fw_Version_Name;
+    }
+    
+    void Refresh_About_Dialog() {
+		TextView iTrack_firmware_ver_desc = null, iTrack_app_ver_desc = null;
+		CheckBox checkbox1;
+	    Button dlgbtn_update;
+	    File f;
+
+    	if (about_dialog!=null && about_dialog.isShowing()) {
+			iTrack_firmware_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.firmware_info);
+			iTrack_app_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.app_info);
+			checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+			force_upgrade = checkbox1.isChecked();
+			dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
+			dlgbtn_update.setEnabled(false);
+			
+			Properties defaultProps = new Properties();
+			String server_app_md5, server_firmware_md5, local_app_md5, local_firmware_md5;
+			Color color;
+			local_app_md5 = preference.getString("local app checksum", "");
+			local_firmware_md5 = mItracker_dev.Fw_md5_checksum;
+			try {
+				f = new File(iTrack_Cache_Dir + this.MD5_list_filename);
+				if (f.exists()) {
+					fis = new FileInputStream(f);
+					defaultProps.load(fis);
+				}
+				server_app_md5 = defaultProps.getProperty("app", "");
+				server_firmware_md5 = defaultProps.getProperty("firmware", "");
+				
+				Log.d(Tag, "app= " + server_app_md5); 
+				Log.d(Tag, "app Md5 found: " + Boolean.toString(isValidMD5(server_app_md5)));
+				if (isValidMD5(local_app_md5)) {
+					if (isValidMD5(server_app_md5)) {
+						if (server_app_md5.equalsIgnoreCase(local_app_md5)) {
+							iTrack_app_ver_desc.setText("iTrack App ver.:  " + getAppDesc() + "(up-to-date)");
+							if (force_upgrade)
+								dlgbtn_update.setEnabled(true);
+							else
+								dlgbtn_update.setEnabled(false);
+						}
+						else {
+							iTrack_app_ver_desc.setText("iTrack App ver.:  " + getAppDesc() + "(out-of-date)");
+							dlgbtn_update.setEnabled(true);
+						}										
+					}
+					else
+						iTrack_app_ver_desc.setText("iTrack App ver.:  " + getAppDesc());
+				}
+				else {
+					iTrack_app_ver_desc.setText("iTrack App ver.:  ");
+				}
+					
+				Log.d(Tag, "firmware= " + server_firmware_md5);
+				Log.d(Tag, "firmware Md5 found: " + Boolean.toString(isValidMD5(server_firmware_md5)));
+				if (isValidMD5(local_firmware_md5)) {
+					if (isValidMD5(server_firmware_md5)) {
+						if (server_firmware_md5.equalsIgnoreCase(local_firmware_md5)) {
+							iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  " + getFirmwareDesc() + "(up-to-date)");
+							if (force_upgrade)
+								dlgbtn_update.setEnabled(true);
+							else
+								if (dlgbtn_update.isEnabled()==false)
+									dlgbtn_update.setEnabled(false);
+						}
+						else {
+							iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  " + getFirmwareDesc() + "(out-of-date)");
+							dlgbtn_update.setEnabled(true);
+						}
+					}
+					else {
+						iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  ");
+					}
+				}
+				else {
+					iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  ");
+				}				
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		
+    	}
+    }
+    
+    /*20140805 added by michael*/
+    String get_upgrade_app_filename() {
+    	//return  "ItrackerDemo-20131125-google-repo" + ".apk";
+    	app_filename = "ItrackerDemo-20131125-google-repo.apk";
+    	app_filename = app_filename.substring(0, app_filename.indexOf("."));
+    	app_filename = app_filename + "_app_ver_" + parsed_version[0] + ".apk";
+    	return app_filename;
+    } 
+
+    String get_upgrade_firmware_filename() {
+    	//return  "ads7953" + ".release";
+    	return firmware_filename;
+    } 
+    
+    /*20140811 added by michael
+     * clear app cache */
+    public static void trimCache(Context context) {
+    	try {
+            File dir = context.getCacheDir();
+            if (dir != null && dir.isDirectory()) {
+            	deleteDir(dir);
+            }
+         } catch (Exception e) {
+            // TODO: handle exception
+         }	
+    }
+    
+    public static boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+           String[] children = dir.list();
+           for (int i = 0; i < children.length; i++) {
+              boolean success = deleteDir(new File(dir, children[i]));
+              if (!success) {
+                 return false;
+              }
+           }
+        }
+
+        // The directory is now empty so delete it
+        return dir.delete();
+     }
+    
+    public View.OnClickListener Upgrade_listener = new View.OnClickListener() {
+
+		@Override
+		public void onClick(View v) {
+			// TODO Auto-generated method stub
+			CheckBox checkbox1;
+			
+			v.setEnabled(false);
+			checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+			//checkbox1.setChecked(false);
+			checkbox1.setEnabled(false);
+			//inderterminate_progressbar.setVisibility(View.VISIBLE);
+			Upgrade_System(v);
+		}
+    	
+    };
+    public void Upgrade_System(View v) {
+    	TextView iTrack_firmware_ver_desc = null, iTrack_app_ver_desc = null;
+    	//DownloadFilesTask downloadTask, downloadTask1;
+    	
+		iTrack_firmware_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.firmware_info);
+		iTrack_app_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.app_info);
+		about_status_msg = (TextView)about_dialog_layout.findViewById(R.id.status);
+		about_status_msg.setText("");
+		url_list.clear();
+
+		//downloadTask = new DownloadFilesTask();
+		try {
+			if ((iTrack_firmware_ver_desc != null && iTrack_firmware_ver_desc.getText().toString().contains("out-of-date")) || force_upgrade==true) {
+				firmware_up_to_date = false;
+				url = new URL(Http_Repo_Host + get_upgrade_firmware_filename());
+				url_list.add(url);
+				//downloadTask.execute(url);
+			}
+			else
+				firmware_up_to_date = true;
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		//downloadTask1 = new DownloadFilesTask();
+		try {
+			if ((iTrack_app_ver_desc != null && iTrack_app_ver_desc.getText().toString().contains("out-of-date")) || force_upgrade==true) {
+				app_up_to_date = false;
+				url = new URL(Http_Repo_Host + get_upgrade_app_filename());
+				url_list.add(url);
+				//downloadTask1.execute(url);
+			}
+			else
+				app_up_to_date = true;
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		URL_set_itrator = url_list.iterator();
+		Next_Download();
+    }
+    
+    /*20140814 added by michael*/
+    void Next_Download() {
+    	DownloadFilesTask downloadTask;
+    	
+    	downloadTask = new DownloadFilesTask();
+		if (URL_set_itrator.hasNext()) {
+			url = (URL)URL_set_itrator.next();
+			downloadTask.execute(url);
+		}
+    }
+
+    CompoundButton.OnCheckedChangeListener force_upgrade_listener = new CompoundButton.OnCheckedChangeListener() {
+
+		@Override
+		public void onCheckedChanged(CompoundButton buttonView,
+				boolean isChecked) {
+			// TODO Auto-generated method stub
+			//force_upgrade = isChecked;
+			Refresh_About_Dialog();
+		}
+    	
+    };
+    
+    /*20140814 added by michael*/
+	Runnable upgrade_app_runnable = new Runnable() {
+		File f;
+		java.lang.Process p;
+		int nReadBytes;
+		String result = "";
+		byte[] b = new byte[256];
+		byte[] b1 = new byte[256];
+		CheckBox checkbox1;
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+        	f = new File(iTrack_Cache_Dir + DL_filename);
+			if (f.exists()) {
+				try {
+					p = Runtime.getRuntime().exec("/system/xbin/su-new");
+					DataOutputStream os = new DataOutputStream(p.getOutputStream());
+					DataInputStream is = new DataInputStream(p.getInputStream());
+					os.writeBytes("cp " + iTrack_Cache_Dir + DL_filename + " " + Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename + "\n");
+					try {
+						// Thread.sleep(100);
+						os.flush();
+						p.wait(100);
+					} catch (Exception ex) {
+					}
+					while (is.available() > 0) {
+						nReadBytes = is.read(dataBytes);
+						if (nReadBytes <= 0)
+							break;
+						String seg = new String(dataBytes, 0, nReadBytes);
+						result = result + seg; // result is a string to show
+												// in textview
+					}
+					Log.d(Tag, "shell exit code: " + result);
+
+					/*
+					 * 20140814 added by michael
+					 * install a package silently
+					 */
+					os.writeBytes("pm install -r "
+							+ Environment.getExternalStoragePublicDirectory(
+									Environment.DIRECTORY_DOWNLOADS).getPath()
+							+ "//" + DL_filename + "\n");
+					try {
+						// Thread.sleep(500);
+						os.flush();
+						p.wait(100);
+					} catch (Exception ex) {
+					}
+					while (is.available() > 0) {
+						nReadBytes = is.read(dataBytes);
+						if (nReadBytes <= 0)
+							break;
+						String seg = new String(dataBytes, 0, nReadBytes);
+						result = result + seg; // result is a string to show
+												// in textview
+					}
+					Log.d(Tag, "shell exit code: " + result);
+					os.flush();
+					os.close();
+					is.close();
+					p.waitFor();
+					p.destroy();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				/*Intent intent = new Intent(Intent.ACTION_VIEW);
+				intent.setDataAndType(Uri.fromFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename)), "application/vnd.android.package-archive");
+				Intent intent = new Intent(Intent.ACTION_DELETE,
+				Uri.fromParts("package", Auto_updater_test.this.getPackageName(), null));
+				startActivity(intent);*/
+				
+				/*PackageInfo info = I_Tacker_Activity.this.getPackageManager().getPackageArchiveInfo(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename, 0); 
+				if ((info != null && info.versionCode >=I_Tacker_Activity.this.versionCode) || force_upgrade) {
+					Intent intent = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+					intent.setData(Uri.fromFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename)));
+					intent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+					intent.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+					startActivityForResult(intent, 1000); 
+				}*/
+
+				/*Intent it = new Intent(Intent.ACTION_MAIN);
+				it.setComponent(new ComponentName(I_Tacker_Activity.this.getPackageName(), I_Tacker_Activity.this.getPackageName() + ".App_Updater_Activity"));
+				it.putExtra("Apk_filename", Environment.getExternalStoragePublicDirectory(Environment. DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename); 
+				Log.d(Tag, "Msg_Upgrade_App process thread id" + Integer.toString(Process.myTid())); startActivity(it);*/
+				//this.startActivityForResult(it, 0);
+				//this.setResult(resultCode, data);
+				//Intent intent = new Intent(this,
+				//LogFileDisplayActivity.class);
+
+			}
+			app_up_to_date = true;
+			if (app_up_to_date && firmware_up_to_date) {
+				inderterminate_progressbar.setVisibility(View.INVISIBLE);
+				checkbox1.setEnabled(true);
+				Refresh_About_Dialog();
+			}
+			Next_Download();
+		}
+	};
+
+	/*20140814 added by michael*/
+	Runnable upgrade_firmware_runnable = new Runnable() {
+    	File f;
+    	int nReadBytes, nPage;
+    	byte [] b = new byte [256];
+    	byte [] b1 = new byte [256];
+    	byte [] byte_array = new byte [1024];
+    	CheckBox checkbox1;
+    	
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+        	f = new File(iTrack_Cache_Dir + DL_filename);
+			if (f.exists()) {
+				for (int j = 0; j < 300; j++) {
+					Log.d(Tag, "flash programming test iteration: " + Integer.toString(j));
+					try {
+						fis = new FileInputStream(f);
+						nReadBytes = fis.read(byte_array, 0, 256);
+						System.arraycopy(byte_array, 0, b, 0, 256);
+						ByteBuffer byte_buf;
+						byte_buf = ByteBuffer.allocate(256);
+						byte_buf = ByteBuffer.wrap(b);
+						byte_buf.order(ByteOrder.LITTLE_ENDIAN);
+						byte_buf.position(56);
+						/* copy original factory Hw rev. */
+						byte_buf.putInt(mItracker_dev.Hw_Version_Code);
+						byte_buf.position(0);
+						int Fw_Version_Code = byte_buf.getInt();
+						if ((Fw_Version_Code >= mItracker_dev.Fw_Version_Code) || force_upgrade) {
+							/*force i-track device data flash region dirty*/
+							//if (force_upgrade) {
+								//mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_HEADER, 0, 1, b1, 1);
+							    System.arraycopy(mItracker_dev.fw_header_bytes, 0, b1, 0, 256);
+								byte_buf.position(255);
+								byte_buf.put((byte) (b1[255] + 1));
+								Log.d(Tag, "dirty byte: " + Integer.toString(b[255], 16));
+							//}
+							nPage = 1;
+							while ((nReadBytes = fis.read(byte_array, 0, 256)) != -1) {
+								if (nReadBytes == 256)
+									mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_UPGRADE, nPage, 1, byte_array, 0);
+								else {
+									Arrays.fill(byte_array, nReadBytes, byte_array.length, (byte) 0);
+									mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_UPGRADE, nPage, 1, byte_array, 0);
+								}
+								nPage = nPage + 1;
+								/*
+								 * important insert sufficient delay time to
+								 * avoid device buffer overrun
+								 */
+								try {
+									Thread.sleep(5);
+								} catch (InterruptedException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+							}
+							try {
+								Thread.sleep(5);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							nPage = 0;
+							if (mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_UPGRADE, nPage, 1, b, 0)) {
+								Log.d(Tag, "write firmware bin data complete");
+							}
+							try {
+								Thread.sleep(3000);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+					} catch (FileNotFoundException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} finally {
+						if (fis != null)
+							try {
+								fis.close();
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+					}
+				}
+			}
+			firmware_up_to_date = true;
+			if (app_up_to_date && firmware_up_to_date) {
+				inderterminate_progressbar.setVisibility(View.INVISIBLE);
+				checkbox1.setEnabled(true);
+			}
+			Next_Download();
+		}
+	};
+	
     /*20131126 add by michael
      *interactive with user then execute same correspond action with onActionItemClicked(), then update menu item state*/
     @Override
@@ -1620,7 +2420,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     					//timerTaskPause();
     					Stop_Refresh_iTracker_Data_Thread();
     					mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
-    					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+    					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
     					mItrackerState &= ~(1 << Itracker_State_isRunning);
     					Show_Toast_Msg(I_Tracker_Device_Tracking_Off);
     					
@@ -1739,8 +2539,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					dialog.setTitle("Do you back to well plate selection?");
 					/*20131217 modified by michael*/
 					dialog.setMessage("Warning: the current pipetting session will be terminated!");
-					dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Yes", listenerAccept);
-					dialog.setButton(DialogInterface.BUTTON_POSITIVE, "No", listenerDoesNotAccept);
+					dialog.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", listenerAccept);
+					dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", listenerDoesNotAccept);
 					dialog.getWindow().setGravity(Gravity.TOP);
 					dialog.setIcon(R.drawable.ic_launcher1);
 					dialog.setCancelable(false);
@@ -1753,17 +2553,19 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		 * preference setting */
     		case (5):
     			mMenuDrawer.toggleMenu();
-				preference_dialog = new Dialog(this, R.style.CenterDialog);
-				preference_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_preference, null);
-				Spinner spinner = (Spinner) preference_dialog_layout.findViewById(R.id.spinner1);
-				ArrayList<String> spinner_items = new ArrayList<String>();
-				spinner_items.add("Auto-channel Pipet");
-				spinner_items.add("Single-channel Pipet");
-				spinner_items.add("8-channel Pipet");
-				spinner_items.add("12-channel Pipet");
-				ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), R.layout.simple_spinner_item, spinner_items);
-				adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
-				spinner.setAdapter(adapter);
+    		    if (preference_dialog==null) {
+				  preference_dialog = new Dialog(this, R.style.CenterDialog);
+				  preference_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_preference, null);
+				  spinner = (Spinner) preference_dialog_layout.findViewById(R.id.spinner1);
+				  ArrayList<String> spinner_items = new ArrayList<String>();
+				  spinner_items.add("Auto-channel Pipet");
+				  spinner_items.add("Single-channel Pipet");
+				  spinner_items.add("8-channel Pipet");
+				  spinner_items.add("12-channel Pipet");
+				  ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), R.layout.simple_spinner_item, spinner_items);
+				  adapter.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+				  spinner.setAdapter(adapter);
+    		    }
 				spinner.setOnItemSelectedListener(Pipetting_mode_selection);
 				if (Pipetting_Mode == -1) {
 				  int spinner_adapter_item_count = spinner.getCount();
@@ -1797,7 +2599,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode);
 						mItracker_dev.set_pipetting_detection_sensitivity_level(Adjust_Detection_Sensitivity, Pipetting_Sensitivity_Level);
 						if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
-							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 1);
+							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
 							if (Connect_Itracker()) {
 								
 							}
@@ -1807,7 +2609,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 							}
 						}
 						else {
-							mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 1);							
+							mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 0, 0, null, 1);							
 						}
 					}
 				});
@@ -1896,6 +2698,111 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				//dlg_title.setText("Change Dialog");
     			preference_dialog.show();
     			break;
+    			
+    		case (6):
+    			TextView iTrack_firmware_ver_desc = null, iTrack_app_ver_desc = null;
+
+    		    Button dlgbtn_update;
+    		    DownloadFilesTask downloadTask;
+    		    Message message;
+    			if (tv.getText()=="About") {
+    				trimCache(this);
+        			mMenuDrawer.toggleMenu();
+        			if (about_dialog==null) {
+        				about_dialog = new Dialog(this, R.style.CenterDialog);
+        				about_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_about, null);
+        				about_dialog.getWindow().setGravity(Gravity.TOP);
+        				about_dialog.setContentView(about_dialog_layout);
+        				about_dialog.setTitle("About");
+        				about_dialog.setCancelable(true);
+        			}
+        			if (about_dialog_layout != null) {
+        				iTrack_firmware_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.firmware_info);
+        				iTrack_app_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.app_info);
+        				checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+        				dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
+        				checkbox1.setChecked(false);
+        				checkbox1.setOnCheckedChangeListener(force_upgrade_listener);
+        				about_status_msg = (TextView)about_dialog_layout.findViewById(R.id.status);
+        				about_status_msg.setText("");
+        				inderterminate_progressbar = (ProgressBar) about_dialog_layout.findViewById(R.id.progressBar1);
+        				inderterminate_progressbar.setVisibility(View.INVISIBLE);
+        				dlgbtn_update.setOnClickListener(Upgrade_listener);
+        				dlgbtn_update.setEnabled(false);
+        				
+        				/*20140729 added by michael
+        				 * compare MD-5 checksums of i-track app & device firmware on server with those on local
+        				 * if there are different between server & local then enable update or disable update 
+        				 * */
+        				downloadTask = new DownloadFilesTask();
+        				try {
+							url = new URL(files_MD5_list);
+						} catch (MalformedURLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+        				downloadTask.execute(url);
+
+        				/*20140730 added by michael
+        				 * wait for worker thread finish*/
+        				/*why the follow code cause UI thread dead lock*/
+        				/*do {
+        					try {
+								Thread.sleep(100);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+        				} while(downloadTask.getStatus()!=AsyncTask.Status.FINISHED);*/
+        				/*do {
+        					try {
+								Thread.sleep(100);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}        				
+        				} while (downloadTask.isTaskFinish==false);*/
+        				about_dialog.show();
+						if (downloadTask.isDownloadSuccess==true) {
+							//Refresh_About_Dialog();
+			                 //message = mHandler.obtainMessage(this.Msg_Refresh_About_Dlg);
+			                 //message.sendToTarget();
+						}
+        			}
+
+
+    				preference_editor.putLong("Version Code", this.versionCode);
+    				preference_editor.putString("Version Name", this.versionName);
+    				preference_editor.commit();
+    				
+    				Log.d("Environment.getDownloadCacheDirectory()", Environment.getDownloadCacheDirectory().getPath());
+    				Log.d("Environment.getExternalStorageDirectory()", Environment.getExternalStorageDirectory().getPath());
+    				Log.d("Environment.getExternalStoragePublicDirectory()", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath());
+    				
+    				/*20140731 added by michael
+    				 * refer sizeof(struct FW_Header)*/
+    				/*mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_FW_HEADER, 0, 1, dataBytes, 1);
+    				
+    				byte[] mdbytes = new byte[16];
+    				System.arraycopy(dataBytes, 4+48+4, mdbytes, 0, 16);
+    				StringBuffer sb = new StringBuffer("");
+					// convert the byte to hex format
+					for (int i = 0; i < mdbytes.length; i++) {
+						sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
+					}
+					Log.d(Tag, "firmware MD5 checksum: " + sb.toString());
+					Log.d(Tag, "firmware MD5 checksum: " + this.mItracker_dev.Fw_md5_checksum);*/
+    			}
+    		  //File f = new File("/data/data/com.example.demo/cache/ItrackerDemo-20131125-google-repo.apk");
+    			//File f = new File("/mnt/sdcard/Downloads/ItrackerDemo-20131125-google-repo.apk");
+    			//File f = new File("/cache/ItrackerDemo-20131125-google-repo.apk");
+    			//File f = new File("/cache/test.apk");
+    			/*File f = new File("/mnt/sdcard/Downloads/test.apk");
+  			  Intent intent = new Intent(Intent.ACTION_VIEW);
+  			  intent.setDataAndType(Uri.fromFile(f), "application/vnd.android.package-archive");
+			  //Intent intent = new Intent(Intent.ACTION_DELETE, Uri.fromParts("package", Auto_updater_test.this.getPackageName(), null));
+  			  startActivity(intent);*/
+    		    break;
     		}
     	}
     	Log.d(this.getComponentName().toShortString().toString(), item.mTitle);
@@ -1964,7 +2871,16 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         //items.add(item_spinner);
         
         //R.layout.dialog_preference
-        items.add(new Item("Preference", d3));
+        d1 = new My_StateListDrawable(this);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.preference), 0xFF);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.preference), 0x40);
+        items.add(new Item("Preference", d1));
+        
+        /*20140725 added by michael
+         * Adding a menu item "About"¡Athere are i-track hardware¡Bfirmware¡Bapp released version info on the dialog
+         * Click the button "update" to upgrade the i-track firmware and app¡Ait's enable/disable reflect there exist latest i-track firmware or app 
+         * */
+        items.add(new Item("About", d3));
 	}
 
 	public void Preference_Dialog_Cancel(View v) {
@@ -2082,6 +2998,15 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						v.setEnabled(true);
 					else
 						v.setEnabled(false);
+					break;
+				/*20140806 added by michael
+				 * "About" menu item only enable when mItrackerState claim the system is running */
+				case (6):
+					if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
+						v.setEnabled(false);
+					}
+					else
+						v.setEnabled(true);
 					break;
 				}
 			}

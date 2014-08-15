@@ -3,6 +3,9 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
-	<classpathentry kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
+	<classpathentry kind="lib" path="C:/Documents and Settings/Administrator/My Documents/Downloads/google-api-java-client-1.17.0-rc/google-api-java-client/libs/google-api-client-1.17.0-rc.jar"/>
+	<classpathentry kind="lib" path="C:/Documents and Settings/Administrator/My Documents/Downloads/google-api-java-client-1.17.0-rc/google-api-java-client/libs/google-api-client-android-1.17.0-rc.jar"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

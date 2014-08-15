@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.demo"
     android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionName="1.0.20140815" >
 
     <uses-sdk
         android:minSdkVersion="12"
@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.SET_WALLPAPER"/>
     <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:allowBackup="true"
@@ -79,6 +80,10 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
                 android:name="android.appwidget.provider"
                 android:resource="@xml/ad2_appwidget_info" />
         </receiver>
+        
+        <!--         20140807 added by michael
+        App updater activity to install latest *.apk and re-launch itself-->
+        <activity android:name="com.example.demo.App_Updater_Activity" android:theme="@style/AppTheme_title" android:screenOrientation="portrait" android:launchMode="singleTask"/>
     </application>
 
 </manifest>
