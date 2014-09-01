@@ -16,6 +16,11 @@ import ar.com.daidalos.afiledialog.FileChooserCore;
 public class LogFileChooserActivity extends FileChooserActivity {
 	public final String Tag = "LogFileChooserActivity";
 	
+	/**20140819 added by michael
+	 * setting child activity orientation
+	 */
+	public static final String INPUT_ACTIVITY_ORIENTATION = "input_activity_orientation";
+	
     @Override
     public void onCreate(Bundle savedInstanceState) {
     	
@@ -23,6 +28,14 @@ public class LogFileChooserActivity extends FileChooserActivity {
     	Log.d(Tag, Boolean.toString(getWindow().hasFeature((Window.FEATURE_NO_TITLE))));
     	super.onCreate(savedInstanceState);
     	getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    	
+    	/*20140819 added by michael
+    	 * set the activity orientation*/
+    	Bundle extras = this.getIntent().getExtras();
+    	if (extras.containsKey(INPUT_ACTIVITY_ORIENTATION)) {
+    		if (getRequestedOrientation() != extras.getInt(INPUT_ACTIVITY_ORIENTATION))
+    			setRequestedOrientation(extras.getInt(INPUT_ACTIVITY_ORIENTATION));
+    	}
     	
     	ActionBar abr;
     	abr = this.getActionBar();

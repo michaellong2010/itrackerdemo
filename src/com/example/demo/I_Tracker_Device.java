@@ -85,6 +85,9 @@ public class I_Tracker_Device {
 /*	char Version_Name[48];
 	int bin_size;
 	unsigned char check_digits[16];*/
+	/*20140827 added by michael*/
+	public int X_Led_failure, X_Sensor_failure, Y_Led_failure, Y_Sensor_failure;  //offset from 56
+	public int failure_detect_ready;
     
     public I_Tracker_Device(Context context) {
     	mContext = context;
@@ -682,6 +685,16 @@ public class I_Tracker_Device {
 		message.set(itracker_cmd, arg0, arg1, dataBytes, debug);
 		result = message.process_command(0);
 		if (itracker_cmd==CMD_T.HID_CMD_ITRACKER_DATA && result) {
+			/*struct I_tracker_type {
+				  int Is_Running;
+				  int coord_index;
+				  Well_Coord_t Valid_Coord_Buf[Max_Coord_Buf];
+				  int buffer_locked;
+				  Well_Coord_t Newest_Valid_Coord;
+				  int X_Led_failure, X_Sensor_failure, Y_Led_failure, Y_Sensor_failure;  //offset from 56
+				  int failure_detect_ready;
+				};*/
+			/*struct I_tracker_type store into integer buffer*/
 			Itracker_dev_data = message.mDataBuffer.asIntBuffer();
 			if (Itracker_dev_data.limit()==64) {
 			coord_index = Itracker_dev_data.get(1);
@@ -692,6 +705,11 @@ public class I_Tracker_Device {
 			/*20131210 added by michael*/
 			//buffer_locked = Itracker_dev_data.get(Itracker_dev_data.limit()-2);
 			buffer_locked = Itracker_dev_data.get(12);
+			X_Led_failure = Itracker_dev_data.get(14);
+			X_Sensor_failure = Itracker_dev_data.get(15);
+			Y_Led_failure = Itracker_dev_data.get(16);
+			Y_Sensor_failure = Itracker_dev_data.get(17);
+			failure_detect_ready = Itracker_dev_data.get(18);
 			}
 			else
 				return false;
@@ -766,7 +784,7 @@ int Well_Plate_Mode;
 Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 */
 	public static final int Max_Coord_Buf = 10;
-	public static final int SZ_I_tracker_type = (4*Integer.SIZE+Max_Coord_Buf*Integer.SIZE) / Byte.SIZE;
+	public static final int SZ_I_tracker_type = (4*Integer.SIZE+Max_Coord_Buf*Integer.SIZE+5*Integer.SIZE) / Byte.SIZE;
 	/*20140731 added by michael
 	 * size of struct FW_Header */
 	public static final int SZ_I_track_fw_header = (Integer.SIZE + 48 * Byte.SIZE + Integer.SIZE + Integer.SIZE + 16 * Byte.SIZE) / Byte.SIZE;

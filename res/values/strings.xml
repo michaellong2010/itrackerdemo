@@ -26,4 +26,5 @@
     <string name="cancel_button_caption">Cancel</string>
     <string name="checkbox_caption">Adjust pipetting detection sensitivity</string>
     
+    <string name="i_track_utility_activity_name">iTrack Utility</string>
 </resources>

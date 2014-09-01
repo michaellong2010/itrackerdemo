@@ -11,14 +11,18 @@ import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
 @SuppressLint("NewApi")
-public class I_Tracker_Well_Plate_View extends ImageView {
+public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttachStateChangeListener {
     static final int Wells_96 = 96;
     static final int Wells_384 = 384;
     
@@ -38,7 +42,9 @@ public class I_Tracker_Well_Plate_View extends ImageView {
  * total UI viewable region dimension 
  */
 	double Viewable_height, Viewable_width;
-
+/*20140821 added by michael*/
+	double Screen_Short_Width_cm;
+	
 /*
  20130311 added by michael
  touchable ROI (0, 0)~(mMaxTouchablePosX, mMaxTouchablePosY)
@@ -96,7 +102,22 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     		return 800;
     }
 /*20131213 added by michael*/
-    protected int multi_pipettes_well_gap = 0; 
+    protected int multi_pipettes_well_gap = 0;
+
+/*20140821 added by michael*/
+    public static final int Draw_Upper_Region_Only = 0;
+    public static final int Draw_Lower_Region_Only = 1;
+    public static final int Draw_Whole_Region = 0;
+    int mDrawRegion;
+    boolean force_invalide;
+    private double mwells_offset_x;
+    private double mwells_offset_y;
+/*20140827 added by michael
+ * bit field represent Led & Sensor failure status */
+	public int X_Led_failure, X_Sensor_failure, Y_Led_failure, Y_Sensor_failure;
+    BitmapDrawable Led_Sensor_Failure_Icon, Only_Led_Failure_Icon, Only_Sensor_Failure_Icon;
+    boolean attachToWindow;
+    
 	public I_Tracker_Well_Plate_View(Context context, int wells) {
 		super(context);
 		mWells = wells;
@@ -124,6 +145,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		mPaint_transparent1.setColor(Color.WHITE);
 		mPaint_transparent1.setXfermode(Xfermode_src_over);
 		
+		/*20140825 added by michael*/
+    	Screen_Short_Width_cm = 12.1;
 
 		/*20130318 added by michael*/
 		//create two Pain, one is stroke type the other is fill type
@@ -184,21 +207,42 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     	lock2 = new Object();
     	mPaint_transparent.setTextSize(convert_mm2pixel(Label_cxChar));
     	mPaint_transparent1.setTextSize(convert_mm2pixel(Label_cxChar));
+    	
+    	mDrawRegion = Draw_Whole_Region;
+    	force_invalide = false;
+    	X_Led_failure = X_Sensor_failure = Y_Led_failure = Y_Sensor_failure = 0;
+    	if ( context.getResources().getDrawable(R.drawable.childish_cross) instanceof BitmapDrawable)
+    		Led_Sensor_Failure_Icon = (BitmapDrawable) context.getResources().getDrawable(R.drawable.childish_cross);
+    	else
+    		Led_Sensor_Failure_Icon = null;
+    	if ( context.getResources().getDrawable(R.drawable.led_failure) instanceof BitmapDrawable)
+    		Only_Led_Failure_Icon = (BitmapDrawable) context.getResources().getDrawable(R.drawable.led_failure);
+    	else
+    		Only_Led_Failure_Icon = null;
+    	if ( context.getResources().getDrawable(R.drawable.sensor_failure) instanceof BitmapDrawable)
+    		Only_Sensor_Failure_Icon = (BitmapDrawable) context.getResources().getDrawable(R.drawable.sensor_failure);
+    	else
+    		Only_Sensor_Failure_Icon = null;
+    	
+    	addOnAttachStateChangeListener(this);
+    	attachToWindow = false;
 	}
 
 	/*20130325 added by michael*/
 	/*draw wells on the bitmap
 	 * this bitmap then set to I_Tracker_Well_Plate_View Canvas
 	*/
-	public void DrawBitmap() {
+	public void DrawBitmap(boolean Update_Label_Only) {
 		//int i, j, margin_x, margin_y;
-		int i, j;
+		int i, j, left, right, top, bottom;
 		float margin_x, margin_y;
 		int chr = 'A';
 		//int radius_pixels;
 		float radius_pixels;
 		double mDisplay_well_pitch_x, mDisplay_well_pitch_y;
 		double label_width, label_height;
+		Rect dst_rect = new Rect();
+		Bitmap led_sensor_failure_bmp;
 
 		if (mWells == Wells_96) {
 			mDisplay_well_pitch_x = (Viewable_width - Border_left) / X_holes;
@@ -215,9 +259,17 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		label_width = Label_cxChar / Math.pow(2, 0.5);  
 		label_height = Label_cyChar / Math.pow(2, 0.5); 
 		/* clear the whole bitmap content */
+		if (Update_Label_Only == false) {
 		mPaint_well_Stroke.setXfermode(new PorterDuffXfermode(Mode.CLEAR));  
     	Canvas_Well_Plate.drawPaint(mPaint_well_Stroke);
     	mPaint_well_Stroke.setXfermode(null);
+		}
+		else {
+			mPaint_well_Stroke.setXfermode(new PorterDuffXfermode(Mode.CLEAR));  
+	    	Canvas_Well_Plate.drawRect(0, 0, convert_mm2pixel(Viewable_width), convert_mm2pixel(Label_cyChar), mPaint_well_Stroke);
+	    	Canvas_Well_Plate.drawRect(0, 0, convert_mm2pixel(Label_cxChar), convert_mm2pixel(Viewable_height), mPaint_well_Stroke);
+	    	mPaint_well_Stroke.setXfermode(null);
+		}
 /*		mPaint.setColor(Color.BLUE);
 		//mPaint.setStrokeWidth(convert_mm2pixel(1));
 		mPaint.setTextSize(24);
@@ -247,6 +299,67 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					margin_x = convert_mm2pixel((2 * Border_left + 2 * i
 							* mDisplay_well_pitch_x + (label_width * Integer.toString(i + 1).length()) - mDisplay_well_pitch_x) / 2);
 
+				if ((this.X_Led_failure & 1 << (2 * i)) != 0 || (this.X_Led_failure & 1 << (2 * i + 1)) != 0) {
+					left = (int) convert_mm2pixel(Border_left + i * mDisplay_well_pitch_x);
+					right = (int) convert_mm2pixel(Border_left + (i + 1)* mDisplay_well_pitch_x);
+					top = 0;
+					bottom = (int) margin_y;
+					dst_rect.set(left, top, right, bottom);
+					if ((this.X_Sensor_failure & 1 << (2 * i)) != 0 || (this.X_Sensor_failure & 1 << (2 * i + 1)) != 0) {
+						//Led & Sensor both fail
+						if (Led_Sensor_Failure_Icon != null) {
+							led_sensor_failure_bmp = Led_Sensor_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Led_Sensor_Failure_Icon.getPaint());
+						}
+					}
+					else {
+						//only Led fail
+						if (Only_Led_Failure_Icon != null) {
+							led_sensor_failure_bmp = Only_Led_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Led_Failure_Icon.getPaint());
+						}
+					}					
+				}
+				else
+					if ((this.X_Sensor_failure & 1 << (2 * i)) != 0 || (this.X_Sensor_failure & 1 << (2 * i + 1)) != 0) {
+						//only Sensor fail
+						left = (int) convert_mm2pixel(Border_left + i * mDisplay_well_pitch_x);
+						right = (int) convert_mm2pixel(Border_left + (i + 1)* mDisplay_well_pitch_x);
+						top = 0;
+						bottom = (int) margin_y;
+						dst_rect.set(left, top, right, bottom);
+						if (Only_Sensor_Failure_Icon != null) {
+							led_sensor_failure_bmp = Only_Sensor_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Sensor_Failure_Icon.getPaint());
+						}
+					}
+					else {
+						/*left = (int) convert_mm2pixel(Border_left + i * mDisplay_well_pitch_x);
+						right = (int) convert_mm2pixel(Border_left + (i + 1)* mDisplay_well_pitch_x);
+						top = 0;
+						bottom = (int) margin_y;
+						dst_rect.set(left, top, right, bottom);
+						if (Only_Sensor_Failure_Icon != null) {
+							led_sensor_failure_bmp = Only_Sensor_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Sensor_Failure_Icon.getPaint());
+						}*/
+					}
+				/*if ((this.X_Led_failure & 1 << (2 * i)) != 0 || (this.X_Led_failure & 1 << (2 * i + 1)) != 0
+						|| (this.X_Sensor_failure & 1 << (2 * i)) != 0 || (this.X_Sensor_failure & 1 << (2 * i + 1)) != 0) {
+
+					if (Led_Sensor_Failure_Icon != null) {
+						led_sensor_failure_bmp = Led_Sensor_Failure_Icon.getBitmap();
+						Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Led_Sensor_Failure_Icon.getPaint());
+					}
+				}
+				else {
+					//Canvas_Well_Plate.drawText(Integer.toString(i + 1), margin_x, margin_y, mPaint_text);
+
+					if (Led_Sensor_Failure_Icon != null) {
+						led_sensor_failure_bmp = Led_Sensor_Failure_Icon.getBitmap();
+						Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Led_Sensor_Failure_Icon.getPaint());
+					}
+				}*/
 				Canvas_Well_Plate.drawText(Integer.toString(i + 1), margin_x, margin_y, mPaint_text);
 			}
 
@@ -258,9 +371,55 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 				else
 					margin_y = convert_mm2pixel((2 * Border_top + 2 * i
 							* mDisplay_well_pitch_y + label_height - mDisplay_well_pitch_y + 2 * label_height) / 2);
+				if ((this.Y_Led_failure & 1 << (2 * i)) != 0 || (this.Y_Led_failure & 1 << (2 * i + 1)) != 0) {
+					left = 0;
+					right = (int) convert_mm2pixel(Label_cxChar);
+					top = (int) convert_mm2pixel(Border_top + i * mDisplay_well_pitch_y);
+					bottom = (int) convert_mm2pixel(Border_top + (i + 1) * mDisplay_well_pitch_y);
+					dst_rect.set(left, top, right, bottom);
+					if ((this.Y_Sensor_failure & 1 << (2 * i)) != 0 || (this.Y_Sensor_failure & 1 << (2 * i + 1)) != 0) {
+						//Led & Sensor both fail
+						if (Led_Sensor_Failure_Icon != null) {
+							led_sensor_failure_bmp = Led_Sensor_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Led_Sensor_Failure_Icon.getPaint());
+						}
+					}
+					else {
+						//only Led fail
+						if (Only_Led_Failure_Icon != null) {
+							led_sensor_failure_bmp = Only_Led_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Led_Failure_Icon.getPaint());
+						}
+					}					
+				}
+				else
+					if ((this.Y_Sensor_failure & 1 << (2 * i)) != 0 || (this.Y_Sensor_failure & 1 << (2 * i + 1)) != 0) {
+						//only Sensor fail
+						left = 0;
+						right = (int) convert_mm2pixel(Label_cxChar);
+						top = (int) convert_mm2pixel(Border_top + i * mDisplay_well_pitch_y);
+						bottom = (int) convert_mm2pixel(Border_top + (i + 1) * mDisplay_well_pitch_y);
+						dst_rect.set(left, top, right, bottom);
+						if (Only_Sensor_Failure_Icon != null) {
+							led_sensor_failure_bmp = Only_Sensor_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Sensor_Failure_Icon.getPaint());
+						}
+					}
+					else {
+						/*left = 0;
+						right = (int) convert_mm2pixel(Label_cxChar);
+						top = (int) convert_mm2pixel(Border_top + i * mDisplay_well_pitch_y);
+						bottom = (int) convert_mm2pixel(Border_top + (i + 1) * mDisplay_well_pitch_y);
+						dst_rect.set(left, top, right, bottom);
+						if (Only_Sensor_Failure_Icon != null) {
+							led_sensor_failure_bmp = Only_Sensor_Failure_Icon.getBitmap();
+							Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Sensor_Failure_Icon.getPaint());
+						}*/
+					}
 				Canvas_Well_Plate.drawText(Character.toString((char) (chr + i)), margin_x, margin_y, mPaint_text);
             }
             
+            if (Update_Label_Only == false) {
             radius_pixels = (mDisplay_well_pitch_x > mDisplay_well_pitch_y) ? convert_mm2pixel((mDisplay_well_pitch_y-1)/2):convert_mm2pixel((mDisplay_well_pitch_x-1)/2);
             //mPaint.setColor(Color.BLUE);
             //mPaint.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -301,6 +460,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
             		Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint_well_Stroke);
             	}
             }
+            }
             //Draw_Client_Well_Region(Canvas_Well_Plate, 5, 70);
             //Draw_Client_Well_Region(Canvas_Well_Plate, 8, 93);
             //Draw_Client_Well_Region(Canvas_Well_Plate, 7, 93);
@@ -333,6 +493,52 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 						margin_x = convert_mm2pixel((2 * Border_left + 2 * i
 								* mDisplay_well_pitch_x + (label_width * Integer.toString(i + 1).length() - mDisplay_well_pitch_x)) / 2);
 
+					if ((this.X_Led_failure & 1 << (i)) != 0) {
+						left = (int) convert_mm2pixel(Border_left + i * mDisplay_well_pitch_x);
+						right = (int) convert_mm2pixel(Border_left + (i + 1)* mDisplay_well_pitch_x);
+						top = 0;
+						bottom = (int) margin_y;
+						dst_rect.set(left, top, right, bottom);
+						if ((this.X_Sensor_failure & 1 << (i)) != 0) {
+							//Led & Sensor both fail
+							if (Led_Sensor_Failure_Icon != null) {
+								led_sensor_failure_bmp = Led_Sensor_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Led_Sensor_Failure_Icon.getPaint());
+							}
+						}
+						else {
+							//only Led fail
+							if (Only_Led_Failure_Icon != null) {
+								led_sensor_failure_bmp = Only_Led_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Led_Failure_Icon.getPaint());
+							}
+						}					
+					}
+					else
+						if ((this.X_Sensor_failure & 1 << (i)) != 0) {
+							//only Sensor fail
+							left = (int) convert_mm2pixel(Border_left + i * mDisplay_well_pitch_x);
+							right = (int) convert_mm2pixel(Border_left + (i + 1)* mDisplay_well_pitch_x);
+							top = 0;
+							bottom = (int) margin_y;
+							dst_rect.set(left, top, right, bottom);
+							if (Only_Sensor_Failure_Icon != null) {
+								led_sensor_failure_bmp = Only_Sensor_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Sensor_Failure_Icon.getPaint());
+							}
+						}
+						else {
+							/*left = (int) convert_mm2pixel(Border_left + i * mDisplay_well_pitch_x);
+							right = (int) convert_mm2pixel(Border_left + (i + 1)* mDisplay_well_pitch_x);
+							top = 0;
+							bottom = (int) margin_y;
+							dst_rect.set(left, top, right, bottom);
+							if (Led_Sensor_Failure_Icon != null) {
+								led_sensor_failure_bmp = Led_Sensor_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Led_Sensor_Failure_Icon.getPaint());
+							}*/
+						}
+
 					Canvas_Well_Plate.drawText(Integer.toString(i + 1), margin_x, margin_y, mPaint_text);
 				}
 
@@ -343,8 +549,54 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					else
 						margin_y = convert_mm2pixel((2 * Border_top + 2 * i
 								* mDisplay_well_pitch_y + label_height - mDisplay_well_pitch_y + 2 * label_height) / 2);
+					if ((this.Y_Led_failure & 1 << (i)) != 0) {
+						left = 0;
+						right = (int) convert_mm2pixel(Label_cxChar);
+						top = (int) convert_mm2pixel(Border_top + i * mDisplay_well_pitch_y);
+						bottom = (int) convert_mm2pixel(Border_top + (i + 1) * mDisplay_well_pitch_y);
+						dst_rect.set(left, top, right, bottom);
+						if ((this.Y_Sensor_failure & 1 << (i)) != 0) {
+							//Led & Sensor both fail
+							if (Led_Sensor_Failure_Icon != null) {
+								led_sensor_failure_bmp = Led_Sensor_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Led_Sensor_Failure_Icon.getPaint());
+							}
+						}
+						else {
+							//only Led fail
+							if (Only_Led_Failure_Icon != null) {
+								led_sensor_failure_bmp = Only_Led_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Led_Failure_Icon.getPaint());
+							}
+						}					
+					}
+					else
+						if ((this.Y_Sensor_failure & 1 << (i)) != 0) {
+							//only Sensor fail
+							left = 0;
+							right = (int) convert_mm2pixel(Label_cxChar);
+							top = (int) convert_mm2pixel(Border_top + i * mDisplay_well_pitch_y);
+							bottom = (int) convert_mm2pixel(Border_top + (i + 1) * mDisplay_well_pitch_y);
+							dst_rect.set(left, top, right, bottom);
+							if (Only_Sensor_Failure_Icon != null) {
+								led_sensor_failure_bmp = Only_Sensor_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Sensor_Failure_Icon.getPaint());
+							}
+						}
+						else {
+							/*left = 0;
+							right = (int) convert_mm2pixel(Label_cxChar);
+							top = (int) convert_mm2pixel(Border_top + i * mDisplay_well_pitch_y);
+							bottom = (int) convert_mm2pixel(Border_top + (i + 1) * mDisplay_well_pitch_y);
+							dst_rect.set(left, top, right, bottom);
+							if (Only_Sensor_Failure_Icon != null) {
+								led_sensor_failure_bmp = Only_Sensor_Failure_Icon.getBitmap();
+								Canvas_Well_Plate.drawBitmap(led_sensor_failure_bmp, null, dst_rect, Only_Sensor_Failure_Icon.getPaint());
+							}*/
+						}
 					Canvas_Well_Plate.drawText(Character.toString((char) (chr + i)), margin_x, margin_y, mPaint_text);
 	            }
+	            if (Update_Label_Only == false) {
 	            radius_pixels = (mDisplay_well_pitch_x > mDisplay_well_pitch_y) ? convert_mm2pixel((mDisplay_well_pitch_y-1)/2):convert_mm2pixel((mDisplay_well_pitch_x-1)/2);
 	            //mPaint.setColor(Color.BLUE);
 	            //mPaint.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -368,11 +620,16 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 	            		Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint_well_Stroke);
 	            	}
 	            }
+	            }
 	            //Draw_Client_Well_Region(Canvas_Well_Plate, 8, 94);
 	            //Draw_Client_Well_Region(Canvas_Well_Plate, 7, 94);
 	            //mMaxTouchablePosY = margin_y + radius_pixels;
 			}
 		//this.invalidate();
+		if(Update_Label_Only == true) {
+            this.invalidate(0, 0, (int)convert_mm2pixel(Viewable_width), (int)convert_mm2pixel(Label_cyChar));
+            this.invalidate(0, 0, (int)convert_mm2pixel(Label_cxChar), (int)convert_mm2pixel(Viewable_height));
+		}
 	}
 
 	//@Override
@@ -485,7 +742,9 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		
 		//return (int) (0.75*value * metrics.xdpi * (1.0f/25.4f));
 		//return (int) (value * metrics.densityDpi * (1.0f/25.4f) * (12.7 / 12.1));
-		return (float) (value * metrics.densityDpi * (1.0f/25.4f));
+		//return (float) (value * metrics.densityDpi * (1.0f/25.4f));
+		//return (int) (value * metrics.densityDpi * (1.0f/25.4f) * ((2.54 * screen_width_pixel() / metrics.densityDpi) / Screen_Short_Width_cm));
+		return (int) (value * (1.0f/25.4f) * ((2.54 * screen_width_pixel()) / Screen_Short_Width_cm));
 		
 		//return (int) ((metrics.densityDpi/metrics.xdpi) * (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_MM, (float) value,  metrics)));
 	}
@@ -528,8 +787,10 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			//mClient_well_pitch_y = mClient_well_pitch_x - 0.09;
 			//Client_Border_left = 7;
 			//Client_Border_top = 93;
-			Client_Border_left = 5.5;
-			Client_Border_top = 90;
+			//Client_Border_left = 5.5;
+			//Client_Border_top = 90;
+			Client_Border_left = mwells_offset_x;
+			Client_Border_top = mwells_offset_y;
 		}
 		else {
 			adjust_radius_mm = 2;
@@ -539,8 +800,10 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			//mClient_well_pitch_y = mClient_well_pitch_x - 0.09;
 			//Client_Border_left = 7;
 			//Client_Border_top = 94;
-			Client_Border_left = 5.5;
-			Client_Border_top = 89.5;
+			//Client_Border_left = 5.5;
+			//Client_Border_top = 89.5;
+			Client_Border_left = mwells_offset_x;
+			Client_Border_top = mwells_offset_y;
 		}
 			
 		//if (mWells==Wells_96) {
@@ -673,7 +936,7 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 					
 					/*20130325 night added by michael*/
 					//compare current color index with well histogram
-					if (Well_Color_index[i][j] != a[i][Y_holes-1-j]) {
+					if ((Well_Color_index[i][j] != a[i][Y_holes-1-j]) || force_invalide == true) {
 						Invalidate_Single_Well(a[i][Y_holes-1-j], i, j);
 						Well_Color_index[i][j] = a[i][Y_holes-1-j];
 					}
@@ -703,7 +966,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
     	mPaint_well_Stroke.setXfermode(new PorterDuffXfermode(Mode.CLEAR));  
     	Canvas_Well_Plate.drawPaint(mPaint_well_Stroke);
     	mPaint_well_Stroke.setXfermode(new PorterDuffXfermode(Mode.SRC));*/
-    	DrawBitmap();
+    	set_led_sensor_failure(0, 0, 0, 0);
+    	DrawBitmap(false);
     	//invalidate();
 	}
 	
@@ -727,6 +991,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			/*20140616 added by michael*/
 			Viewable_height = 60;
 			Viewable_width = 116; 
+			mwells_offset_x = 5.5d;
+			mwells_offset_y = 90d;
 		} else if (well_type == Wells_384) {
 			mwell_pitch_x = 9.25d / 2;
 			mwell_pitch_y = 9.25d / 2;
@@ -743,6 +1009,8 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			/*20140616 added by michael*/
 			Viewable_height = 60;
 			Viewable_width = 116;
+			mwells_offset_x = 5.5d;
+			mwells_offset_y = 89.5d;
 		}
         /*20140616 modified by michael*/
 		//mMaxTouchablePosY = convert_mm2pixel((2*Border_top+2*mwell_pitch_y+(Y_holes-1)*2*mwell_pitch_y-0.8)/2);
@@ -751,6 +1019,31 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 		/*20131213 added by michael*/
 		mPaint_transparent.setTextSize(convert_mm2pixel(Label_cxChar));
 		mPaint_transparent1.setTextSize(convert_mm2pixel(Label_cxChar));
+	}
+	
+	/*20140821 added by michael*/
+	public void setWell(int well_type, iTrack_Properties properties) {
+		setWell(well_type);
+		
+		/*Override well layout parameter with the i-track app property*/
+		if (properties != null) {
+			Screen_Short_Width_cm = Double.parseDouble((properties.getProperty(iTrack_Properties.prop_screen_short_edge_width, Double.toString(iTrack_Properties.def_prop_screen_short_edge_cm))));
+			Viewable_width = Double.parseDouble((properties.getProperty(iTrack_Properties.prop_viewable_width, Double.toString(iTrack_Properties.def_prop_viewable_width_mm))));
+			Viewable_height = Double.parseDouble((properties.getProperty(iTrack_Properties.prop_viewable_height, Double.toString(iTrack_Properties.def_prop_viewable_height_mm))));
+			mwell_pitch_x = Double.parseDouble((properties.getProperty(iTrack_Properties.prop_well_pitch_x, Double.toString(iTrack_Properties.def_well_pitch_x_mm))));
+			mwell_pitch_y = Double.parseDouble((properties.getProperty(iTrack_Properties.prop_well_pitch_y, Double.toString(iTrack_Properties.def_well_pitch_y_mm))));
+			if (well_type == Wells_96) {
+
+			}
+			else {
+				mwell_pitch_x = mwell_pitch_x /2;
+				mwell_pitch_y = mwell_pitch_y /2;
+			}
+			mwells_offset_x =  Double.parseDouble((properties.getProperty(iTrack_Properties.prop_wells_offset_x, Double.toString(iTrack_Properties.def_wells_offset_x_mm))));
+			mwells_offset_y =  Double.parseDouble((properties.getProperty(iTrack_Properties.prop_wells_offset_y, Double.toString(iTrack_Properties.def_wells_offset_y_mm))));
+			mMaxTouchablePosY = (float)convert_mm2pixel(Viewable_height);
+		}
+		force_invalide = true;
 	}
 	
 	/*20130327 added by michael*/
@@ -850,5 +1143,22 @@ public class I_Tracker_Well_Plate_View extends ImageView {
 			Coord_X_Count = -1;
 			Coord_Y_Count = -1;
 		}
+	}
+	
+	public void set_led_sensor_failure(int x_led_failure, int x_sensor_failure, int y_led_failure, int y_sensor_failure) {
+		X_Led_failure = x_led_failure;
+		X_Sensor_failure = x_sensor_failure;
+		Y_Led_failure = y_led_failure;
+		Y_Sensor_failure = y_sensor_failure;
+	}
+	@Override
+	public void onViewAttachedToWindow(View v) {
+		// TODO Auto-generated method stub
+		attachToWindow = true;
+	}
+	@Override
+	public void onViewDetachedFromWindow(View v) {
+		// TODO Auto-generated method stub
+		attachToWindow = false;
 	}
 }

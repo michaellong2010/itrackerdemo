@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/setting_upper_well"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <RelativeLayout
+        android:id="@+id/draw_upper_well_region"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1" >
+
+<!--         <ImageView
+            android:id="@+id/imageView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="88dp"
+            android:layout_marginTop="55dp"
+            android:src="@drawable/usb_disconnection" /> -->
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/input_upper_well_param"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_weight="1" >
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:text="screen width(cm)"
+            android:textColor="#FF00FF00" />
+
+        <EditText
+            android:id="@+id/screen_short_edge"
+            android:layout_width="85dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/textView1"
+            android:ems="10"
+            android:gravity="center_horizontal"
+            android:imeOptions="actionDone"
+            android:inputType="numberDecimal"
+            android:maxLength="5"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_dropdown_light_frame"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="#FF0000FF" >
+
+            <requestFocus />
+        </EditText>
+
+        
+        <TextView
+            android:id="@+id/TextView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="18dp"
+            android:layout_toRightOf="@+id/textView1"
+            android:text="viewable_width(mm)"
+            android:textColor="#FF00FF00" />
+        
+        <EditText
+            android:id="@+id/viewable_width"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/TextView2"
+            android:layout_below="@+id/TextView2"
+            android:ems="10"
+            android:gravity="center_horizontal"
+            android:imeOptions="actionDone"
+            android:inputType="number"
+            android:maxLength="3"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_dropdown_light_frame"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="#FF0000FF" >
+            <requestFocus />
+        </EditText>
+        
+        <TextView
+            android:id="@+id/TextView3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@+id/TextView2"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="18dp"
+            android:text="viewable_height(mm)"
+            android:textColor="#FF00FF00" />
+
+         <EditText
+            android:id="@+id/viewable_height"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/TextView3"
+            android:layout_below="@+id/TextView3"
+            android:ems="10"
+            android:gravity="center_horizontal"
+            android:imeOptions="actionDone"
+            android:inputType="number"
+            android:maxLength="2"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_dropdown_light_frame"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="#FF0000FF" >
+            
+            <requestFocus />
+        </EditText>
+
+         <Button
+             android:id="@+id/exit_setting"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_alignParentRight="true"
+             android:layout_alignParentTop="true"
+             android:text="Back" />
+
+         <Button
+             android:id="@+id/button1"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_alignParentRight="true"
+             android:layout_below="@+id/exit_setting"
+             android:layout_marginTop="27dp"
+             android:text="384 well" />
+
+         <Button
+             android:id="@+id/button2"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_alignParentRight="true"
+             android:layout_below="@+id/button1"
+             android:layout_marginTop="26dp"
+             android:text="96 well" />
+
+         <TextView
+             android:id="@+id/TextView5"
+             android:layout_width="wrap_content"
+             android:layout_height="wrap_content"
+             android:layout_alignParentLeft="true"
+             android:layout_below="@+id/screen_short_edge"
+             android:layout_marginTop="10dp"
+             android:text="portrait selection"
+             android:textColor="#FF00FF00" />
+         
+         <Spinner
+            android:id="@+id/spinner2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:dropDownWidth="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/TextView5"
+            android:layout_marginTop="10dp"
+            android:popupBackground="@color/spinner__popBackground"
+            android:prompt="@string/app_name"
+            android:spinnerMode="dropdown" />
+
+    </RelativeLayout>
+
+</LinearLayout>

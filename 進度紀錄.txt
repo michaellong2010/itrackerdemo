@@ -409,3 +409,21 @@ md5 checksum不同則視為"out-of-date"，此時允許使用者按下對話盒上的"Upgrade"進行下
 20140815
 待結案處理，i-track device firmware巨量升級次數測試，以及還未更新完畢前不允許"About"視窗被取消消失
 about_dialog.setCancelable(false);  //當按下Upgrade，屏蔽掉取消dialog
+
+20140819
+1.  AndroidManifest.xml指定每個Activity的screenOrientation參數目前為portrait及reversePortrait切換，程式裡調用setRequestedOrientation(int)及 getRequestedOrientation()來取得或變更方位
+setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT)
+setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+2.  LogFileChooserActivity的Activity screenOrientation由上一層Activity決定，startActivity前以參數方式Extra bundle傳入
+
+20140820~20140827
+1.  加入上半區域及下半區域螢幕調整工具，將結果輸出至檔案iTrack_app_property，公用區路徑一定要由系統呼叫取得，因為每一台都有可能公用區路徑不同
+2.  上半區域調整參數：portrait/reverse portrait、用尺測量到的螢幕短邊長度(screen width)、上半部可視區寬度(Viewable_width)、下半部可視區寬度(Viewable_height)
+3.  下半區域調整參數：調整X方向及Y方向的well pitch、調整整個View的X方向及Y方向offset
+4.  I_Tacker_Activity.java加入成員變量app_properties，app_properties把存在公用區路徑上的配置設定讀進來並套用
+5.  每新進一款不同型號，除了app framework版本視情況是否發新版外，用此工具程式產生此台平版所須的最佳layout參數
+
+20140827~20140831
+1.  row/col sensor or led failure detection
+2.  20140815待處理，其中巨量升級次數測試已結案；還未更新完畢前不允許"About"視窗被取消消失尚未處理
+3.  I_Tracker_Well_Plate_View.java此次配合新增utility及增加標示sensor/led failure，修改幅度較大

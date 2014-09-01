@@ -57,6 +57,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -455,6 +456,8 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	public boolean app_up_to_date = false, firmware_up_to_date = false, force_upgrade = false;
 	public String Upgrade_Error_Message;
 	public TextView about_status_msg = null;
+	/*20140822 added by michael*/
+	iTrack_Properties app_properties;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -923,8 +926,11 @@ radio group to let user to choice well plate for i-tacker*/
     	MD5_list_filename = MD5_list_filename + "_app_ver_" + parsed_version[0] + ".txt";
     	files_MD5_list = Http_Repo_Host + MD5_list_filename;
     	
-    	Log.d(Tag, "usb host feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.host")));
-    	Log.d(Tag, "usb accessory feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.accessory")));
+    	//Log.d(Tag, "usb host feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.host")));
+    	//Log.d(Tag, "usb accessory feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.accessory")));
+    	app_properties = new iTrack_Properties();
+    	app_properties.load_property();
+    	this.setRequestedOrientation(Integer.valueOf(app_properties.getProperty(iTrack_Properties.prop_portrait, "1")));
 	}
 
 	@Override
@@ -1245,6 +1251,9 @@ radio group to let user to choice well plate for i-tacker*/
 		//intent.putExtra(FileChooserActivity.INPUT_FOLDER_MODE, true);
 		intent.putExtra(FileChooserActivity.INPUT_SHOW_FULL_PATH_IN_TITLE, true);
 		intent.putExtra(FileChooserActivity.INPUT_START_FOLDER, iTracker_Data_Dir);
+		/*20140819 added by michael
+		 * add the additional extra param INPUT_ACTIVITY_ORIENTATION to handle the activity screen orientation¡Athese values(SCREEN_ORIENTATION_SENSOR_PORTRAIT¡BSCREEN_ORIENTATION_REVERSE_PORTRAIT...etc) define in  class ActivityInfo*/
+		intent.putExtra(LogFileChooserActivity.INPUT_ACTIVITY_ORIENTATION, getRequestedOrientation());
 		startActivity(intent);
 	
 		/*RemoteViews views = new RemoteViews(getApplicationContext().getPackageName(), R.layout.example_appwidget_layout);
@@ -1286,17 +1295,21 @@ radio group to let user to choice well plate for i-tacker*/
     
 //Enter i-tracker single well demostration
 	public void OnBnClickEnterItracker(View v) {
-		if (Well_Selection==mItracker_dev.Well_96)
-			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96);
-		else
-			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384);
+		if (Well_Selection==mItracker_dev.Well_96) {
+			//Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96);
+			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96, app_properties);
+		}
+		else {
+			//Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384);
+			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384, app_properties);
+		}
 		mLayout_Content.removeAllViews();
 		mLayout_Content.addView(Well_View);
 		mLayout_Content.addView(mIndicators_Layout);
 		//setContentView(Well_View);
 		//EnumerationDevice(getIntent());
 		mItracker_dev.Well_Plate_Mode = Well_Selection;
-		Well_View.DrawBitmap();
+		Well_View.DrawBitmap(false);
 
 		/*20131124 added by michael
 		enable menudrawer and configure it's child view mMenuContainer dimension to fit the adapted UI region*/
@@ -1388,8 +1401,27 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     public boolean Connect_Itracker() {
     	//mItracker_dev.setInterface();
 /*    	Log.d(Tag, "cmd type size:"+Integer.toString(I_Tracker_Device.CMD_T.SZ_CMD_T));*/
+    	int nRetry = 0;
 		if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 0, 0, null, 1)
 				&& mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_START, 0, 0, null, 1)) {
+			/*read i-track data once to retrive Led & Sensor failure info */
+			try {
+				Thread.sleep(50);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			while ( mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0, 0, null, 0) && mItracker_dev.failure_detect_ready == 0 ) {
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				nRetry++;
+			}
+			Well_View.set_led_sensor_failure(mItracker_dev.X_Led_failure, mItracker_dev.X_Sensor_failure, mItracker_dev.Y_Led_failure, mItracker_dev.Y_Sensor_failure);
+			Well_View.DrawBitmap(true);
 			return true;
 		}
 		return false;
@@ -1414,6 +1446,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	buff = new byte [100];
     	try {
 			p = Runtime.getRuntime().exec("/system/xbin/su-new");
+    		//p = Runtime.getRuntime().exec("/system/xbin/su");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("service call activity 42 s16 com.android.systemui\n");
@@ -1461,6 +1494,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			p.waitFor();
 			p.destroy();*/
 			p = Runtime.getRuntime().exec("/system/xbin/su-new");
+    		//p = Runtime.getRuntime().exec("/system/xbin/su");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("am startservice -n com.android.systemui/.SystemUIService\n");
@@ -1946,6 +1980,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				if (f.exists()) {
 					fis = new FileInputStream(f);
 					defaultProps.load(fis);
+					fis.close();
 				}
 				server_app_md5 = defaultProps.getProperty("app", "");
 				server_firmware_md5 = defaultProps.getProperty("firmware", "");
@@ -2256,7 +2291,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
         	f = new File(iTrack_Cache_Dir + DL_filename);
 			if (f.exists()) {
-				for (int j = 0; j < 300; j++) {
+				for (int j = 0; j < 10; j++) {
 					Log.d(Tag, "flash programming test iteration: " + Integer.toString(j));
 					try {
 						fis = new FileInputStream(f);
