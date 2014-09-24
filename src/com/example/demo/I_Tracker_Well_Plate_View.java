@@ -1022,7 +1022,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 	}
 	
 	/*20140821 added by michael*/
-	public void setWell(int well_type, iTrack_Properties properties) {
+	public void setWell(int well_type, iTrack_Properties properties, boolean force_invalid_well) {
 		setWell(well_type);
 		
 		/*Override well layout parameter with the i-track app property*/
@@ -1043,7 +1043,8 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 			mwells_offset_y =  Double.parseDouble((properties.getProperty(iTrack_Properties.prop_wells_offset_y, Double.toString(iTrack_Properties.def_wells_offset_y_mm))));
 			mMaxTouchablePosY = (float)convert_mm2pixel(Viewable_height);
 		}
-		force_invalide = true;
+		force_invalide = force_invalid_well;
+		//force_invalide = false;
 	}
 	
 	/*20130327 added by michael*/

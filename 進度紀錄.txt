@@ -427,3 +427,61 @@ setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
 1.  row/col sensor or led failure detection
 2.  20140815待處理，其中巨量升級次數測試已結案；還未更新完畢前不允許"About"視窗被取消消失尚未處理
 3.  I_Tracker_Well_Plate_View.java此次配合新增utility及增加標示sensor/led failure，修改幅度較大
+
+20140916
+1.  app加上簽章，保證是官方發表，依照以下(1)產生my-release-key.keystore，(2)及(3)產生signed_aligned.apk；或者直接用(1)(4)
+(1)  生成my-release-key.keystore
+c:\keytool\keytool -genkey -v -alias knight2001 -keystore my-release-key.keystore -keyalg RSA -keysize 2048 -validity 10000
+
+(2)  從eclipse匯出尚未簽屬簽章的*.apk，"Android Tools"-->"Export unsigned Application package"
+c:\keytool\jarsigner -verbose -sigalg MD5withRSA -digestalg SHA1 -keystore my-release-key.keystore -signedjar <output_signed.apk> <input_unsigned.apk> knight2001
+
+(3)  將signed apk進行word alignment
+c:\keytool\zipalign -v 4 <signed_unalign.apk> <signed_aligned.apk>
+
+(4)  從eclipse匯出以my-release-key.keystore簽屬簽章的*.apk
+2.  訪問wifi狀態，調用getSystemService(Context.WIFI_SERVICE)取得wifi manager實例，AndroidManifest.xml裡use-permission與wifi操作相關的權限也要開啟，以turn_on_wifi()與turn_off_wifi()開關wifi
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+3.  AndroidManifest.xml其餘與網路相關的權限宣告如下
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    
+4.  app package是由activities、services、broadcast receivers三種元件構成，AndroidManifest.xml宣告的元件是可以被系統看見，宣告屬性enabled="true" or "false"決定是否屏蔽此元件，當應用程式元件被屏蔽時，該元件設置的intent-filter是不起任何作用的
+5.  實作ConnectivityReceiver，用來監測網路連線發生變化，監看intent-filter ConnectivityManager.CONNECTIVITY_ACTION
+ConnectivityManager.CONNECTIVITY_ACTION = "android.net.conn.CONNECTIVITY_CHANGE"
+6.  ConnectivityManager、NetworkInfo、WifiInfo、WifiManager、WifiConfiguration類別之引用
+(1)  網路連線管理器 v.s. wifi管理器
+ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+WifiManager wm = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+(2)  wifi管理器成員函：isWifiEnabled()、disconnect()、setWifiEnabled(false)、reassociate()
+(3)  開啟wifi連線，從associated access point list中依照priority嘗試取得可用之網路連線		
+		wm.setWifiEnabled(true);
+		wm.reassociate();
+(4)  關閉wifi連線
+		wm.disconnect();
+		wm.setWifiEnabled(false);
+(5)  取得當前wifi 連線AP資訊WifiInfo類別
+        WifiInfo wifi_info;
+		if ( wm.isWifiEnabled() == true ) {
+			wifi_info = wm.getConnectionInfo();
+			wm.disconnect();
+			wifi_info = wm.getConnectionInfo();
+		}
+(6)  WifiConfiguration類別描述AP configuration，調用wifi管理器方法addNetwork(config)及removeNetwork(netID)增刪associated AP list
+(7)  變更預設mobile或wifi網路連線型態，調用連線管理器cm.getNetworkPreference()及cm.setNetworkPreference(preference)取得或變更預設使用的網路連線型態
+(8)  取得所有網路資訊
+        NetworkInfo[] info = cm.getAllNetworkInfo();
+        for (int i = 0; i < info.length; i++) {
+        	//cm.stopUsingNetworkFeature(networkType, feature)
+        	Log.d(Tag, info[i].getTypeName() + " " + info[i].getSubtypeName() + " " + info[i].isConnected() );
+            if (info[i].getState() == NetworkInfo.State.CONNECTED) {
+            }
+        }
+(9)  連線管理器取得mobile或wifi型態網路資訊，取得目前具有連線傳輸能力的網路
+        NetworkInfo activeNetwork, wifi_network, mobile_network;
+		wifi_network = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		mobile_network = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+		activeNetwork = cm.getActiveNetworkInfo();
+7.  下載更新功能全念完善化，處理任何時刻斷線例外
+8.  I_Tracker_Well_Plate_View類別配合先前實作I_Track_Utility_Activity類別，新增成員變量force_invalide，true表示強制重繪區域，false則只繪製有變化之區域

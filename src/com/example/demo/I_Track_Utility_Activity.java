@@ -303,7 +303,7 @@ public class I_Track_Utility_Activity extends Activity {
 					public void onClick(View v) {
 						// TODO Auto-generated method stub
 						Clear_Well_View();
-						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384, property); 
+						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384, property, true); 
 						Draw_Upper_Well();
 						Well_View.DrawBitmap(false);
 				    	Well_View.setWellColor(Valid_Coord_Histogram);
@@ -317,7 +317,7 @@ public class I_Track_Utility_Activity extends Activity {
 					public void onClick(View v) {
 						// TODO Auto-generated method stub
 						Clear_Well_View();
-						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96, property);
+						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96, property, true);
 						Draw_Upper_Well();
 						Well_View.DrawBitmap(false);
 				    	Well_View.setWellColor(Valid_Coord_Histogram);
@@ -385,7 +385,7 @@ public class I_Track_Utility_Activity extends Activity {
 					@Override
 					public void onClick(View v) {
 						Clear_Well_View();
-						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384, property);
+						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384, property, true);
 						Draw_Lower_Well();
 						Well_View.setWellColor(Valid_Coord_Histogram);
 				    	lower_view.invalidate();
@@ -397,7 +397,7 @@ public class I_Track_Utility_Activity extends Activity {
 					public void onClick(View v) {
 						// TODO Auto-generated method stub
 						Clear_Well_View();
-						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96, property);
+						Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96, property, true);
 						Draw_Lower_Well();
 						Well_View.setWellColor(Valid_Coord_Histogram);
 				    	lower_view.invalidate();

@@ -6,6 +6,7 @@ import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -70,7 +71,11 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -135,7 +140,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 	//SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd-HHmmss");
 	static SimpleDateFormat df1 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	InternalHandler  mHandler;
+	static InternalHandler  mHandler;
 
 	public final String Tag = "I_Tracker_Activity";
 	Timer    mTimer;
@@ -419,13 +424,13 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	 * current pipetting detection mode selection*/
 	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
 	boolean Adjust_Detection_Sensitivity = false, Cur_Adjust_Detection_Sensitivity;
-	int Pipetting_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level;
+	int Pipetting_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level = -1;
 	/*20140605 added by michael*/
 	ImageView running_status_v, connection_status_v;
 	/*20140729 added by michael*/
 	public URL url;
 	private ArrayList<URL> url_list = new ArrayList<URL>();
-	private Iterator URL_set_itrator;
+	private Iterator URL_list_itrator;
 	final String Http_Repo_Host = "https://googledrive.com/host/0By-Tp-CAFbFyc042TGZmeWFfZWs/";
 	private String MD5_list_filename = "iTrack_md5_list.txt"; 
 	public String files_MD5_list = Http_Repo_Host + MD5_list_filename;
@@ -452,12 +457,18 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	private static final int Msg_Show_Upgrade_Progress = 0x13;
 	private static final int Msg_Upgrade_Error = 0x14;
 	private static final int Msg_Next_Download = 0x15;
+	private static final int Msg_Cancel_Dlg =0x16;
 	public ProgressBar inderterminate_progressbar;
 	public boolean app_up_to_date = false, firmware_up_to_date = false, force_upgrade = false;
 	public String Upgrade_Error_Message;
 	public TextView about_status_msg = null;
 	/*20140822 added by michael*/
 	iTrack_Properties app_properties;
+	/*20140918 added by michael*/
+	ConnectivityReceiver network_status_receiver;
+	ConnectivityReceiver.OnNetworkAvailableListener network_available_listener;
+	DownloadFilesTask current_download;
+	int download_phase = -1;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -931,6 +942,61 @@ radio group to let user to choice well plate for i-tacker*/
     	app_properties = new iTrack_Properties();
     	app_properties.load_property();
     	this.setRequestedOrientation(Integer.valueOf(app_properties.getProperty(iTrack_Properties.prop_portrait, "1")));
+    	
+    	Log.d(Tag, "cpu cores: " + Integer.toString(this.getNumCores()) );
+    	Log.d(Tag, "cpu processors: " + Integer.toString(Runtime.getRuntime().availableProcessors()) );
+    	
+    	/*20140918 added by michael*/
+    	network_status_receiver = new ConnectivityReceiver ( this );
+    	network_available_listener = new ConnectivityReceiver.OnNetworkAvailableListener() {
+    		Message message;
+    		Button dlgbtn_update;
+
+			@Override
+			public void onNetworkAvailable() {
+				// TODO Auto-generated method stub
+				if ( url_list.size() > 0 && current_download != null && url_list.get(0) == current_download.url ) {
+					if (current_download.isTaskFinish) {
+						url_list.remove(url_list.get(0));
+						Next_Download();
+					}
+				}
+				else
+					Next_Download();
+				if (about_dialog != null && about_dialog.isShowing()) {
+					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: network connection");
+					message.sendToTarget();
+				}
+				if (download_phase==1 && about_dialog != null && about_dialog.isShowing()) {
+					dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
+					dlgbtn_update.setEnabled(true);
+				}
+			}
+
+			@Override
+			public void onNetworkUnavailable() {
+				// TODO Auto-generated method stub
+				if (current_download != null) {
+					current_download.cancel(true);
+					current_download = null;
+					if (about_dialog != null && about_dialog.isShowing()) {
+						inderterminate_progressbar.setVisibility(View.INVISIBLE);
+						about_dialog.setCancelable( true );
+					}
+				}
+				if (about_dialog != null && about_dialog.isShowing()) {
+					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: network disconnection");
+					message.sendToTarget();
+				}
+				if (download_phase==1 && about_dialog != null && about_dialog.isShowing()) {
+					dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
+					dlgbtn_update.setEnabled(false);
+				}
+			}
+    		
+    	};
+    	network_status_receiver.setOnNetworkAvailableListener(network_available_listener);
+    	Log.d(Tag, Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() );
 	}
 
 	@Override
@@ -1297,11 +1363,11 @@ radio group to let user to choice well plate for i-tacker*/
 	public void OnBnClickEnterItracker(View v) {
 		if (Well_Selection==mItracker_dev.Well_96) {
 			//Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96);
-			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96, app_properties);
+			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_96, app_properties, false);
 		}
 		else {
 			//Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384);
-			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384, app_properties);
+			Well_View.setWell(I_Tracker_Well_Plate_View.Wells_384, app_properties, false);
 		}
 		mLayout_Content.removeAllViews();
 		mLayout_Content.addView(Well_View);
@@ -1477,8 +1543,10 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     @Override
     protected void onStart() {
     	super.onStart();
+
     	if (mRequest_USB_permission==false)
     		hide_system_bar();
+    	network_status_receiver.bind(this);
     }
 
     public void show_system_bar() {
@@ -1527,9 +1595,15 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 /*20130320 added by michael*/
 //when our activity become in-visible then resume the system bar
     	show_system_bar();
+    	network_status_receiver.unbind(this);
     }
 
 
+    @Override
+    protected void onPause() {
+    	super.onPause();
+    	turn_on_wifi();
+    }
     
     @Override
     protected void onResume() {
@@ -1570,6 +1644,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	//mItracker_dev.for_test();
     	//this.getResources().get
 		mItracker_dev.show_debug(Tag+"thread id" + Integer.toString(Process.myTid())+"\n");
+		turn_off_wifi();
     }
     
     public void EnumerationDevice(Intent intent) {
@@ -1736,10 +1811,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     /*20140729 added by michael*/
     private class DownloadFilesTask extends AsyncTask<URL, Integer, Integer> {
     	public boolean isDownloadSuccess, isTaskFinish;
+    	URL url;
 
+    	DownloadFilesTask( URL... urls ) {
+    		url = urls[0];
+    	}
 		@Override
 		protected Integer doInBackground(URL... urls) {
-			// TODO Auto-generated method stub
+			// TODO Auto-generated method stub			
 			HttpURLConnection connection = null;
 			int fileLength = -1, nRead_Bytes;
 			InputStream input = null;
@@ -1757,6 +1836,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 
 				DL_fileExtenstion = MimeTypeMap.getFileExtensionFromUrl(urls[0].toString());
 				DL_filename = URLUtil.guessFileName(urls[0].toString(), null, DL_fileExtenstion);
+				Log.d (Tag, DL_filename);
 				iTrack_Cache_Dir = I_Tacker_Activity.this.getCacheDir().getPath() + "//";
 				if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 	                 Log.d(Tag, "Server returned HTTP " + connection.getResponseCode() + " " + connection.getResponseMessage());
@@ -1826,17 +1906,27 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
             
 			/*20140731 added by michael
 			 * download finish */
+			//Log.d (Tag, DL_filename);
 			if (DL_filename!=null && DL_filename.equals(MD5_list_filename)) {
+				download_phase = 1;
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: dowloand  " + MD5_list_filename + "  finish");
+				message.sendToTarget();
 				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Refresh_About_Dlg);
 	            message.sendToTarget();
 			}
 			else
 				if (DL_filename!=null && DL_filename.equals(app_filename)) {
+					download_phase = 2;
+					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: dowloand  " + app_filename + "  finish");
+					message.sendToTarget();
 					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_App);
 		            message.sendToTarget();					
 				}
 				else
 					if (DL_filename!=null && DL_filename.equals(firmware_filename)) {
+						download_phase = 3;
+						message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: dowloand  " + firmware_filename + "  finish");
+						message.sendToTarget();
 						message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Firmware);
 			            message.sendToTarget();
 					}
@@ -1861,25 +1951,47 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     /*20140730 added by michael*/
     private class InternalHandler extends Handler {
         @Override
-        public void handleMessage(Message msg) {			
+        public void handleMessage(Message msg) {
         	switch (msg.what) {
         	  case Msg_Upgrade_Error:
-        		  if (about_status_msg != null)
+        		  if (about_dialog_layout == null)
+        			  about_dialog_layout = (LinearLayout) LayoutInflater.from(getApplicationContext()).inflate(R.layout.dialog_about, null);
+        		  about_status_msg = (TextView)about_dialog_layout.findViewById(R.id.status);
+        		  if (about_status_msg != null) {
+        			  Log.d (Tag, (String)msg.obj);
         			  about_status_msg.setText((String) msg.obj);
+        		  }
         		  break;
         	  case Msg_Show_Upgrade_Progress:
-        		  inderterminate_progressbar.setVisibility(View.VISIBLE);        	      
+				  if (about_dialog != null && about_dialog.isShowing()) {
+					  inderterminate_progressbar.setVisibility(View.INVISIBLE);
+					  about_dialog.setCancelable( false );
+				  }
+        		  //inderterminate_progressbar.setVisibility(View.VISIBLE);        	      
         	      break;
         	  case Msg_Refresh_About_Dlg:
+        		  CheckBox checkbox1 = null;
+        		  if ( url_list.size() > 0 )
+        			  url_list.remove(url_list.get(0));
+        		  checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+        		  checkbox1.setEnabled( true );
         		  Refresh_About_Dialog();
         		  inderterminate_progressbar.setVisibility(View.INVISIBLE);
+        		  about_dialog.setCancelable(true);  				
         		  break;
         	  case Msg_Upgrade_App:
+        		  if ( url_list.size() > 0 )
+        			  url_list.remove(url_list.get(0));
         		  general_task_executor.execute(upgrade_app_runnable);
         		  break;
 
         	  case Msg_Upgrade_Firmware:
+        		  if ( url_list.size() > 0 )
+        			  url_list.remove(url_list.get(0));
         		  general_task_executor.execute(upgrade_firmware_runnable);
+        		  break;
+        	  case Msg_Cancel_Dlg:
+        		  turn_off_wifi();
         		  break;
         	}
         }
@@ -1991,14 +2103,15 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					if (isValidMD5(server_app_md5)) {
 						if (server_app_md5.equalsIgnoreCase(local_app_md5)) {
 							iTrack_app_ver_desc.setText("iTrack App ver.:  " + getAppDesc() + "(up-to-date)");
-							if (force_upgrade)
+							if (force_upgrade && is_internet_available())
 								dlgbtn_update.setEnabled(true);
 							else
 								dlgbtn_update.setEnabled(false);
 						}
 						else {
 							iTrack_app_ver_desc.setText("iTrack App ver.:  " + getAppDesc() + "(out-of-date)");
-							dlgbtn_update.setEnabled(true);
+							if (is_internet_available())
+								dlgbtn_update.setEnabled(true);
 						}										
 					}
 					else
@@ -2014,7 +2127,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					if (isValidMD5(server_firmware_md5)) {
 						if (server_firmware_md5.equalsIgnoreCase(local_firmware_md5)) {
 							iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  " + getFirmwareDesc() + "(up-to-date)");
-							if (force_upgrade)
+							if (force_upgrade && is_internet_available())
 								dlgbtn_update.setEnabled(true);
 							else
 								if (dlgbtn_update.isEnabled()==false)
@@ -2022,7 +2135,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						}
 						else {
 							iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  " + getFirmwareDesc() + "(out-of-date)");
-							dlgbtn_update.setEnabled(true);
+							if (is_internet_available())
+								dlgbtn_update.setEnabled(true);
 						}
 					}
 					else {
@@ -2098,6 +2212,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			checkbox1.setEnabled(false);
 			//inderterminate_progressbar.setVisibility(View.VISIBLE);
 			Upgrade_System(v);
+			about_dialog.setCancelable(false);
 		}
     	
     };
@@ -2141,7 +2256,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			e.printStackTrace();
 		}
 		
-		URL_set_itrator = url_list.iterator();
+		//URL_list_itrator = url_list.iterator();
 		Next_Download();
     }
     
@@ -2149,9 +2264,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     void Next_Download() {
     	DownloadFilesTask downloadTask;
     	
-    	downloadTask = new DownloadFilesTask();
-		if (URL_set_itrator.hasNext()) {
-			url = (URL)URL_set_itrator.next();
+    	URL_list_itrator = url_list.iterator();
+		if (URL_list_itrator.hasNext()) {
+			url = (URL)URL_list_itrator.next();
+	    	downloadTask = new DownloadFilesTask(url);
+	    	current_download = downloadTask;			
 			downloadTask.execute(url);
 		}
     }
@@ -2170,24 +2287,31 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     
     /*20140814 added by michael*/
 	Runnable upgrade_app_runnable = new Runnable() {
-		File f;
+		File f, f1;
 		java.lang.Process p;
 		int nReadBytes;
 		String result = "";
 		byte[] b = new byte[256];
 		byte[] b1 = new byte[256];
-		CheckBox checkbox1;
+		//CheckBox checkbox1;
+		String download_dir;
 
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
-			checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+			//checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
         	f = new File(iTrack_Cache_Dir + DL_filename);
 			if (f.exists()) {
 				try {
 					p = Runtime.getRuntime().exec("/system/xbin/su-new");
 					DataOutputStream os = new DataOutputStream(p.getOutputStream());
 					DataInputStream is = new DataInputStream(p.getInputStream());
+					//Log.d(Tag, Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() );
+					download_dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
+					f1 = new File ( download_dir );
+					if ( !f1.exists() ) {
+						f1.mkdirs();
+					}
 					os.writeBytes("cp " + iTrack_Cache_Dir + DL_filename + " " + Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename + "\n");
 					try {
 						// Thread.sleep(100);
@@ -2267,10 +2391,16 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 
 			}
 			app_up_to_date = true;
+			Message message = null;
 			if (app_up_to_date && firmware_up_to_date) {
-				inderterminate_progressbar.setVisibility(View.INVISIBLE);
+				/*inderterminate_progressbar.setVisibility(View.INVISIBLE);
+				about_dialog.setCancelable(true);
 				checkbox1.setEnabled(true);
-				Refresh_About_Dialog();
+				Refresh_About_Dialog();*/				
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Refresh_About_Dlg);
+				message.sendToTarget();
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: upgrade complete");
+				message.sendToTarget();
 			}
 			Next_Download();
 		}
@@ -2283,15 +2413,15 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	byte [] b = new byte [256];
     	byte [] b1 = new byte [256];
     	byte [] byte_array = new byte [1024];
-    	CheckBox checkbox1;
+    	//CheckBox checkbox1;
     	
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
-			checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+			//checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
         	f = new File(iTrack_Cache_Dir + DL_filename);
 			if (f.exists()) {
-				for (int j = 0; j < 10; j++) {
+				for (int j = 0; j < 1; j++) {
 					Log.d(Tag, "flash programming test iteration: " + Integer.toString(j));
 					try {
 						fis = new FileInputStream(f);
@@ -2370,9 +2500,16 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				}
 			}
 			firmware_up_to_date = true;
+			Message message = null;
 			if (app_up_to_date && firmware_up_to_date) {
-				inderterminate_progressbar.setVisibility(View.INVISIBLE);
+				/*inderterminate_progressbar.setVisibility(View.INVISIBLE);
+				about_dialog.setCancelable(true);
 				checkbox1.setEnabled(true);
+				Refresh_About_Dialog();*/
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Refresh_About_Dlg);
+				message.sendToTarget();
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: upgrade complete");
+				message.sendToTarget();
 			}
 			Next_Download();
 		}
@@ -2735,48 +2872,75 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     			break;
     			
     		case (6):
+    			download_phase = -1;
+    			turn_on_wifi();
     			TextView iTrack_firmware_ver_desc = null, iTrack_app_ver_desc = null;
 
     		    Button dlgbtn_update;
-    		    DownloadFilesTask downloadTask;
+    		    //DownloadFilesTask downloadTask;
     		    Message message;
     			if (tv.getText()=="About") {
     				trimCache(this);
         			mMenuDrawer.toggleMenu();
         			if (about_dialog==null) {
         				about_dialog = new Dialog(this, R.style.CenterDialog);
-        				about_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_about, null);
+        				if (about_dialog_layout == null) 
+        					about_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_about, null);
         				about_dialog.getWindow().setGravity(Gravity.TOP);
         				about_dialog.setContentView(about_dialog_layout);
         				about_dialog.setTitle("About");
         				about_dialog.setCancelable(true);
+        				about_dialog.setCancelMessage(mHandler.obtainMessage(Msg_Cancel_Dlg));
         			}
         			if (about_dialog_layout != null) {
         				iTrack_firmware_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.firmware_info);
         				iTrack_app_ver_desc = (TextView)about_dialog_layout.findViewById(R.id.app_info);
         				checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+        				checkbox1.setEnabled( false );
         				dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
         				checkbox1.setChecked(false);
         				checkbox1.setOnCheckedChangeListener(force_upgrade_listener);
         				about_status_msg = (TextView)about_dialog_layout.findViewById(R.id.status);
-        				about_status_msg.setText("");
+        				about_status_msg.setTextColor(Color.YELLOW);
+        				if ( this.is_internet_available() )
+        					about_status_msg.setText("status¡G  network connection");
+        				else
+        					about_status_msg.setText("status¡G  network disconnection");
         				inderterminate_progressbar = (ProgressBar) about_dialog_layout.findViewById(R.id.progressBar1);
         				inderterminate_progressbar.setVisibility(View.INVISIBLE);
         				dlgbtn_update.setOnClickListener(Upgrade_listener);
         				dlgbtn_update.setEnabled(false);
-        				
+        				/*20140916 added by michael*/
+        				/*WifiManager wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+        				if (wifi.isWifiEnabled()){
+        				//wifi is enabled
+        					checkbox1.setEnabled( true );
+        				}
+        				else
+        					checkbox1.setEnabled( false );*/
+        				//is_internet_available();
+
         				/*20140729 added by michael
         				 * compare MD-5 checksums of i-track app & device firmware on server with those on local
         				 * if there are different between server & local then enable update or disable update 
         				 * */
-        				downloadTask = new DownloadFilesTask();
-        				try {
-							url = new URL(files_MD5_list);
-						} catch (MalformedURLException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-        				downloadTask.execute(url);
+        				//downloadTask = new DownloadFilesTask();
+        				/*//if ( this.is_internet_available() ) {*/
+							try {
+								url = new URL(files_MD5_list);
+							} catch (MalformedURLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+	        				if ( this.url_list.isEmpty() ){
+	        					url_list.add(url);
+	        				}
+							/*downloadTask.execute(url);*/
+        				//}
+        				//else {
+        					//message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Refresh_About_Dlg);
+        		            //message.sendToTarget();        					
+        				//}
 
         				/*20140730 added by michael
         				 * wait for worker thread finish*/
@@ -2798,11 +2962,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 							}        				
         				} while (downloadTask.isTaskFinish==false);*/
         				about_dialog.show();
-						if (downloadTask.isDownloadSuccess==true) {
+						//if (downloadTask.isDownloadSuccess==true) {
 							//Refresh_About_Dialog();
 			                 //message = mHandler.obtainMessage(this.Msg_Refresh_About_Dlg);
 			                 //message.sendToTarget();
-						}
+						//}
         			}
 
 
@@ -3036,13 +3200,13 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					break;
 				/*20140806 added by michael
 				 * "About" menu item only enable when mItrackerState claim the system is running */
-				case (6):
+				/*case (6):
 					if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
-						v.setEnabled(false);
+						v.setEnabled(true);
 					}
 					else
-						v.setEnabled(true);
-					break;
+						v.setEnabled(false);
+					break;*/
 				}
 			}
 		}
@@ -3120,6 +3284,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				return true;
 			else
 				return false;
+		/*case (6):
+			if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1)
+				return true;
+			else
+				return false;*/
 		}
 		return true;
 	}
@@ -3182,4 +3351,129 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		}
 		
 	};
+	
+	/**
+	 * Gets the number of cores available in this device, across all processors.
+	 * Requires: Ability to peruse the filesystem at "/sys/devices/system/cpu"
+	 * @return The number of cores, or 1 if failed to get result
+	 */
+	private int getNumCores() {
+	    //Private Class to display only CPU devices in the directory listing
+	    class CpuFilter implements FileFilter {
+	        @Override
+	        public boolean accept(File pathname) {
+	            //Check if filename is "cpu", followed by a single digit number
+	            if(Pattern.matches("cpu[0-9]", pathname.getName())) {
+	                return true;
+	            }
+	            return false;
+	        }      
+	    }
+
+	    try {
+	        //Get directory containing CPU info
+	    	File dir = new File("/sys/devices/system/cpu/");
+	    	//Filter to only list the devices we care about
+	        File[] files = dir.listFiles(new CpuFilter());
+	        Log.d(Tag, "CPU Count: "+files.length);
+	        //Return the number of cores (virtual CPU devices)
+	        return files.length;
+	    } catch(Exception e) {
+	        //Print exception
+	        Log.d(Tag, "CPU Count: Failed.");
+	        e.printStackTrace();
+	        //Default to return 1 core
+	        return 1;
+	    }
+	}
+	
+	/*20140917 added by michael*/
+	boolean is_internet_available() {
+		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+		/*WifiManager wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+		WifiInfo wifi_info;
+		if ( wifi.isWifiEnabled() == true ) {
+			wifi_info = wifi.getConnectionInfo();
+			wifi.disconnect();
+			wifi_info = wifi.getConnectionInfo();
+		}
+
+		Log.d( Tag, "network preference:" + cm.getNetworkPreference() );
+		NetworkInfo[] info = cm.getAllNetworkInfo();
+		Log.d( Tag, "network interface count:" + info.length );
+        for (int i = 0; i < info.length; i++) {
+        	//cm.stopUsingNetworkFeature(networkType, feature)
+        	Log.d(Tag, info[i].getTypeName() + " " + info[i].getSubtypeName() + " " + info[i].isConnected() );
+            if (info[i].getState() == NetworkInfo.State.CONNECTED) {
+            }
+        }*/		
+		
+		NetworkInfo activeNetwork, wifi_network, mobile_network;
+		wifi_network = cm.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+		mobile_network = cm.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+		activeNetwork = cm.getActiveNetworkInfo();
+		boolean isConnected = activeNetwork != null &&
+		                      activeNetwork.isConnectedOrConnecting();
+		
+		return isConnected;
+	}
+	//boolean isWiFi = activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
+	
+	void turn_off_wifi () {
+		ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		WifiManager wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+		
+		NetworkInfo activeNetwork;
+		activeNetwork = cm.getActiveNetworkInfo();		
+		boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();		
+		boolean isWiFi = activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
+		
+		wifi.disconnect();
+		wifi.setWifiEnabled(false);
+	}
+	
+	void turn_on_wifi () {
+		WifiManager wifi = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+		
+		wifi.setWifiEnabled(true);
+		wifi.reassociate();
+	}
+	
+	/**
+	 * Check the hardware if there are connected to Internet or not.
+	 * This method gets the list of all available networks and if any one of 
+	 * them is connected returns true. If none is connected returns false.
+	 * 
+	 * @param context {@link Context} of the app.
+	 * @return <code>true</code> if connected or <code>false</code> if not
+	 */
+	public static boolean isNetworkAvailable(Context context) {
+	    boolean available = false;
+	    try {
+	        ConnectivityManager connectivity = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+	        if (connectivity != null) {
+	            NetworkInfo[] info = connectivity.getAllNetworkInfo();
+	            if (info != null) {
+	                for (int i = 0; i < info.length; i++) {
+	                    if (info[i].getState() == NetworkInfo.State.CONNECTED) {
+	                        available = true;
+	                    }
+	                }
+	            }
+	        }
+	        if (available == false) {
+	            NetworkInfo wiMax = connectivity.getNetworkInfo(6);
+
+	            if (wiMax != null && wiMax.isConnected()) {
+	                available = true;
+	            }
+	        }
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	    return available;
+	}
 }
