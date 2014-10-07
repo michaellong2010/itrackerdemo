@@ -490,7 +490,7 @@ public class I_Tracker_Device {
 							Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 							/*20131213 added by michael*/
 							chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
-							line = line + Character.toString((char) (chr)) +Integer.toString(x) + ", ";
+							line = line + Character.toString((char) (chr)) +Integer.toString(x+1) + ", ";
 						}
 					}
 					}
@@ -500,7 +500,7 @@ public class I_Tracker_Device {
 								Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 								/*20131213 added by michael*/
 								chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
-								line = line + Character.toString((char) (chr)) +Integer.toString(x) + ", ";
+								line = line + Character.toString((char) (chr)) +Integer.toString(x+1) + ", ";
 							}
 						}						
 					}

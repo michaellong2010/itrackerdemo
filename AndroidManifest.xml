@@ -92,7 +92,7 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
         <activity android:name="I_Track_Utility_Activity" android:screenOrientation="portrait" android:launchMode="singleTask" android:icon="@drawable/preference" android:label="@string/i_track_utility_activity_name" android:theme="@style/AppTheme_title">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/> 
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <!-- <category android:name="android.intent.category.LAUNCHER"/> -->
             </intent-filter>
         </activity>
         

@@ -485,3 +485,9 @@ WifiManager wm = (WifiManager)getSystemService(Context.WIFI_SERVICE);
 		activeNetwork = cm.getActiveNetworkInfo();
 7.  下載更新功能全念完善化，處理任何時刻斷線例外
 8.  I_Tracker_Well_Plate_View類別配合先前實作I_Track_Utility_Activity類別，新增成員變量force_invalide，true表示強制重繪區域，false則只繪製有變化之區域
+
+=============================================================================================
+20140930
+1.  log檔輸出索引0~23修正成1~24
+2.  Connect_I_Tracker()新增變量決定是否讀取Led-Sensor failure狀態，消除因切換pipetting模式與敏感度設定造成hang住情形
+3.  menu item高度和點數根據解析度和density正確計算

@@ -84,6 +84,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Process;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.util.Xml;
@@ -469,8 +470,11 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	ConnectivityReceiver.OnNetworkAvailableListener network_available_listener;
 	DownloadFilesTask current_download;
 	int download_phase = -1;
+	double menu_height_mm, menu_item_pixels, menu_icon_pixels;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+    	app_properties = new iTrack_Properties();
+    	app_properties.load_property();
 		super.onCreate(savedInstanceState);
 		mTmpTextView = new TextView(this);
 		mLayout_Content = (FrameLayout) this.findViewById(android.R.id.content);
@@ -576,7 +580,7 @@ radio group to let user to choice well plate for i-tacker*/
 				// TODO Auto-generated method stub
 				switch (item.getItemId()) {
 				case R.id.ID_MI_start_itracker:
-					if (Connect_Itracker()) {
+					if (Connect_Itracker(true)) {
 						mItrackerState |= 1 << Itracker_State_isRunning;
 						mMenu_item_state ^= 1 << Itracker_MI_Start;
 						mMenu_item_state ^= 1 << Itracker_MI_Pause;
@@ -939,12 +943,13 @@ radio group to let user to choice well plate for i-tacker*/
     	
     	//Log.d(Tag, "usb host feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.host")));
     	//Log.d(Tag, "usb accessory feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.accessory")));
-    	app_properties = new iTrack_Properties();
-    	app_properties.load_property();
+    	//app_properties = new iTrack_Properties();
+    	//app_properties.load_property();
     	this.setRequestedOrientation(Integer.valueOf(app_properties.getProperty(iTrack_Properties.prop_portrait, "1")));
+    	menu_height_mm = Double.valueOf(app_properties.getProperty(iTrack_Properties.prop_viewable_height)); 
     	
-    	Log.d(Tag, "cpu cores: " + Integer.toString(this.getNumCores()) );
-    	Log.d(Tag, "cpu processors: " + Integer.toString(Runtime.getRuntime().availableProcessors()) );
+    	//Log.d(Tag, "cpu cores: " + Integer.toString(this.getNumCores()) );
+    	//Log.d(Tag, "cpu processors: " + Integer.toString(Runtime.getRuntime().availableProcessors()) );
     	
     	/*20140918 added by michael*/
     	network_status_receiver = new ConnectivityReceiver ( this );
@@ -996,7 +1001,7 @@ radio group to let user to choice well plate for i-tacker*/
     		
     	};
     	network_status_receiver.setOnNetworkAvailableListener(network_available_listener);
-    	Log.d(Tag, Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() );
+    	//Log.d(Tag, Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() );
 	}
 
 	@Override
@@ -1463,13 +1468,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		}
 		return false;
 	}
-	
-    public boolean Connect_Itracker() {
+	static int running_count = 0;
+    public boolean Connect_Itracker(boolean detect_led_sensor) {
     	//mItracker_dev.setInterface();
 /*    	Log.d(Tag, "cmd type size:"+Integer.toString(I_Tracker_Device.CMD_T.SZ_CMD_T));*/
     	int nRetry = 0;
 		if (mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 0, 0, null, 1)
 				&& mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_START, 0, 0, null, 1)) {
+			if ( detect_led_sensor == true ) {
 			/*read i-track data once to retrive Led & Sensor failure info */
 			try {
 				Thread.sleep(50);
@@ -1477,6 +1483,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			Log.d(Tag, "i-track running: " + Integer.toString(running_count++));
 			while ( mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_DATA, 0, 0, null, 0) && mItracker_dev.failure_detect_ready == 0 ) {
 				try {
 					Thread.sleep(50);
@@ -1488,6 +1495,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			}
 			Well_View.set_led_sensor_failure(mItracker_dev.X_Led_failure, mItracker_dev.X_Sensor_failure, mItracker_dev.Y_Led_failure, mItracker_dev.Y_Sensor_failure);
 			Well_View.DrawBitmap(true);
+			}
 			return true;
 		}
 		return false;
@@ -1682,10 +1690,12 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				/*20140605 modified by michael
     				 * when device is running and unplug the usb cable will cause disconnection¡Athe device still running
     				 * when reconnect the cable and enumeration device success¡Aapp resume the last running status of device */
-    				if ((mItrackerState &( 1 << Itracker_State_isConnect))==1) {
+    				Itracker_MI_State = 1 << Itracker_MI_Start;
+    				if ((mItrackerState &( 1 << Itracker_State_isRunning))==1) {
+    					Itracker_MI_State ^= 1 << Itracker_MI_Start;
     					Itracker_MI_State ^= 1 << Itracker_MI_Pause;
     					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
-    					if (Connect_Itracker()) {
+    					if (Connect_Itracker(true)) {
     						if (log_file_buf == null) {
     							try {
     								create_logfile(generate_logfilename());
@@ -1704,11 +1714,13 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     						
     						if ((mItrackerState & (1<<Itracker_State_isForwardable)) != 0)
     							Itracker_MI_State |= 1 << Itracker_MI_Next_Tran;
-    						
+    						Start_Refresh_iTracker_Data_Thread();
     					}
     				}
-    				else
-    					Itracker_MI_State = 1 << Itracker_MI_Start;
+    				else {
+    					//Itracker_MI_State = 1 << Itracker_MI_Start;
+    					mItrackerState = 0;
+    				}
     				Show_Toast_Msg(I_Tracker_Device_Conn);
     				mItrackerState |= 1 << Itracker_State_isConnect;
     				
@@ -2532,7 +2544,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		switch (position) {
     		case Itracker_MI_Start:
     			if (tv.getText()=="Run") {
-					if (Connect_Itracker()) {
+					if (Connect_Itracker(true)) {
 						mMenuDrawer.toggleMenu();
 						Show_Toast_Msg(I_Tracker_Device_Tracking_On);
 						
@@ -2772,7 +2784,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						mItracker_dev.set_pipetting_detection_sensitivity_level(Adjust_Detection_Sensitivity, Pipetting_Sensitivity_Level);
 						if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
 							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
-							if (Connect_Itracker()) {
+							if (Connect_Itracker(false)) {
 								
 							}
 							else {
@@ -3008,7 +3020,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		//update_item_state();
 		UpdateActionMenuItem();
 	}
-
+ 
     /*20131126 add by michael
      * assign the menu items meta-data
      * *(non-Javadoc)
@@ -3017,8 +3029,12 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	@Override
 	protected void setItemsData(List<Object> items) {
 		// TODO Auto-generated method stub
+		menu_height_mm = Double.valueOf(app_properties.getProperty (  iTrack_Properties.prop_viewable_height, "61"  ));
+		menu_item_pixels = convert_mm2pixel ( menu_height_mm / 7 );
+		menu_icon_pixels = ((int) ( menu_item_pixels / 8 - 1 )) * 8;
         My_StateListDrawable d1;
-        Bitmap newbmp = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888); 
+        //Bitmap newbmp = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888);
+        Bitmap newbmp = Bitmap.createBitmap((int)menu_icon_pixels, (int)menu_icon_pixels, Bitmap.Config.ARGB_8888);
         BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
 
         d1 = new My_StateListDrawable(this);
@@ -3092,14 +3108,19 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	 */
 	/*20131217 modified by michael*/
 	static My_StateListDrawable d1, d2;
-	static Bitmap newbmp = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888);
-	static BitmapDrawable d3;
+	static Bitmap newbmp;// = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888);
+	static BitmapDrawable d3 = null;
 	int last_item_state = -1, change_item_state = 0;
 	@Override
 	protected void update_item_state() {
 		// TODO Auto-generated method stub
 		int i, j, start, item_state;
 		View v;
+
+		//My_StateListDrawable d1, d2;
+		//Bitmap newbmp = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888);
+		//Bitmap newbmp = Bitmap.createBitmap((int)menu_icon_pixels, (int)menu_icon_pixels, Bitmap.Config.ARGB_8888);
+		//BitmapDrawable d3;
 		if (d3 == null) {
         //My_StateListDrawable d1, d2;
         d1 = new My_StateListDrawable(this);
@@ -3110,6 +3131,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0x40);
         //Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
         //BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
+        newbmp = Bitmap.createBitmap((int)menu_icon_pixels, (int)menu_icon_pixels, Bitmap.Config.ARGB_8888);
         d3 = new BitmapDrawable(getResources(), newbmp);
 		}
 		
@@ -3475,5 +3497,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	        e.printStackTrace();
 	    }
 	    return available;
+	}
+	
+	DisplayMetrics metrics = new DisplayMetrics();
+	public double convert_mm2pixel(double value) {
+		((WindowManager)getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getMetrics((metrics));
+		return (int) (value * (1.0f/25.4f) * ((2.54 * metrics.widthPixels) / Double.valueOf((app_properties.getProperty(iTrack_Properties.prop_screen_short_edge_width)))));
 	}
 }
