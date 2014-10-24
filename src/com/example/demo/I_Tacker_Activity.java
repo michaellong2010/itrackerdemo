@@ -1322,6 +1322,9 @@ radio group to let user to choice well plate for i-tacker*/
 		//intent.putExtra(FileChooserActivity.INPUT_FOLDER_MODE, true);
 		intent.putExtra(FileChooserActivity.INPUT_SHOW_FULL_PATH_IN_TITLE, true);
 		intent.putExtra(FileChooserActivity.INPUT_START_FOLDER, iTracker_Data_Dir);
+		/*20141022 added by michael
+		 * add the option to allow reverse the file list ording*/
+		intent.putExtra(FileChooserActivity.INPUT_REVERSE_FILELIST_ORDER, true);
 		/*20140819 added by michael
 		 * add the additional extra param INPUT_ACTIVITY_ORIENTATION to handle the activity screen orientation¡Athese values(SCREEN_ORIENTATION_SENSOR_PORTRAIT¡BSCREEN_ORIENTATION_REVERSE_PORTRAIT...etc) define in  class ActivityInfo*/
 		intent.putExtra(LogFileChooserActivity.INPUT_ACTIVITY_ORIENTATION, getRequestedOrientation());
@@ -2622,8 +2625,42 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     			
     		case (Itracker_MI_Stop-1):
     			if (tv.getText()=="End") {
+    				/*20141023 added by michael
+    				 *  comfirm to exit current pipetting transaction*/
+					Builder builder = new AlertDialog.Builder(I_Tacker_Activity.this);
+					AlertDialog dialog = builder.create();
+					dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
+					dialog.setTitle("Do you want to end current pipetting session?");
+					/*20131217 modified by michael*/
+					dialog.setMessage("Warning: the current pipetting session will be terminated!");
+					dialog.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							// TODO Auto-generated method stub
+							Itracker_MI_State = 1 << Itracker_MI_Start;
+		                    Reset_App();
+		                    Show_Toast_Msg(I_Tracker_Device_Reset);
+							if (Well_View.Show_focus_coord)
+								Well_View.blink_last_well();
+
+							write_logfile_msg("End pipetting session");
+							flush_close_logfile();
+						}						
+					});
+					dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							// TODO Auto-generated method stub
+							
+						}						
+					});
+					dialog.getWindow().setGravity(Gravity.TOP);
+					dialog.setIcon(R.drawable.ic_launcher1);
+					dialog.setCancelable(false);
+					dialog.show();
+    				 
     				//ending the current task, clear device states & records, infos
-    				Itracker_MI_State = 1 << Itracker_MI_Start;
+    				//Itracker_MI_State = 1 << Itracker_MI_Start;
 					/*timerTaskPause();
 					if ((mItrackerState & (1<<Itracker_State_isRunning)) != 0) {
 						mItracker_dev.show_debug(Tag+"The line number is " + new Exception().getStackTrace()[0].getLineNumber()+"\n");
@@ -2635,18 +2672,18 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					Well_View.ResetWell();
 					//Well_View.invalidate();
 					mItrackerState = 0;*/
-                    Reset_App();
-                    Show_Toast_Msg(I_Tracker_Device_Reset);
+                    //Reset_App();
+                    //Show_Toast_Msg(I_Tracker_Device_Reset);
 
                     /*20130327 added by michael*/
 					//Show_focus_coord==true then call I_Tracker_Well_Plate.blink_last_well() again
-					if (Well_View.Show_focus_coord)
-						Well_View.blink_last_well();
+					//if (Well_View.Show_focus_coord)
+						//Well_View.blink_last_well();
 					
 					/*20131213 added by michael*/
-					write_logfile_msg("End pipetting session");
-					flush_close_logfile();
-					break;
+					//write_logfile_msg("End pipetting session");
+					//flush_close_logfile();
+					//break;*/
 
     			}
     			break;
@@ -2720,7 +2757,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					Builder builder = new AlertDialog.Builder(I_Tacker_Activity.this);
 					AlertDialog dialog = builder.create();
 					dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
-					dialog.setTitle("Do you back to well plate selection?");
+					dialog.setTitle("Do you want to back to well plate selection?");
 					/*20131217 modified by michael*/
 					dialog.setMessage("Warning: the current pipetting session will be terminated!");
 					dialog.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", listenerAccept);
@@ -2742,7 +2779,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				  preference_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_preference, null);
 				  spinner = (Spinner) preference_dialog_layout.findViewById(R.id.spinner1);
 				  ArrayList<String> spinner_items = new ArrayList<String>();
-				  spinner_items.add("Auto-channel Pipet");
+				  //spinner_items.add("Auto-channel Pipet");
 				  spinner_items.add("Single-channel Pipet");
 				  spinner_items.add("8-channel Pipet");
 				  spinner_items.add("12-channel Pipet");
@@ -2780,7 +2817,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						preference_dialog.dismiss();
 						
 						/*20140306 added by michael*/
-						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode);
+						/*20141023 modified by michael
+						 * remove the auto pipetting mode¡Aremapped mode index*/
+						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode+1);
 						mItracker_dev.set_pipetting_detection_sensitivity_level(Adjust_Detection_Sensitivity, Pipetting_Sensitivity_Level);
 						if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
 							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
@@ -3038,8 +3077,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
 
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         items.add(new Item("Start", d1));
         //d1 = null;
         
@@ -3052,31 +3091,31 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         d1 = new My_StateListDrawable(this);
         //d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0xFF);
         //d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.stop_en), 0x40);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.restart), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.restart), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.restart), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.restart), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         items.add(new Item("End", d1));
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
         //d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0xFF);
         //d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.previous_en), 0x40);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.undo), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.undo), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.undo), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.undo), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         items.add(new Item("Undo", d1));
         //d1 = null;
         
         d1 = new My_StateListDrawable(this);
         //d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0xFF);
         //d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.next_en), 0x40);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.redo), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.redo), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.redo), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.redo), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         items.add(new Item("Redo", d1));
         //d1 = null;
 
         //items.add(new Item("Well selection", (BitmapDrawable)d3));
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.home), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         items.add(new Item("Home", d1));
         
         /*20140207 added by michael
@@ -3087,8 +3126,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         
         //R.layout.dialog_preference
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.preference), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.preference), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.preference), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.preference), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         items.add(new Item("Preference", d1));
         
         /*20140725 added by michael
@@ -3124,11 +3163,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		if (d3 == null) {
         //My_StateListDrawable d1, d2;
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0xFF);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0x40);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         d2 = new My_StateListDrawable(this);
-        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0xFF);
-        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0x40);
+        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
         //Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
         //BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
         newbmp = Bitmap.createBitmap((int)menu_icon_pixels, (int)menu_icon_pixels, Bitmap.Config.ARGB_8888);

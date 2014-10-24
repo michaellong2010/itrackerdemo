@@ -9,6 +9,7 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ScrollView;
@@ -42,6 +43,7 @@ public class LogFileDisplayActivity extends Activity {
       abr = this.getActionBar();
       if (abr != null && iTracker_logfile != null) {
     	  abr.setTitle(iTracker_logfile.getPath());
+    	  abr.setDisplayHomeAsUpEnabled(true);
       }
       
       text = new StringBuilder();
@@ -89,5 +91,16 @@ public class LogFileDisplayActivity extends Activity {
     protected void onDestroy() {
 		super.onDestroy();
 	}
-
+	
+/*20141022 added by michael
+* allowe home as up arrow to back to previous activity */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch ( item.getItemId() ) {
+		  case android.R.id.home:
+			  onBackPressed();
+			  return true;
+		}
+		return super.onOptionsItemSelected(item);		
+	}
 }

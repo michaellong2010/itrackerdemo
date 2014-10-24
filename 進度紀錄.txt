@@ -491,3 +491,13 @@ WifiManager wm = (WifiManager)getSystemService(Context.WIFI_SERVICE);
 1.  log檔輸出索引0~23修正成1~24
 2.  Connect_I_Tracker()新增變量決定是否讀取Led-Sensor failure狀態，消除因切換pipetting模式與敏感度設定造成hang住情形
 3.  menu item高度和點數根據解析度和density正確計算
+
+=============================================================================================
+20141022
+1.  檔案列表排序反向，LogFileChooserActivity及LogFileDisplayActivity加入Home As Up，點擊ActionBar上Home鍵返回上一層Activity，FileChooserActivity新增extra bundle key：INPUT_REVERSE_FILELIST_ORDER，FileChooserCore加入filelist arrays reverse
+2.  移除Auto pipetting Mode
+(1)  I_Tacker_Activity.Pipetting_Mode加1才會映射至正確索引
+(2)  I_Tracker_Device.Pipetting_Mode初始值改成1
+3.  My_StateListDrawable.addState()新增指定icon長寬，長寬須為8的倍數
+4.  按選單"End"時會進行一次再確認
+5.  20141024量產前最後demo

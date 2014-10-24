@@ -24,7 +24,7 @@ class My_StateListDrawable extends StateListDrawable {
 		mContext = context;
     }
 	
-	public void addState(int[] stateSet, Drawable drawable, int alpha) {
+	public void addState(int[] stateSet, Drawable drawable, int alpha, int w, int h) {
         int width, height;
         BitmapDrawable d, d1;
         //width = (int)Math.round(drawable.getIntrinsicWidth()*0.75);
@@ -34,8 +34,8 @@ class My_StateListDrawable extends StateListDrawable {
         if (drawable.getIntrinsicWidth()==36 && drawable.getIntrinsicHeight()==36)
         	super.addState(stateSet, drawable);
         else {
-        width = 36;
-        height = 36;
+        width = w;
+        height = h;
         //drawable.setAlpha(alpha);
         d = (BitmapDrawable)zoomDrawable(drawable, width, height);
         //d.setAlpha(255);

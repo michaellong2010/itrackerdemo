@@ -6,6 +6,7 @@ import android.app.ActionBar;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.Window;
 import android.view.WindowManager;
 import ar.com.daidalos.afiledialog.FileChooserActivity;
@@ -41,6 +42,7 @@ public class LogFileChooserActivity extends FileChooserActivity {
     	abr = this.getActionBar();
     	//abr.setTitle("knight");
     	//Log.d(Tag, (String) abr.getTitle());
+    	abr.setDisplayHomeAsUpEnabled(true);
     	
         /*20131214 added by michael
          * register file select listener */
@@ -71,5 +73,17 @@ public class LogFileChooserActivity extends FileChooserActivity {
 	@Override
     protected void onDestroy() {
 		super.onDestroy();
+	}
+
+/*20141022 added by michael
+ * allowe home as up arrow to back to previous activity */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch ( item.getItemId() ) {
+		  case android.R.id.home:
+			  onBackPressed();
+			  return true;
+		}
+		return super.onOptionsItemSelected(item);		
 	}
 }
