@@ -36,7 +36,7 @@ public class ExampleAppWidgetProvider extends AppWidgetProvider {
     
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
 		views = new RemoteViews(context.getPackageName(), R.layout.itracker_appwidget_layout);
-		views.setImageViewResource(R.id.itracker_imagebutton1, R.drawable.itracker);
+		views.setImageViewResource(R.id.itracker_imagebutton1, R.drawable.itracker_20141103);
 		
 		// Create an Intent to launch ExampleActivity
         Intent intent = new Intent(context, I_Tacker_Activity.class);

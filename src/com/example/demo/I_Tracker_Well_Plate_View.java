@@ -821,10 +821,10 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 					Canvas_Well_Plate.drawRect(margin_x-radius_pixels-3, margin_y-radius_pixels-3, margin_x+radius_pixels+3, margin_y+radius_pixels+3, mPaint);
 				mPaint.setXfermode(null);
 				//mPaint.setColor(Color.WHITE);
-				/*mPaint = mPaint_well_Stroke;
+				mPaint = mPaint_well_Stroke;
 				mPaint.setColor(Color.WHITE);
 				if (mWells == Wells_96)
-					  Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels+1, mPaint);*/
+					  Canvas_Well_Plate.drawCircle(margin_x, margin_y, radius_pixels, mPaint);
 			} else {
 				mPaint = mPaint_well_Stroke;
 				mPaint.setColor(Color.WHITE);

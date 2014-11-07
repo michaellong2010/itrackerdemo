@@ -501,3 +501,52 @@ WifiManager wm = (WifiManager)getSystemService(Context.WIFI_SERVICE);
 3.  My_StateListDrawable.addState()新增指定icon長寬，長寬須為8的倍數
 4.  按選單"End"時會進行一次再確認
 5.  20141024量產前最後demo
+
+=============================================================================================
+20141107
+1.  更新iTrack桌面圖示
+2.  undo時96孔盤會有最後一個座標消失不見，已經解決
+3.  存放更新app及fw的伺服器更改為帳號software@maestrogen.com，放置於google drive
+4.  作業系統電源管理策略與效能有關聯度，linux內核把系統硬件資訊以虛擬檔案呈現出來，sysfs、procfs分別實現在/sys/與/proc系統文件資訊，governor稱為電源管理策略
+root# cat /proc/cpuinfo
+root# cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
+root# cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+root# cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors
+=>conservative powersave ondemand interactive userspace performance
+root# cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies
+除了userspace可變更頻率外，其餘governor運行頻率由作業系統動態決定之，效能與耗電兩者不可兼得
+5.  Activity.onCreate()時調用save_power_manager_governor()把系統預設的governor、cpu_freq記錄下來，當程式執行Start_Refresh_iTracker_Data_Thread()將效能調成iTrack_cpu_governor、iTrack_cpu_freq；當程式停止掃瞄時Stop_Refresh_iTracker_Data_Thread()
+再將效能恢復預設值
+set_system_governor_freq ( iTrack_cpu_governor, iTrack_cpu_freq );  //set iTrack governor & cpu freq
+set_system_governor_freq ( orig_cpu_governor, orig_cpu_freq );  //restore system origin governor & cpu freq
+6.  su或sh執行時會開啟一層子進程子shell，stdin、stdout用來傳送和接收命令及執行結果，java shell command執行方式大致如下；寫成函式exec_shell_command ( shell_command )，重新整理須要執行shell command程式片段，show_system_bar()、hide_system_bar()
+修正錯誤以這個函數執行
+
+java.lang.Runtime rt;
+java.lang.Process p;
+int exit_code;
+String line = null, result = null;
+
+***執行命令立即返迴，並取得執行結果***
+rt = Runtime.getRuntime();  //create a runtime environment
+p = rt.exec ( new String [] { "sh", "-c", "ls" } );  //spawn a child shell and exec the command "ls" then exit the shell and set the exit code
+p.waitFor();  //thread block by object p
+InputStreamReader is_reader = new InputStreamReader ( p.getInputStream() );
+BufferedReader buf_is_reader = new BufferedReader ( is_reader );
+exit_code = p.exitValue();
+while ( ( line = buf_is_reader().readLine() ) != null ) {
+  result += line;
+}
+
+***執行sh或su並準備好標準輸出輸入***
+p = rt.exec ( new String [] { "su" } );  //spawn shell process ready to accept command from stdin and output to stdout
+DataOutputStream os = new DataOutputStream(p.getOutputStream());  //build a stdin to the shell process
+InputStreamReader is_reader = new InputStreamReader ( p.getInputStream() );
+BufferedReader buf_is_reader = new BufferedReader ( is_reader );  //build a stdout to shell process
+os.writeBytes ( "ls -al\n" );  //run command "ls -al"
+os.writeByte ( "exit\n");  //exit the shell process and cause set exit code
+p.waitFor (); //Don't exec the code before exit shell process
+exit_code = p.exitValue();  //get exit code
+while ( ( line = buf_is_reader().readLine() ) != null ) {
+  result += line;
+}

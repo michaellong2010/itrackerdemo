@@ -2,6 +2,7 @@ package com.example.demo;
 
 import gif.decoder.GifRun;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -10,10 +11,13 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -432,7 +436,9 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	public URL url;
 	private ArrayList<URL> url_list = new ArrayList<URL>();
 	private Iterator URL_list_itrator;
-	final String Http_Repo_Host = "https://googledrive.com/host/0By-Tp-CAFbFyc042TGZmeWFfZWs/";
+	//final String Http_Repo_Host = "https://googledrive.com/host/0By-Tp-CAFbFyc042TGZmeWFfZWs/";
+	//final String Http_Repo_Host = "http://www.maestrogen.com/ftp/";
+	final String Http_Repo_Host = "https://googledrive.com/host/0ByxRe22Uei-JYk5MS1NWY3Vob2M/";
 	private String MD5_list_filename = "iTrack_md5_list.txt"; 
 	public String files_MD5_list = Http_Repo_Host + MD5_list_filename;
 	public String app_filename = "ItrackerDemo-20131125-google-repo.apk";
@@ -950,6 +956,7 @@ radio group to let user to choice well plate for i-tacker*/
     	
     	//Log.d(Tag, "cpu cores: " + Integer.toString(this.getNumCores()) );
     	//Log.d(Tag, "cpu processors: " + Integer.toString(Runtime.getRuntime().availableProcessors()) );
+		save_power_manager_governor();
     	
     	/*20140918 added by michael*/
     	network_status_receiver = new ConnectivityReceiver ( this );
@@ -1188,6 +1195,10 @@ radio group to let user to choice well plate for i-tacker*/
 				iTracker_polling_thread.setPriority(Thread.currentThread().getPriority() - 1);
 				iTracker_polling_thread.start();
 			}*/
+    	/*20141106 added by michael
+    	 * iTrack cpu setting*/
+    	if ( orig_cpu_governor.equals ( iTrack_cpu_governor ) == false ) 
+    		set_system_governor_freq ( iTrack_cpu_governor, iTrack_cpu_freq );     	
 		AllowRefresh_iTrackerData = true;
 		this.polling_data_executor.execute(this.iTracker_DataRefreshTask);
 	}
@@ -1211,6 +1222,10 @@ radio group to let user to choice well plate for i-tacker*/
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		/*20141106 added by michael
+		 * restore original cpu setting
+		 */
+		set_system_governor_freq ( orig_cpu_governor, orig_cpu_freq );
 	}
 
 	@Override
@@ -1514,14 +1529,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     
     File systemUIapkFile = new File("/system/app/SystemUI.apk");
     public void hide_system_bar() {
-    	java.lang.Process p;
+    	/*java.lang.Process p;
     	byte [] buff;
     	int readed;
     	String result;
     	
     	result = "kkk";
-    	buff = new byte [100];
-    	try {
+    	buff = new byte [100];*/
+    	/*try {
 			p = Runtime.getRuntime().exec("/system/xbin/su-new");
     		//p = Runtime.getRuntime().exec("/system/xbin/su");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
@@ -1545,10 +1560,17 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			is.close();
 			p.waitFor();
 			p.destroy();
-		} catch (Exception e) {
+		} catch (Exception e) {*/
 			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			//e.printStackTrace();
+		//}
+    	
+    	String result;
+    	result = exec_shell_command ( "service call activity 42 s16 com.android.systemui\n" );
+    	if ( result.equals( Msg_Shell_Command_Error) == false )
+    		Log.d ( Tag, "hide system bar successfully!" );
+    	else
+    		Log.d ( Tag, "hide system bar fail!" );
     }
     
     @Override
@@ -1561,20 +1583,20 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     }
 
     public void show_system_bar() {
-    	java.lang.Process p;
+    	/*java.lang.Process p;
     	byte [] buff;
     	int readed;
     	String result;
     	
     	result = "kkk";
     	buff = new byte [100];    	
-    	try {
+    	try {*/
 			/*p = Runtime.getRuntime().exec("/system/xbin/su-new am startservice -n com.android.systemui/.SystemUIService\n");
 			p.waitFor();
 			p.destroy();*/
-			p = Runtime.getRuntime().exec("/system/xbin/su-new");
+			//p = Runtime.getRuntime().exec("/system/xbin/su-new");
     		//p = Runtime.getRuntime().exec("/system/xbin/su");
-			DataOutputStream os = new DataOutputStream(p.getOutputStream());
+			/*DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("am startservice -n com.android.systemui/.SystemUIService\n");
 			try { 
@@ -1591,12 +1613,20 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
             Log.d(Tag, "shell exit code: " + result);
 			os.flush();
 			os.close();
+			is.close();
 			p.waitFor();
 			p.destroy();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
+    	
+    	String result;
+    	result = exec_shell_command ( "am startservice -n com.android.systemui/.SystemUIService\n" );
+    	if ( result.equals( Msg_Shell_Command_Error) == false )
+    		Log.d ( Tag, "show system bar successfully!" );
+    	else
+    		Log.d ( Tag, "show system bar fail!" );
     }
     
     @Override
@@ -2048,6 +2078,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				while ((nReadBytes = fis.read(dataBytes)) != -1) {
 				    md.update(dataBytes, 0, nReadBytes);
 				}
+				fis.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -2315,44 +2346,49 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		public void run() {
 			// TODO Auto-generated method stub
 			//checkbox1 = (CheckBox) about_dialog_layout.findViewById(R.id.force_upgrade_checkBox1);
+			String result;
         	f = new File(iTrack_Cache_Dir + DL_filename);
 			if (f.exists()) {
-				try {
+				/*try {
 					p = Runtime.getRuntime().exec("/system/xbin/su-new");
 					DataOutputStream os = new DataOutputStream(p.getOutputStream());
-					DataInputStream is = new DataInputStream(p.getInputStream());
+					DataInputStream is = new DataInputStream(p.getInputStream());*/
 					//Log.d(Tag, Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() );
 					download_dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
 					f1 = new File ( download_dir );
 					if ( !f1.exists() ) {
 						f1.mkdirs();
 					}
-					os.writeBytes("cp " + iTrack_Cache_Dir + DL_filename + " " + Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename + "\n");
-					try {
+			    	result = exec_shell_command ( "cp " + iTrack_Cache_Dir + DL_filename + " " + Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename + "\n" );
+			    	Log.d(Tag, "download new app result: " + result);
+					//os.writeBytes("cp " + iTrack_Cache_Dir + DL_filename + " " + Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename + "\n");
+					//try {
 						// Thread.sleep(100);
-						os.flush();
-						p.wait(100);
-					} catch (Exception ex) {
-					}
-					while (is.available() > 0) {
-						nReadBytes = is.read(dataBytes);
-						if (nReadBytes <= 0)
-							break;
-						String seg = new String(dataBytes, 0, nReadBytes);
-						result = result + seg; // result is a string to show
+						//os.flush();
+						//p.wait(100);
+					//} catch (Exception ex) {
+					//}
+					//while (is.available() > 0) {
+						//nReadBytes = is.read(dataBytes);
+						//if (nReadBytes <= 0)
+							//break;
+						//String seg = new String(dataBytes, 0, nReadBytes);
+						//result = result + seg; // result is a string to show
 												// in textview
-					}
-					Log.d(Tag, "shell exit code: " + result);
+					//}
+					//Log.d(Tag, "shell exit code: " + result);
 
 					/*
 					 * 20140814 added by michael
 					 * install a package silently
 					 */
-					os.writeBytes("pm install -r "
+					/*os.writeBytes("pm install -r "
 							+ Environment.getExternalStoragePublicDirectory(
 									Environment.DIRECTORY_DOWNLOADS).getPath()
-							+ "//" + DL_filename + "\n");
-					try {
+							+ "//" + DL_filename + "\n");*/
+			    	result = exec_shell_command ( "pm install -r " + Environment.getExternalStoragePublicDirectory( Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename + "\n" );
+			    	Log.d(Tag, "install new app result: " + result);
+					/*try {
 						// Thread.sleep(500);
 						os.flush();
 						p.wait(100);
@@ -2378,7 +2414,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
+				}*/
 				
 				/*Intent intent = new Intent(Intent.ACTION_VIEW);
 				intent.setDataAndType(Uri.fromFile(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + DL_filename)), "application/vnd.android.package-archive");
@@ -2645,6 +2681,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 
 							write_logfile_msg("End pipetting session");
 							flush_close_logfile();
+							UpdateActionMenuItem();
 						}						
 					});
 					dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener() {
@@ -3446,6 +3483,230 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	        //Default to return 1 core
 	        return 1;
 	    }
+	}
+	
+	/*20141105 added by michael
+	 * execute shell command in superuser privilege */
+	private final String Msg_Shell_Command_Error = "shell command error";
+	public String exec_shell_command( String shell_cmd ) {
+		// TODO Auto-generated method stub
+		String result, line;
+		java.lang.Process p;
+		java.lang.Runtime rt;
+		byte[] buff;
+		int readed;
+
+		result = Msg_Shell_Command_Error;
+		buff = new byte[100];
+
+		try {
+			rt = Runtime.getRuntime();
+			p = rt.exec(new String[] { "su-new" });
+			// p = Runtime.getRuntime().exec( "/system/bin/ls" );
+			DataOutputStream os = new DataOutputStream(p.getOutputStream());
+			//DataInputStream is = new DataInputStream(p.getInputStream());
+			InputStreamReader is_reader = new InputStreamReader ( p.getInputStream() );
+			BufferedReader buf_is_reader = new BufferedReader ( is_reader );
+			os.writeBytes( shell_cmd );
+			os.writeBytes( "exit\n" );
+			os.flush();
+			p.waitFor();
+			if ( p.exitValue() == 0 ) {
+			/*while (is.available() > 0) {
+				readed = is.read(buff);
+				if (readed <= 0)
+					break;
+				String seg = new String(buff, 0, readed);
+				result = result + seg; // result is a string to show in textview
+			}*/
+				result = "";
+				while ( ( line = buf_is_reader.readLine() ) != null ) {
+					result += line;
+				}
+			}
+			else
+				result = Msg_Shell_Command_Error;
+			os.flush();
+			os.close();
+			is_reader.close();
+			buf_is_reader.close();
+			p.waitFor();
+			p.destroy();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception ex) {
+		}
+		
+		return result;
+	}
+
+	/*20141104 added by michael
+	 * power manager strategy¡Athrogh changing system cpu gonover&frequncy to achieve the cpu tend to run in performance or powersave mode*/
+	private String cpu_available_frequencies[] = null, cpu_available_governors[] = null, orig_cpu_freq = null, orig_cpu_governor = null, iTrack_cpu_freq = null, iTrack_cpu_governor = null;
+	private String cur_cpu_freq = null, cur_cpu_governor = null;
+	private int save_power_manager_governor() {
+		String scaling_max_freq = "", scaling_cur_freq = "", scaling_cpu_governor = "", scaling_available_frequencies = "";
+		String scaling_available_governors = "", result;
+	    //RandomAccessFile reader;
+	    //BufferedReader buf_reader;
+	    int i;
+
+	    //try {
+	    	result = exec_shell_command ( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq\n");
+	    	if ( result.equals( Msg_Shell_Command_Error) == false )
+	    		scaling_max_freq = result;
+	    	else
+	    		scaling_max_freq = "";
+	    		
+	    	result = exec_shell_command ( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq\n" );
+	    	if ( result.equals( Msg_Shell_Command_Error) == false )
+	    		orig_cpu_freq = scaling_cur_freq = result;
+	    	else
+	    		orig_cpu_freq = scaling_cur_freq = "";
+	    	Log.d ( Tag, "current cpu freq: " + orig_cpu_freq );
+
+	    	result = exec_shell_command ( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor\n" );
+	    	if ( result.equals( Msg_Shell_Command_Error) == false )
+	    		orig_cpu_governor = scaling_cpu_governor = result;
+	    	else
+	    		orig_cpu_governor = scaling_cpu_governor = "";
+	    	
+	    	result = exec_shell_command ( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies\n" );
+	    	if ( result.equals( Msg_Shell_Command_Error) == false ) {
+	    		scaling_available_frequencies = result;
+	    		cpu_available_frequencies = scaling_available_frequencies.split(" ");
+	    		
+	    		iTrack_cpu_freq = "0";
+			    for ( i = 0; i < cpu_available_frequencies.length; i++  ) {
+			    	if ( Integer.parseInt( cpu_available_frequencies [ i ] ) > Integer.parseInt( iTrack_cpu_freq ) ) {
+			    		iTrack_cpu_freq = cpu_available_frequencies [ i ];
+			    	}
+			    }
+	    	}
+	    	else
+	    		scaling_available_frequencies = "";
+	    	
+		    /*gonover is one of values¡Gconservative ondemand userspace powersave interactive performance*/
+	    	result = exec_shell_command ( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors\n" );
+	    	if ( result.equals( Msg_Shell_Command_Error) == false ) {
+	    		scaling_available_governors = result;
+	    		if ( result.contains( "interactive" ) == true )
+	    			iTrack_cpu_governor = "interactive";
+	    		else
+	    		if ( result.contains( "performance" ) == true )
+	    			iTrack_cpu_governor = "performance";
+	    		else
+	    			if ( result.contains( "userspace" ) == true )
+	    				iTrack_cpu_governor = "userspace";
+	    			else
+			    		iTrack_cpu_governor = orig_cpu_governor;
+	    		cpu_available_governors = scaling_available_governors.split(" ");	
+	    	}
+	    	else	    		
+	    		scaling_available_governors = "";
+		    
+
+			/*buf_reader  = new BufferedReader(new FileReader("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"));
+			scaling_max_freq = buf_reader.readLine();
+			reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "r");
+			scaling_max_freq = reader.readLine();
+		    reader.close();
+		    
+		    reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
+		    cur_cpu_freq = scaling_cur_freq = reader.readLine();
+		    reader.close();
+		    
+		    reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "r");
+		    cur_cpu_governor = scaling_cpu_governor = reader.readLine();
+		    reader.close();
+		    
+		    reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies", "r");
+		    scaling_available_frequencies = reader.readLine();
+		    cpu_available_frequencies = scaling_available_frequencies.split(" ");
+		    iTrack_cpu_freq = cur_cpu_freq;
+		    for ( i = 0; i < cpu_available_frequencies.length; i++  ) {
+		    	if ( Integer.parseInt( cpu_available_frequencies [ i ] ) > Integer.parseInt( iTrack_cpu_freq ) ) {
+		    		iTrack_cpu_freq = cpu_available_frequencies [ i ];
+		    	}
+		    }
+		    reader.close();*/
+		    
+		    /*gonover is one of values¡Gconservative ondemand userspace powersave interactive performance*/
+		    /*reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors", "r");
+		    scaling_available_governors = reader.readLine();
+		    cpu_available_governors = scaling_available_governors.split(" ");
+		    if ( Arrays.asList( cpu_available_governors ).contains( "performance" ) == true ) {
+		    	iTrack_cpu_governor = "performance";
+		    }
+		    else
+		    	if ( Arrays.asList( cpu_available_governors ).contains( "userspace" ) == true ) {
+		    		iTrack_cpu_governor = "userspace";
+		    	}
+		    	else
+		    		iTrack_cpu_governor = cur_cpu_governor;
+		    reader.close();
+		    buf_reader.close();*/
+		//} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		//} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		//}
+
+		return 0;
+	}
+	
+	private void set_system_governor_freq ( String new_cpu_governor, String new_cpu_freq ) {
+		String result;
+	    //RandomAccessFile reader, writer;
+
+		//try {
+			if ( cpu_available_governors != null && Arrays.asList ( cpu_available_governors ).contains( new_cpu_governor ) == true ) {
+				/*writer = new RandomAccessFile( "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "rw");
+				writer.writeBytes( new_cpu_governor );
+				writer.close();*/
+				result = exec_shell_command ( "echo " + new_cpu_governor + " > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor\n" );
+		    	if ( result.equals( Msg_Shell_Command_Error) == false ) {
+			    	result = exec_shell_command ( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor\n" );
+			    	if ( result.equals( Msg_Shell_Command_Error) == false )
+			    		cur_cpu_governor = result;
+			    	else
+			    		cur_cpu_governor = "";
+		    	}
+		    	
+		    	if ( cur_cpu_governor != null && cur_cpu_governor.equals ( new_cpu_governor ) == true )
+		    		Log.d ( Tag, "has set new cpu governor: " +  cur_cpu_governor);
+		    	else
+		    		Log.d ( Tag, "setting cpu governor fail!");
+			}
+
+			if ( cpu_available_frequencies != null && Arrays.asList ( cpu_available_frequencies ).contains ( new_cpu_freq ) == true ) {
+				/*writer = new RandomAccessFile( "/sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed", "rw");
+				writer.writeBytes( new_cpu_freq );
+				writer.close();*/
+				
+				result = exec_shell_command ( "echo " + new_cpu_freq + " > /sys/devices/system/cpu/cpu0/cpufreq/scaling_setspeed\n" );
+		    	if ( result.equals( Msg_Shell_Command_Error) == false ) {
+			    	result = exec_shell_command ( "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq\n" );
+			    	if ( result.equals( Msg_Shell_Command_Error) == false )
+			    		cur_cpu_freq = result;
+			    	else
+			    		cur_cpu_freq = "";
+		    	}
+		    	if ( cur_cpu_freq != null && cur_cpu_freq.equals ( new_cpu_freq ) == true )
+		    		Log.d ( Tag, "has set new cpu freq: " +  cur_cpu_freq );
+		    	else
+		    		Log.d ( Tag, "setting cpu freq fail: " +  new_cpu_freq );
+			}
+		//} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		//} catch (IOException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+		//}
 	}
 	
 	/*20140917 added by michael*/
