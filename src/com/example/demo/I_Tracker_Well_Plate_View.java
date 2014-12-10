@@ -364,7 +364,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 			}
 
 			
-            for (i = 0, margin_x = 0, margin_y = 0; i < Y_holes; i++) {
+            for (i = 0, margin_x = convert_mm2pixel(1), margin_y = 0; i < Y_holes; i++) {
 				if (mDisplay_well_pitch_y > label_height)
 					margin_y = convert_mm2pixel((2 * Border_top + 2 * i
 							* mDisplay_well_pitch_y + mDisplay_well_pitch_y - label_height + 2 * label_height) / 2);
@@ -542,7 +542,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 					Canvas_Well_Plate.drawText(Integer.toString(i + 1), margin_x, margin_y, mPaint_text);
 				}
 
-	            for (i = 0, margin_x = 0, margin_y = 0; i < Y_holes; i++) {
+	            for (i = 0, margin_x = convert_mm2pixel(1), margin_y = 0; i < Y_holes; i++) {
 					if (mDisplay_well_pitch_y > label_height)
 						margin_y = convert_mm2pixel((2 * Border_top + 2 * i
 								* mDisplay_well_pitch_y + mDisplay_well_pitch_y - label_height + 2 * label_height) / 2);
@@ -818,7 +818,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 				if (mWells == Wells_96)
 					Canvas_Well_Plate.drawRect(margin_x-radius_pixels-2, margin_y-radius_pixels-2, margin_x+radius_pixels+2, margin_y+radius_pixels+2, mPaint);
 				else
-					Canvas_Well_Plate.drawRect(margin_x-radius_pixels-3, margin_y-radius_pixels-3, margin_x+radius_pixels+3, margin_y+radius_pixels+3, mPaint);
+					Canvas_Well_Plate.drawRect((float)(margin_x-radius_pixels-3.5), (float)(margin_y-radius_pixels-3.5f), (margin_x+radius_pixels+3.5f), (margin_y+radius_pixels+3.5f), mPaint);
 				mPaint.setXfermode(null);
 				//mPaint.setColor(Color.WHITE);
 				mPaint = mPaint_well_Stroke;
@@ -873,7 +873,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 					}
 				}
 			}
-			this.invalidate((int)(margin_x-radius_pixels-3), (int)(margin_y-radius_pixels-3), (int)(margin_x+radius_pixels+3), (int)(margin_y+radius_pixels+3));
+			this.invalidate((int)(margin_x-radius_pixels-3.5), (int)(margin_y-radius_pixels-3.5), (int)(margin_x+radius_pixels+3.5), (int)(margin_y+radius_pixels+3.5));
 			
 			/*update the lower well*/
 			radius_pixels = (mClient_well_pitch_x > mClient_well_pitch_y) ? convert_mm2pixel((mClient_well_pitch_y-adjust_radius_mm)/2):convert_mm2pixel((mClient_well_pitch_x-adjust_radius_mm)/2);

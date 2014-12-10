@@ -16,7 +16,7 @@ public class MaestrogenAppWidgetProvider extends AppWidgetProvider {
 	
 	public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
 		views = new RemoteViews(context.getPackageName(), R.layout.ad1_appwidget_layout);
-		views.setImageViewResource(R.id.maestrogen_ad_imagebutton1, R.drawable.maestrogen_logo1);
+		views.setImageViewResource(R.id.maestrogen_ad_imagebutton1, R.drawable.maestrogen_logo2);
 		views.setTextViewText(R.id.maestrogen_ad_textView1, Html.fromHtml("<a href=" + "\"http://www.maestrogen.com\"" + ">" + context.getResources().getString(R.string.advertise_appwidget1) + "</a> "));
 		// Create an Intent to launch ExampleActivity
         //Intent intent = new Intent(context, LogFileChooserActivity.class);

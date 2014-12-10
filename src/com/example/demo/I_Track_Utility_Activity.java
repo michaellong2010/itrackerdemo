@@ -291,7 +291,7 @@ public class I_Track_Utility_Activity extends Activity {
 					public void onClick(View v) {
 						// TODO Auto-generated method stub
 						Exit_to_main(v);
-						IME_hide();
+						IME_hide(0);
 					}
 				});
 				mLayout_Content.removeAllViews();
@@ -308,7 +308,7 @@ public class I_Track_Utility_Activity extends Activity {
 						Well_View.DrawBitmap(false);
 				    	Well_View.setWellColor(Valid_Coord_Histogram);
 				    	upper_view.invalidate();
-				    	IME_hide();
+				    	IME_hide(0);
 					}
 					
 				});
@@ -322,7 +322,7 @@ public class I_Track_Utility_Activity extends Activity {
 						Well_View.DrawBitmap(false);
 				    	Well_View.setWellColor(Valid_Coord_Histogram);
 				    	upper_view.invalidate();
-				    	IME_hide();
+				    	IME_hide(0);
 					}
 				});
 				
@@ -374,7 +374,7 @@ public class I_Track_Utility_Activity extends Activity {
 					public void onClick(View v) {
 						// TODO Auto-generated method stub
 						Exit_to_main(v);
-						IME_hide();
+						IME_hide(1);
 					}
 				});
 				mLayout_Content.removeAllViews();
@@ -389,7 +389,7 @@ public class I_Track_Utility_Activity extends Activity {
 						Draw_Lower_Well();
 						Well_View.setWellColor(Valid_Coord_Histogram);
 				    	lower_view.invalidate();
-				    	IME_hide();
+				    	IME_hide(1);
 					}
 				});
 				draw_96_btn.setOnClickListener(new View.OnClickListener() {
@@ -401,7 +401,7 @@ public class I_Track_Utility_Activity extends Activity {
 						Draw_Lower_Well();
 						Well_View.setWellColor(Valid_Coord_Histogram);
 				    	lower_view.invalidate();
-				    	IME_hide();
+				    	IME_hide(1);
 					}
 				});						
 
@@ -690,23 +690,31 @@ public class I_Track_Utility_Activity extends Activity {
       
 	public void IME_toggle(){
         InputMethodManager imm = (InputMethodManager) this.getSystemService(Activity.INPUT_METHOD_SERVICE);
-        if (imm.isActive()){
+        if (imm != null && imm.isActive()){
             imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0); // hide
         } else {
             imm.toggleSoftInput(0, InputMethodManager.HIDE_IMPLICIT_ONLY); // show
         }
     }//end method
 	
-	public void IME_hide() {
+	public void IME_hide(int lower_upper) {
 		InputMethodManager imm = (InputMethodManager) this.getSystemService(Activity.INPUT_METHOD_SERVICE);
 		//imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0); // hide
-		imm.hideSoftInputFromInputMethod(screen_width_cm.getWindowToken(), 0);
+		if ( imm != null )
+			if ( lower_upper == 0 )
+				imm.hideSoftInputFromInputMethod(screen_width_cm.getWindowToken(), 0);
+			else
+				imm.hideSoftInputFromInputMethod(well_pitch_x_mm.getWindowToken(), 0);
 	}// end method
 
-	public void IME_show() {
+	public void IME_show(int lower_upper) {
 		InputMethodManager imm = (InputMethodManager) this.getSystemService(Activity.INPUT_METHOD_SERVICE);
 		//imm.toggleSoftInput(0, InputMethodManager.HIDE_IMPLICIT_ONLY); // show
-		imm.showSoftInput(this.screen_width_cm, InputMethodManager.SHOW_IMPLICIT);
+		if ( imm != null )
+			if ( lower_upper == 0 )
+				imm.showSoftInput(this.screen_width_cm, InputMethodManager.SHOW_IMPLICIT);
+			else
+				imm.showSoftInput(this.well_pitch_x_mm, InputMethodManager.SHOW_IMPLICIT);
 	}// end method
 	
 	@Override
@@ -743,7 +751,7 @@ public class I_Track_Utility_Activity extends Activity {
     	result = "kkk";
     	buff = new byte [100];
     	try {
-			p = Runtime.getRuntime().exec("/system/xbin/su-new");
+			p = Runtime.getRuntime().exec("/system/xbin/su");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("service call activity 42 s16 com.android.systemui\n");
@@ -783,7 +791,7 @@ public class I_Track_Utility_Activity extends Activity {
 			/*p = Runtime.getRuntime().exec("/system/xbin/su-new am startservice -n com.android.systemui/.SystemUIService\n");
 			p.waitFor();
 			p.destroy();*/
-			p = Runtime.getRuntime().exec("/system/xbin/su-new");
+			p = Runtime.getRuntime().exec("/system/xbin/su");
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			DataInputStream is = new DataInputStream(p.getInputStream());
 			os.writeBytes("am startservice -n com.android.systemui/.SystemUIService\n");

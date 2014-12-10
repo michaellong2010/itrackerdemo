@@ -550,3 +550,26 @@ exit_code = p.exitValue();  //get exit code
 while ( ( line = buf_is_reader().readLine() ) != null ) {
   result += line;
 }
+
+=============================================================================================
+20141118~20141124
+1.  修改res/layout/upper_well_layout_param.xml，調整i-track screen utility下半部widget元件避免被機構遮住按不到
+2.  su-new全面改名成su
+3.  menu collapse/expanding button、running status indicator、connection status indicator靠左對齊
+4.  螢幕上方顯示孔盤Y軸座標標籤A~H(P)字樣向右偏移1mm
+5.  "preference"設定完成時，確保i-track裝置有收到停止命令，如此新設定才能於重啟掃描時生效
+6.  修改david du最新反饋
+(1)  按"Run"時程式呼叫"preference"菜單選項供使用者選擇pipetting mode
+mList.performItemClick(mList.getAdapter().getView(5, null, null), 5, mList.getAdapter().getItemId(5));
+(2)  移除preference dialog致能調整敏感度checkbox
+(3)  開啟"About"偵測網路連線逾時計數timeout = 45秒，時間到檢查internet能否連上，若45秒內完成連線或使用者關閉窗口，則停止連線逾時檢查，移除檢查方塊"force upgrade app and firmware”
+(4)  若session已結束則不詢問是否結束執行並存檔而直接返回Home主頁，調用switch_to_well_plate_selection()
+(5)  "Run"選單選項加大
+(7)  增加檢查方塊auto save log，預設是勾選，使用者自行決定是否自動儲存檔案
+(8)  LogFileChooserActivity.java類別大幅度新增功能，定義選單log_file_chooser_menu.xml，選擇單一檔案可操作"Open"、"Delete"、"Rename"，選擇多個檔案可操作"Delete"，檔案列出可案檔名字母或檔案最後更動時間來排序。須要搭配2014/11/23最新修改的afiledialog才可正常運作
+7.  iTrack_app_property配置檔移至/data/目錄下
+8.  Maestrogen小部件logo替換成正確的
+
+=============================================================================================
+20141208
+1.  增加"Help content"imagebutton在最右側，按下後開啟說明書，說明書檔案放置於/mnt/sdcard/Download/，每台平板事先安裝adobe reader

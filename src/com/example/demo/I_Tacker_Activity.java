@@ -52,8 +52,10 @@ import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.app.Dialog;
 import android.app.PendingIntent;
+import android.app.ProgressDialog;
 import android.app.WallpaperManager;
 import android.appwidget.AppWidgetManager;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -118,6 +120,7 @@ import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -208,6 +211,41 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 
 			case R.id.ID_OverflowMenuButton:
                 mMenuDrawer.toggleMenu();
+				break;
+			case R.id.ID_HelpContent:
+				String md5_checksum = UserManual_MD5_checksum();
+				preference_editor.putString("local usermanual checksum", md5_checksum);
+				if ( isValidMD5( md5_checksum ) == false ) {
+					preference_editor.putBoolean( "isNeedUpgrade_UserManual", true );
+					Log.d( "usermanual", "md5_checksum: true, " + md5_checksum );
+				}
+				else {
+					preference_editor.putBoolean( "isNeedUpgrade_UserManual", false );
+					Log.d( "usermanual", "md5_checksum: false, " + md5_checksum );
+				}
+				preference_editor.commit();
+				
+				if ( preference.getBoolean( "isNeedUpgrade_UserManual", true ) ) {
+					Check_Network_timerTaskPause();
+					turn_on_wifi();
+					Check_Network_timerTaskStart();
+					//url_list.clear();
+					try {
+						url = new URL( Http_Repo_Host + user_manual_filename );
+					} catch (MalformedURLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					if ( url_list.isEmpty() )
+						url_list.add( url );
+					progress_dialog.show();
+					//Next_Download();
+				}
+				else {
+					Message message;
+		            message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Open_UserManual );
+		            message.sendToTarget();					
+				}
 				break;
 			}
 			//
@@ -365,30 +403,34 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 		//Well_View.invalidate();		
 	}
 	
+	void switch_to_well_plate_selection() {
+		/*20130408 added by michael*/
+		if ((Itracker_MI_State & 1 << Itracker_MI_Stop) != 0 || (Itracker_MI_State & 1 << Itracker_MI_Pause) != 0 || (Itracker_MI_State & 1 << Itracker_MI_Start) != 0) {
+			Itracker_MI_State = 1 << Itracker_MI_Start;
+		}
+		else
+			Itracker_MI_State = 0;
+		Reset_App();
+		mLayout_Content.removeAllViews();
+		/*20131211 modified by michael
+		 * new well plate selection page*/
+		//mLayout_Content.addView(myRadiogroup);
+		mLayout_Content.addView(myWellPlateSelection);
+
+		//Toast.makeText(I_Tacker_Activity.this, "Great! Welcome.", Toast.LENGTH_SHORT).show();
+		/*20131124 added by michael*/
+		mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_NONE);
+		
+		/*20131213 added by michael
+		 * close the current session */
+		write_logfile_msg("End pipetting session & back to home");
+		flush_close_logfile();		
+	}
+	
 	DialogInterface.OnClickListener listenerAccept = new DialogInterface.OnClickListener() {
 		
 		public void onClick(DialogInterface dialog, int which) {
-			/*20130408 added by michael*/
-			if ((Itracker_MI_State & 1 << Itracker_MI_Stop) != 0 || (Itracker_MI_State & 1 << Itracker_MI_Pause) != 0 || (Itracker_MI_State & 1 << Itracker_MI_Start) != 0) {
-				Itracker_MI_State = 1 << Itracker_MI_Start;
-			}
-			else
-				Itracker_MI_State = 0;
-			Reset_App();
-			mLayout_Content.removeAllViews();
-			/*20131211 modified by michael
-			 * new well plate selection page*/
-			//mLayout_Content.addView(myRadiogroup);
-			mLayout_Content.addView(myWellPlateSelection);
-
-			//Toast.makeText(I_Tacker_Activity.this, "Great! Welcome.", Toast.LENGTH_SHORT).show();
-			/*20131124 added by michael*/
-			mMenuDrawer.setTouchMode(MenuDrawer.TOUCH_MODE_NONE);
-			
-			/*20131213 added by michael
-			 * close the current session */
-			write_logfile_msg("End pipetting session & back to home");
-			flush_close_logfile();
+			switch_to_well_plate_selection();
 		}
 	};
 	
@@ -404,6 +446,8 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	//protected MenuDrawer mMenuDrawer;
 	/*20131128 added by michael*/
 	OverflowMenuButton OveflaowBtn;
+	/*20141208 added by michael*/
+	ImageButton HelpContentBtn;
 	/*20131202 added by michael*/
 	GifRun mGif;
 	/*20131208 added by michael
@@ -428,7 +472,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	/*20140303 added by michael
 	 * current pipetting detection mode selection*/
 	int Pipetting_Mode = -1, Cur_Pipetting_Mode;
-	boolean Adjust_Detection_Sensitivity = false, Cur_Adjust_Detection_Sensitivity;
+	boolean Adjust_Detection_Sensitivity = true, Cur_Adjust_Detection_Sensitivity = true;
 	int Pipetting_Sensitivity_Level = -1, Cur_Detection_Sensitivity_Level = -1;
 	/*20140605 added by michael*/
 	ImageView running_status_v, connection_status_v;
@@ -464,7 +508,9 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	private static final int Msg_Show_Upgrade_Progress = 0x13;
 	private static final int Msg_Upgrade_Error = 0x14;
 	private static final int Msg_Next_Download = 0x15;
-	private static final int Msg_Cancel_Dlg =0x16;
+	private static final int Msg_Cancel_Dlg = 0x16;
+	private static final int Msg_Upgrade_UserManual = 0x17;
+	private static final int Msg_Open_UserManual = 0x18;
 	public ProgressBar inderterminate_progressbar;
 	public boolean app_up_to_date = false, firmware_up_to_date = false, force_upgrade = false;
 	public String Upgrade_Error_Message;
@@ -477,6 +523,12 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	DownloadFilesTask current_download;
 	int download_phase = -1;
 	double menu_height_mm, menu_item_pixels, menu_icon_pixels;
+	/*20141122 added by michael*/
+	boolean Auto_Save_Log = true, Cur_Auto_Save_Log = true;
+	/*20141208 added by michael*/
+	public String user_manual_filename = "NUC1xx_reference_manual.pdf";
+	private ProgressDialog progress_dialog;
+	WindowManager.LayoutParams params;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
     	app_properties = new iTrack_Properties();
@@ -876,7 +928,7 @@ radio group to let user to choice well plate for i-tacker*/
 		lp2 = new RelativeLayout.LayoutParams(32, ViewGroup.LayoutParams.WRAP_CONTENT);
 		//lp1.setMargins((int)(Well_View.mMaxTouchablePosX-32), (int)(Well_View.mMaxTouchablePosY-48), 32, 48);
 		//lp1.setMargins(Well_View.mMaxTouchablePosX-32, Well_View.mMaxTouchablePosY-48, 32, 48);
-		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
 		lp2.addRule(RelativeLayout.ALIGN_PARENT_TOP, RelativeLayout.TRUE);
 		mIndicators_Layout.addView(OveflaowBtn, lp2);
 		//lp1 = (FrameLayout.LayoutParams)mLayout_Content.getLayoutParams();
@@ -908,13 +960,26 @@ radio group to let user to choice well plate for i-tacker*/
 		/*20140605 added by michael*/
 		running_status_v = new ImageView(this);
 		lp2 = new RelativeLayout.LayoutParams(32, 32);
-		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
 		lp2.setMargins(0, (int)(Well_View.mMaxTouchablePosY-32)/2, 0, 0);
 		mIndicators_Layout.addView(running_status_v, lp2);
 		
+		/*20141208 added by michael
+		 * add "help content" icon */
+		//( 3 * ( Well_View.mMaxTouchablePosY - 32 ) / 2 )
+		HelpContentBtn = new ImageButton ( this );
+		lp2 = new RelativeLayout.LayoutParams ( 32, 32 );
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+		lp2.setMargins(0, (int)( 3 * ( Well_View.mMaxTouchablePosY - 32 ) / 4 ), 0, 0);
+		mIndicators_Layout.addView(HelpContentBtn, lp2);
+		HelpContentBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.overflowmwnu_button_selector_holo_dark));
+		HelpContentBtn.setImageDrawable(getResources().getDrawable(R.drawable.help1));
+		HelpContentBtn.setId(R.id.ID_HelpContent);
+		HelpContentBtn.setOnClickListener(this.listener1);
+		
 		connection_status_v = new ImageView(this);
 		lp2 = new RelativeLayout.LayoutParams(32, 32);
-		lp2.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, RelativeLayout.TRUE);
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
 		lp2.setMargins(0, (int)(Well_View.mMaxTouchablePosY-32), 0, 0);
 		mIndicators_Layout.addView(connection_status_v, lp2);
 		
@@ -926,6 +991,33 @@ radio group to let user to choice well plate for i-tacker*/
 		preference_editor.putString("local app checksum", md5_checksum);
 		preference_editor.commit();
 		//Running_App_MD5_checksum();
+		
+		/*20141208 added by michael*/
+		md5_checksum = UserManual_MD5_checksum();
+		preference_editor.putString("local usermanual checksum", md5_checksum);
+		if ( isValidMD5( md5_checksum ) == false ) {
+			preference_editor.putBoolean( "isNeedUpgrade_UserManual", true );
+			Log.d( "usermanual", "md5_checksum: true, " + md5_checksum );
+		}
+		else {
+			preference_editor.putBoolean( "isNeedUpgrade_UserManual", false );
+			Log.d( "usermanual", "md5_checksum: false, " + md5_checksum );
+		}
+		preference_editor.commit();
+		progress_dialog = new ProgressDialog( this );
+		progress_dialog.setMessage( "Downloading user manual: ");
+		//progress_dialog.setMax(100);
+		progress_dialog.setProgressStyle( ProgressDialog.STYLE_HORIZONTAL );
+		progress_dialog.setIndeterminate( true );
+		progress_dialog.setProgressNumberFormat(null);
+		progress_dialog.setProgressPercentFormat(null);
+		params = progress_dialog.getWindow().getAttributes();
+		params.x = 0;
+		params.y = -350;
+		//progress_dialog.getWindow().setGravity(Gravity.TOP);
+		progress_dialog.getWindow().setAttributes( params );
+		progress_dialog.setCancelable( false );
+		//progress_dialog.setOnCancelListener(listenerCancel);
 		
     	PackageManager pm = getPackageManager();
     	PackageInfo pkginfo =null;
@@ -967,6 +1059,7 @@ radio group to let user to choice well plate for i-tacker*/
 			@Override
 			public void onNetworkAvailable() {
 				// TODO Auto-generated method stub
+				Check_Network_timerTaskPause();
 				if ( url_list.size() > 0 && current_download != null && url_list.get(0) == current_download.url ) {
 					if (current_download.isTaskFinish) {
 						url_list.remove(url_list.get(0));
@@ -1271,6 +1364,8 @@ radio group to let user to choice well plate for i-tacker*/
 				Flush_Log_File = "log file saved: " + iTracker_logfile.getPath(); 
 				Show_Toast_Msg(Flush_Log_File);
 				log_file_buf = null;
+				if ( Auto_Save_Log == false && iTracker_logfile != null )
+					iTracker_logfile.delete();
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -1954,7 +2049,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			//Log.d (Tag, DL_filename);
 			if (DL_filename!=null && DL_filename.equals(MD5_list_filename)) {
 				download_phase = 1;
-				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: dowloand  " + MD5_list_filename + "  finish");
+				//message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: dowloand  " + MD5_list_filename + "  finish");
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: version check completed");
 				message.sendToTarget();
 				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Refresh_About_Dlg);
 	            message.sendToTarget();
@@ -1975,13 +2071,29 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Firmware);
 			            message.sendToTarget();
 					}
+					else
+						if ( DL_filename != null && DL_filename.equals( user_manual_filename )) {
+							download_phase = 4;
+							message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Upgrade_UserManual );
+				            message.sendToTarget();
+				            message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Open_UserManual );
+				            message.sendToTarget();
+						}
 
 			if (isDownloadSuccess==false)
 			  return -1;
 			else {
 				return 0;
 			}
-		}    	
+		}
+		
+		// This is called each time you call publishProgress()
+		protected void onProgressUpdate(Integer... progress) {
+			if (progress_dialog.isShowing()) {
+				//progress_dialog.setIndeterminate(false);
+				progress_dialog.setProgress(progress[0] + 1);
+			}
+		}
     }
     
     /*20140730 added by michael
@@ -2009,7 +2121,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         		  break;
         	  case Msg_Show_Upgrade_Progress:
 				  if (about_dialog != null && about_dialog.isShowing()) {
-					  inderterminate_progressbar.setVisibility(View.INVISIBLE);
+					  inderterminate_progressbar.setVisibility(View.VISIBLE);
 					  about_dialog.setCancelable( false );
 				  }
         		  //inderterminate_progressbar.setVisibility(View.VISIBLE);        	      
@@ -2037,9 +2149,86 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         		  break;
         	  case Msg_Cancel_Dlg:
         		  turn_off_wifi();
+        		  Check_Network_timerTaskPause();
+        		  break;
+        	  case Msg_Upgrade_UserManual:
+        		  Log.d ( "usermanual", "upgrade usermanual" );
+        		  turn_off_wifi();
+        		  upgrade_usermanual ();
+        		  if ( progress_dialog.isShowing() )
+        			  progress_dialog.dismiss();        		  
+        		  break;
+        	  case Msg_Open_UserManual:
+        		  Intent browserIntent = new Intent( Intent.ACTION_VIEW );
+        		  File f;
+        		  //f = new File ( I_Tacker_Activity.this.getFilesDir().getParent() + "//" + user_manual_filename );
+        		  f = new File ( Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + user_manual_filename );
+        		  if ( f.exists() ) {
+        			  browserIntent.setDataAndType( Uri.fromFile( f ), "application/pdf" );
+            		  try {
+            			  startActivity( browserIntent );
+            		  }
+            		  catch (ActivityNotFoundException e) {
+            			  Show_Toast_Msg ( "There are no application to open" + f.getName() ); 
+            		  }
+        		  }
+        		  else
+        			  Show_Toast_Msg ( "Can't find user manual" + f.getName() );
+        		  //browserIntent.setDataAndType(Uri.parse("https://googledrive.com/host/0ByxRe22Uei-JYk5MS1NWY3Vob2M/NUC1xx(reference_manual).pdf"), "application/pdf");
         		  break;
         	}
         }
+    }
+    
+    /*20141208 added by michael*/
+    private String UserManual_MD5_checksum() {
+		PackageManager pm = getPackageManager();
+		ApplicationInfo App_Info =null;
+    	MessageDigest md =null;
+    	File f = null;
+    	int nReadBytes = 0;
+    	StringBuffer sb = new StringBuffer("");
+
+		try {
+			App_Info = pm.getApplicationInfo(this.getPackageName(), 0);
+		} catch (NameNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if ( App_Info != null ) {
+			try {
+				md = MessageDigest.getInstance("MD5");
+				//f = new File ( App_Info.dataDir + "//" + user_manual_filename );
+				f = new File ( Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + user_manual_filename );
+				if ( f.exists() ) {
+					fis = new FileInputStream( Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + user_manual_filename );				    
+					while ((nReadBytes = fis.read(dataBytes)) != -1) {
+						md.update(dataBytes, 0, nReadBytes);
+					}
+					fis.close();
+					
+				    byte[] mdbytes = md.digest();
+					//convert the byte to hex format
+					for (int i = 0; i < mdbytes.length; i++) {
+						//Log.d(Tag, "integer: " + Integer.toHexString((mdbytes[i])));
+						//Log.d(Tag, "integer1: " + Integer.toString(((mdbytes[i] & 0xff) + 0x100), 16).substring(1));
+						sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
+					}
+				}
+			} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+		return sb.toString();
     }
     
     /*20140730 added by michael*/
@@ -2130,9 +2319,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			
 			Properties defaultProps = new Properties();
 			String server_app_md5, server_firmware_md5, local_app_md5, local_firmware_md5;
+			String server_usermanual_md5, local_usermanual_md5;
 			Color color;
 			local_app_md5 = preference.getString("local app checksum", "");
 			local_firmware_md5 = mItracker_dev.Fw_md5_checksum;
+			local_usermanual_md5 = preference.getString("local usermanual checksum", "");
 			try {
 				f = new File(iTrack_Cache_Dir + this.MD5_list_filename);
 				if (f.exists()) {
@@ -2142,6 +2333,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				}
 				server_app_md5 = defaultProps.getProperty("app", "");
 				server_firmware_md5 = defaultProps.getProperty("firmware", "");
+				server_usermanual_md5 = defaultProps.getProperty("usermanual", "");
 				
 				Log.d(Tag, "app= " + server_app_md5); 
 				Log.d(Tag, "app Md5 found: " + Boolean.toString(isValidMD5(server_app_md5)));
@@ -2186,12 +2378,27 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						}
 					}
 					else {
-						iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  ");
+						iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  " + getFirmwareDesc());
 					}
 				}
 				else {
 					iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  ");
-				}				
+				}	
+
+				if ( isValidMD5( local_usermanual_md5 ) ) {
+					if ( isValidMD5( server_usermanual_md5 ) ) {
+						if ( server_usermanual_md5.equalsIgnoreCase( local_usermanual_md5 ) ) {							
+						}
+						else {
+							preference_editor.putBoolean( "isNeedUpgrade_UserManual", true );
+							preference_editor.commit();							
+						}
+					}					
+				}
+				else {
+					preference_editor.putBoolean( "isNeedUpgrade_UserManual", true );
+					preference_editor.commit();					
+				}
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -2329,6 +2536,34 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			Refresh_About_Dialog();
 		}
     	
+    };
+    
+    /*20141209 added by michael*/
+    void upgrade_usermanual () {
+		PackageManager pm = getPackageManager();
+		ApplicationInfo App_Info =null;
+    	File f, f1;
+    	String result = "";
+    	String download_dir;
+
+		try {
+			App_Info = pm.getApplicationInfo(this.getPackageName(), 0);
+		} catch (NameNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if ( App_Info != null ) {
+			f = new File( iTrack_Cache_Dir + user_manual_filename );
+			if ( f.exists() ) {
+				//Log.d ( Tag, "cp " + iTrack_Cache_Dir + user_manual_filename + " " + App_Info.dataDir + "//" + user_manual_filename + "\n" );
+				download_dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath();
+				f1 = new File ( download_dir );
+				if ( !f1.exists() ) {
+					f1.mkdirs();
+				}
+				result = exec_shell_command ( "cp " + iTrack_Cache_Dir + user_manual_filename + " " + Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//" + user_manual_filename + "\n" );
+			}
+		}
     };
     
     /*20140814 added by michael*/
@@ -2583,8 +2818,12 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		switch (position) {
     		case Itracker_MI_Start:
     			if (tv.getText()=="Run") {
+    				/*20141124 added by michael
+    				 * emulate listview click item event */
+    				mList.performItemClick(mList.getAdapter().getView(5, null, null), 5, mList.getAdapter().getItemId(5));
 					if (Connect_Itracker(true)) {
-						mMenuDrawer.toggleMenu();
+						//mMenuDrawer.toggleMenu();
+						mMenuDrawer.closeMenu();
 						Show_Toast_Msg(I_Tracker_Device_Tracking_On);
 						
 						mItrackerState |= 1 << Itracker_State_isRunning;
@@ -2802,7 +3041,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					dialog.getWindow().setGravity(Gravity.TOP);
 					dialog.setIcon(R.drawable.ic_launcher1);
 					dialog.setCancelable(false);
-					dialog.show();
+					if ((mItrackerState & (1<<Itracker_State_isRunning)) == 0) {
+						switch_to_well_plate_selection();
+					}
+					else
+						dialog.show();
 					mMenuDrawer.toggleMenu();
     			}
     			break;
@@ -2810,13 +3053,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		/*20140221 added by michael
     		 * preference setting */
     		case (5):
-    			mMenuDrawer.toggleMenu();
+    			//mMenuDrawer.toggleMenu();
+    			mMenuDrawer.closeMenu();
     		    if (preference_dialog==null) {
 				  preference_dialog = new Dialog(this, R.style.CenterDialog);
 				  preference_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_preference, null);
 				  spinner = (Spinner) preference_dialog_layout.findViewById(R.id.spinner1);
 				  ArrayList<String> spinner_items = new ArrayList<String>();
-				  //spinner_items.add("Auto-channel Pipet");
+				  spinner_items.add("Auto-channel Pipet");
 				  spinner_items.add("Single-channel Pipet");
 				  spinner_items.add("8-channel Pipet");
 				  spinner_items.add("12-channel Pipet");
@@ -2856,10 +3100,19 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						/*20140306 added by michael*/
 						/*20141023 modified by michael
 						 * remove the auto pipetting mode¡Aremapped mode index*/
-						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode+1);
+						//mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode+1);
+						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode);
 						mItracker_dev.set_pipetting_detection_sensitivity_level(Adjust_Detection_Sensitivity, Pipetting_Sensitivity_Level);
 						if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
 							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
+							/*20141124 added by michael
+							 * insert appropriate delay to guarantee i-track device has receive stop command*/
+				    		try {
+								Thread.sleep(10);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 							if (Connect_Itracker(false)) {
 								
 							}
@@ -2871,11 +3124,16 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						else {
 							mItracker_dev.Itracker_IOCTL(I_Tracker_Device.CMD_T.HID_CMD_ITRACKER_SETTING, 0, 0, null, 1);							
 						}
+						
+						/*20141122 added by michael*/
+						Auto_Save_Log = Cur_Auto_Save_Log;
 					}
 				});
 				
 				CheckBox checkbox1;
 				checkbox1 = (CheckBox) preference_dialog_layout.findViewById(R.id.checkBox1);
+				Adjust_Detection_Sensitivity = true;
+				checkbox1.setVisibility(View.INVISIBLE);
 				checkbox1.setChecked(Adjust_Detection_Sensitivity);
 				SeekBar seekbar1;
 				seekbar1 = (SeekBar) preference_dialog_layout.findViewById(R.id.seekBar1);
@@ -2903,8 +3161,10 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 							seekbar_value.setVisibility(View.INVISIBLE);
 					}
 				});
-				if (Pipetting_Sensitivity_Level==-1)
+				if (Pipetting_Sensitivity_Level==-1) {
 					Pipetting_Sensitivity_Level = seekbar1.getProgress();
+					Cur_Detection_Sensitivity_Level = Pipetting_Sensitivity_Level;
+				}
 				else
 					seekbar1.setProgress(Pipetting_Sensitivity_Level);
 				seekbar1.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -2937,12 +3197,32 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				seekbar_value = (TextView) preference_dialog_layout.findViewById(R.id.textView2);
 				if (Adjust_Detection_Sensitivity==true) {
 					seekbar_value.setVisibility(View.VISIBLE);
-					if (Pipetting_Sensitivity_Level==-1)
+					if (Pipetting_Sensitivity_Level==-1) {
 						Pipetting_Sensitivity_Level = seekbar1.getProgress();
+						Cur_Detection_Sensitivity_Level = Pipetting_Sensitivity_Level;
+					}
 					seekbar_value.setText(Integer.toString(Pipetting_Sensitivity_Level) + "%"); 
 				}
 				else
 					seekbar_value.setVisibility(View.INVISIBLE);
+				
+				/*20141122 added by michael
+				 * add a checkbox to control auto-save-log*/
+				CheckBox checkbox2;
+				checkbox2 = (CheckBox) preference_dialog_layout.findViewById(R.id.checkBox2);
+				if ((mItrackerState & (1<<Itracker_State_isRunning)) == 0)
+					checkbox2.setEnabled( true );
+				else
+					checkbox2.setEnabled( false );
+				checkbox2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+						// TODO Auto-generated method stub
+						Cur_Auto_Save_Log = isChecked;
+					}
+					
+				});
 				//preference_dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 				preference_dialog.getWindow().setGravity(Gravity.TOP);
 				//preference_dialog.setContentView(R.layout.dialog_preference);
@@ -2962,6 +3242,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     		case (6):
     			download_phase = -1;
     			turn_on_wifi();
+    			Check_Network_timerTaskStart();
     			TextView iTrack_firmware_ver_desc = null, iTrack_app_ver_desc = null;
 
     		    Button dlgbtn_update;
@@ -2988,12 +3269,13 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         				dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
         				checkbox1.setChecked(false);
         				checkbox1.setOnCheckedChangeListener(force_upgrade_listener);
+        				checkbox1.setVisibility(View.INVISIBLE);
         				about_status_msg = (TextView)about_dialog_layout.findViewById(R.id.status);
         				about_status_msg.setTextColor(Color.YELLOW);
-        				if ( this.is_internet_available() )
+        				/*if ( this.is_internet_available() )
         					about_status_msg.setText("status¡G  network connection");
         				else
-        					about_status_msg.setText("status¡G  network disconnection");
+        					about_status_msg.setText("status¡G  network disconnection");*/
         				inderterminate_progressbar = (ProgressBar) about_dialog_layout.findViewById(R.id.progressBar1);
         				inderterminate_progressbar.setVisibility(View.INVISIBLE);
         				dlgbtn_update.setOnClickListener(Upgrade_listener);
@@ -3065,6 +3347,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				Log.d("Environment.getDownloadCacheDirectory()", Environment.getDownloadCacheDirectory().getPath());
     				Log.d("Environment.getExternalStorageDirectory()", Environment.getExternalStorageDirectory().getPath());
     				Log.d("Environment.getExternalStoragePublicDirectory()", Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath());
+    				Refresh_About_Dialog();
     				
     				/*20140731 added by michael
     				 * refer sizeof(struct FW_Header)*/
@@ -3114,8 +3397,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
 
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0xFF, (int)menu_icon_pixels + 8 * 2, (int)menu_icon_pixels + 8 * 3);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.start_en), 0x40, (int)menu_icon_pixels + 8 * 2, (int)menu_icon_pixels + 8 * 3);
         items.add(new Item("Start", d1));
         //d1 = null;
         
@@ -3200,14 +3483,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 		if (d3 == null) {
         //My_StateListDrawable d1, d2;
         d1 = new My_StateListDrawable(this);
-        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
-        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d1.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0xFF, (int)menu_icon_pixels + 8 * 3, (int)menu_icon_pixels + 8 * 3);
+        d1.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.run1), 0x40, (int)menu_icon_pixels + 8 * 3, (int)menu_icon_pixels + 8 * 3);
         d2 = new My_StateListDrawable(this);
-        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0xFF, (int)menu_icon_pixels, (int)menu_icon_pixels);
-        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0x40, (int)menu_icon_pixels, (int)menu_icon_pixels);
+        d2.addState(new int[]{android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0xFF, (int)menu_icon_pixels + 8 * 3, (int)menu_icon_pixels + 8 * 3);
+        d2.addState(new int[]{-android.R.attr.state_enabled}, getResources().getDrawable(R.drawable.pause1), 0x40, (int)menu_icon_pixels + 8 * 3, (int)menu_icon_pixels + 8 * 3);
         //Bitmap newbmp = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888); 
         //BitmapDrawable d3 = new BitmapDrawable(getResources(), newbmp);
-        newbmp = Bitmap.createBitmap((int)menu_icon_pixels, (int)menu_icon_pixels, Bitmap.Config.ARGB_8888);
+        newbmp = Bitmap.createBitmap((int)menu_icon_pixels + 8 * 3, (int)menu_icon_pixels + 8 * 3, Bitmap.Config.ARGB_8888);
         d3 = new BitmapDrawable(getResources(), newbmp);
 		}
 		
@@ -3501,7 +3784,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 
 		try {
 			rt = Runtime.getRuntime();
-			p = rt.exec(new String[] { "su-new" });
+			p = rt.exec(new String[] { "su" });
 			// p = Runtime.getRuntime().exec( "/system/bin/ls" );
 			DataOutputStream os = new DataOutputStream(p.getOutputStream());
 			//DataInputStream is = new DataInputStream(p.getInputStream());
@@ -3707,6 +3990,58 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
 		//}
+	}
+	
+	/*20141122 added by michael*/
+	Timer connecting_network_mTimer = null;
+	CheckNetworkTheTimerTask connecting_network_timertask;
+	
+	protected class CheckNetworkTheTimerTask extends TimerTask {
+		Message message;
+		int remain_secconds = 45;
+
+		@Override
+		public void run() {
+			if ( remain_secconds == 0 ) {
+				if (is_internet_available() == false) {
+					message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Upgrade_Error, "status: no network connection");
+					message.sendToTarget();
+				}
+				Check_Network_timerTaskPause();
+				/*20141208 added by michael*/
+				if ( progress_dialog.isShowing() ) {
+					progress_dialog.dismiss();
+					turn_off_wifi();
+				}
+			}
+			else {
+				message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Upgrade_Error, "status¡G  connecting to network..." + Integer.toString( remain_secconds ));
+				message.sendToTarget();
+				remain_secconds = remain_secconds - 1;
+			}				
+		}
+	}
+	
+	protected void Check_Network_timerTaskStart() {
+		if ( connecting_network_mTimer == null )
+			connecting_network_mTimer  = new Timer();
+	    if ( connecting_network_timertask==null ) {
+	    	connecting_network_timertask = new CheckNetworkTheTimerTask();
+	    }
+	    connecting_network_mTimer.schedule( connecting_network_timertask, 0, 1000); // wait network available for timeout duration 20 seconds
+	}
+
+	protected void Check_Network_timerTaskPause() {
+		if (connecting_network_timertask != null) {
+			connecting_network_timertask.cancel();
+			connecting_network_timertask = null;
+			connecting_network_mTimer.purge();
+		}
+	}
+	
+	protected void Check_Network_timerStop() {
+		Check_Network_timerTaskPause();
+	    connecting_network_mTimer.cancel();
 	}
 	
 	/*20140917 added by michael*/

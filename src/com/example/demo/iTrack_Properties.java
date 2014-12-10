@@ -19,7 +19,8 @@ public class iTrack_Properties extends Properties {
 	private static final long serialVersionUID = 1L;
 	public final String Tag = "iTrack_Properties";
 	
-	private File sdcard = Environment.getExternalStorageDirectory();
+	//private File sdcard = Environment.getExternalStorageDirectory();
+	private File sdcard = new File("//data//");
 	String property_filename = "//iTrack_app_property";
 	public static final String prop_screen_short_edge_width = "Screen_Short_Edge_CM";
 	public static final String prop_viewable_width = "Viewable_Width_MM";
