@@ -27,4 +27,5 @@
     <string name="checkbox_caption">Adjust pipetting detection sensitivity</string>
     
     <string name="i_track_utility_activity_name">iTrack Utility</string>
+    <string name="user_manual_link">http://www.maestrogen.com/ftp/i-track/user_manual.html</string>
 </resources>

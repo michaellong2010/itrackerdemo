@@ -24,4 +24,5 @@ pre-naming a set id for runtime use
   <item type="id" name="ID_OverflowMenuButton" />
   <item type="id" name="ID_StatusIndicator" />
   <item type="id" name="ID_HelpContent" />
+  <item type="id" name="ID_ReRun" />
 </resources>

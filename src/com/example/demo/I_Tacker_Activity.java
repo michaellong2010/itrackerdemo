@@ -89,6 +89,12 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Process;
+import android.text.Html;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.text.style.URLSpan;
+import android.text.util.Linkify;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -247,6 +253,19 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 		            message.sendToTarget();					
 				}
 				break;
+				
+			    case R.id.ID_ReRun:
+					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
+					/*20141124 added by michael
+					 * insert appropriate delay to guarantee i-track device has receive stop command*/
+		    		try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+		    		Connect_Itracker(false);			    	
+				break;
 			}
 			//
 			//
@@ -296,7 +315,10 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 						/*20140605 note by michael
 						 * if you want to resume the device running status before usb disconnection¡Ait should comment out the line and keep 'mItrackerState' unchanged */
 						mItrackerState &= ~(1 << Itracker_State_isConnect); 
-
+						/*20141211 added by michael*/
+						if ( ReRunBtn.getVisibility() == View.VISIBLE )
+							ReRunBtn.setVisibility( View.INVISIBLE );
+						
 						/*20131213 modified by michael
 						 * Accident disconnection cause iTracker device off-line¡Ashould backup the last all of the menu item states */
 						Itracker_MI_State_Before_Offline = Itracker_MI_State;
@@ -344,7 +366,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 					
 					/*20130320 added by michael*/
 					if (mRequest_USB_permission==true) {
-						hide_system_bar();
+						//hide_system_bar();
 						mRequest_USB_permission = false;
 					}
 				}
@@ -447,7 +469,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	/*20131128 added by michael*/
 	OverflowMenuButton OveflaowBtn;
 	/*20141208 added by michael*/
-	ImageButton HelpContentBtn;
+	ImageButton HelpContentBtn, ReRunBtn;
 	/*20131202 added by michael*/
 	GifRun mGif;
 	/*20131208 added by michael
@@ -512,7 +534,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	private static final int Msg_Upgrade_UserManual = 0x17;
 	private static final int Msg_Open_UserManual = 0x18;
 	public ProgressBar inderterminate_progressbar;
-	public boolean app_up_to_date = false, firmware_up_to_date = false, force_upgrade = false;
+	public boolean app_up_to_date = true, firmware_up_to_date = true, force_upgrade = false;
 	public String Upgrade_Error_Message;
 	public TextView about_status_msg = null;
 	/*20140822 added by michael*/
@@ -526,7 +548,7 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	/*20141122 added by michael*/
 	boolean Auto_Save_Log = true, Cur_Auto_Save_Log = true;
 	/*20141208 added by michael*/
-	public String user_manual_filename = "NUC1xx_reference_manual.pdf";
+	public String user_manual_filename = "TK-01_691_USER_MANUAL.pdf";
 	private ProgressDialog progress_dialog;
 	WindowManager.LayoutParams params;
 	@Override
@@ -977,6 +999,20 @@ radio group to let user to choice well plate for i-tacker*/
 		HelpContentBtn.setId(R.id.ID_HelpContent);
 		HelpContentBtn.setOnClickListener(this.listener1);
 		
+		/*20141211 added by michael
+		 * add re-run icon
+		 */
+		ReRunBtn = new ImageButton ( this );
+		lp2 = new RelativeLayout.LayoutParams ( 32, 32 );
+		lp2.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
+		lp2.setMargins(0, (int)( 1 * ( Well_View.mMaxTouchablePosY - 32 ) / 4 ), 0, 0);
+		mIndicators_Layout.addView( ReRunBtn, lp2 );
+		ReRunBtn.setBackgroundDrawable(getResources().getDrawable(R.drawable.overflowmwnu_button_selector_holo_dark));
+		ReRunBtn.setImageDrawable(getResources().getDrawable(R.drawable.refresh));
+		ReRunBtn.setId(R.id.ID_ReRun);
+		ReRunBtn.setOnClickListener(this.listener1);
+		ReRunBtn.setVisibility( View.INVISIBLE );
+		
 		connection_status_v = new ImageView(this);
 		lp2 = new RelativeLayout.LayoutParams(32, 32);
 		lp2.addRule(RelativeLayout.ALIGN_PARENT_LEFT, RelativeLayout.TRUE);
@@ -1017,6 +1053,18 @@ radio group to let user to choice well plate for i-tacker*/
 		//progress_dialog.getWindow().setGravity(Gravity.TOP);
 		progress_dialog.getWindow().setAttributes( params );
 		progress_dialog.setCancelable( false );
+		progress_dialog.setButton( DialogInterface.BUTTON_NEUTRAL, "Cancel", new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				// TODO Auto-generated method stub
+      		  //turn_off_wifi();
+      		  if ( progress_dialog.isShowing() ) {
+      			  progress_dialog.dismiss();
+      		  }
+			}
+			
+		} );
 		//progress_dialog.setOnCancelListener(listenerCancel);
 		
     	PackageManager pm = getPackageManager();
@@ -1055,26 +1103,29 @@ radio group to let user to choice well plate for i-tacker*/
     	network_available_listener = new ConnectivityReceiver.OnNetworkAvailableListener() {
     		Message message;
     		Button dlgbtn_update;
+    		boolean hasNextDownload = true;
 
 			@Override
 			public void onNetworkAvailable() {
 				// TODO Auto-generated method stub
 				Check_Network_timerTaskPause();
+				hasNextDownload = true;
 				if ( url_list.size() > 0 && current_download != null && url_list.get(0) == current_download.url ) {
 					if (current_download.isTaskFinish) {
 						url_list.remove(url_list.get(0));
-						Next_Download();
+						hasNextDownload = Next_Download();
 					}
 				}
 				else
-					Next_Download();
+					hasNextDownload = Next_Download();
 				if (about_dialog != null && about_dialog.isShowing()) {
 					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: network connection");
 					message.sendToTarget();
 				}
-				if (download_phase==1 && about_dialog != null && about_dialog.isShowing()) {
+				if ( ( download_phase==1 || download_phase==3 ) && about_dialog != null && about_dialog.isShowing() && ( app_up_to_date == false || firmware_up_to_date == false ) && hasNextDownload == false ) {
 					dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
 					dlgbtn_update.setEnabled(true);
+					Log.d ( Tag, "upgrade button enable 1" );
 				}
 			}
 
@@ -1093,9 +1144,12 @@ radio group to let user to choice well plate for i-tacker*/
 					message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: network disconnection");
 					message.sendToTarget();
 				}
-				if (download_phase==1 && about_dialog != null && about_dialog.isShowing()) {
+				if (/*download_phase==1 &&*/ about_dialog != null && about_dialog.isShowing()) {
 					dlgbtn_update = (Button)about_dialog_layout.findViewById(R.id.update_btn);
 					dlgbtn_update.setEnabled(false);
+					//if ( url_list.isEmpty() == false ) {
+						turn_on_wifi();
+					//}
 				}
 			}
     		
@@ -1672,9 +1726,10 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     protected void onStart() {
     	super.onStart();
 
-    	if (mRequest_USB_permission==false)
-    		hide_system_bar();
-    	network_status_receiver.bind(this);
+    	//if (mRequest_USB_permission==false)
+    		//hide_system_bar();
+    	//network_status_receiver.bind(this);
+    	//turn_off_wifi();
     }
 
     public void show_system_bar() {
@@ -1731,14 +1786,15 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 /*20130320 added by michael*/
 //when our activity become in-visible then resume the system bar
     	show_system_bar();
-    	network_status_receiver.unbind(this);
+    	//network_status_receiver.unbind(this);
+    	turn_on_wifi();
     }
 
 
     @Override
     protected void onPause() {
     	super.onPause();
-    	turn_on_wifi();
+    	//turn_on_wifi();
     }
     
     @Override
@@ -1780,7 +1836,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     	//mItracker_dev.for_test();
     	//this.getResources().get
 		mItracker_dev.show_debug(Tag+"thread id" + Integer.toString(Process.myTid())+"\n");
-		turn_off_wifi();
+		//if ( ( about_dialog == null || ( about_dialog != null && about_dialog.isShowing() == false ) ) && progress_dialog.isShowing() == false )
+		//turn_off_wifi();
     }
     
     public void EnumerationDevice(Intent intent) {
@@ -1820,6 +1877,10 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				 * when reconnect the cable and enumeration device success¡Aapp resume the last running status of device */
     				Itracker_MI_State = 1 << Itracker_MI_Start;
     				if ((mItrackerState &( 1 << Itracker_State_isRunning))==1) {
+						/*20141211 added by michael*/
+    					if ( ReRunBtn.getVisibility() == View.INVISIBLE )
+    						ReRunBtn.setVisibility( View.VISIBLE );
+						
     					Itracker_MI_State ^= 1 << Itracker_MI_Start;
     					Itracker_MI_State ^= 1 << Itracker_MI_Pause;
     					mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
@@ -2047,6 +2108,8 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			/*20140731 added by michael
 			 * download finish */
 			//Log.d (Tag, DL_filename);
+			Log.d (Tag, "downloadfile: " + DL_filename + "isDownloadSuccess: " + Boolean.toString( isDownloadSuccess ) );
+			if ( isDownloadSuccess ==true ) {
 			if (DL_filename!=null && DL_filename.equals(MD5_list_filename)) {
 				download_phase = 1;
 				//message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: dowloand  " + MD5_list_filename + "  finish");
@@ -2079,6 +2142,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				            message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Open_UserManual );
 				            message.sendToTarget();
 						}
+			}
 
 			if (isDownloadSuccess==false)
 			  return -1;
@@ -2148,12 +2212,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         		  general_task_executor.execute(upgrade_firmware_runnable);
         		  break;
         	  case Msg_Cancel_Dlg:
-        		  turn_off_wifi();
+        		  //turn_off_wifi();        		  
         		  Check_Network_timerTaskPause();
         		  break;
         	  case Msg_Upgrade_UserManual:
         		  Log.d ( "usermanual", "upgrade usermanual" );
-        		  turn_off_wifi();
+        		  if ( url_list.size() > 0 )
+        			  url_list.remove(url_list.get(0));
+        		  //turn_off_wifi();
         		  upgrade_usermanual ();
         		  if ( progress_dialog.isShowing() )
         			  progress_dialog.dismiss();        		  
@@ -2169,7 +2235,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
             			  startActivity( browserIntent );
             		  }
             		  catch (ActivityNotFoundException e) {
-            			  Show_Toast_Msg ( "There are no application to open" + f.getName() ); 
+            			  Show_Toast_Msg ( "There are no application to open " + f.getName() ); 
             		  }
         		  }
         		  else
@@ -2341,15 +2407,20 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					if (isValidMD5(server_app_md5)) {
 						if (server_app_md5.equalsIgnoreCase(local_app_md5)) {
 							iTrack_app_ver_desc.setText("iTrack App ver.:  " + getAppDesc() + "(up-to-date)");
-							if (force_upgrade && is_internet_available())
+							if (force_upgrade && is_internet_available()) {
 								dlgbtn_update.setEnabled(true);
+								//Log.d ( Tag, "upgrade button enable 2" );
+							}
 							else
 								dlgbtn_update.setEnabled(false);
 						}
 						else {
 							iTrack_app_ver_desc.setText("iTrack App ver.:  " + getAppDesc() + "(out-of-date)");
-							if (is_internet_available())
+							if (is_internet_available() && url_list.isEmpty() ) {
 								dlgbtn_update.setEnabled(true);
+								//Log.d ( Tag, "upgrade button enable 3" );
+							}
+							app_up_to_date = false;
 						}										
 					}
 					else
@@ -2365,16 +2436,21 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					if (isValidMD5(server_firmware_md5)) {
 						if (server_firmware_md5.equalsIgnoreCase(local_firmware_md5)) {
 							iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  " + getFirmwareDesc() + "(up-to-date)");
-							if (force_upgrade && is_internet_available())
+							if (force_upgrade && is_internet_available()) {
 								dlgbtn_update.setEnabled(true);
+								//Log.d ( Tag, "upgrade button enable 4" );
+							}
 							else
 								if (dlgbtn_update.isEnabled()==false)
 									dlgbtn_update.setEnabled(false);
 						}
 						else {
 							iTrack_firmware_ver_desc.setText("iTrack Firmware ver.:  " + getFirmwareDesc() + "(out-of-date)");
-							if (is_internet_available())
+							if (is_internet_available() && url_list.isEmpty() ) {
 								dlgbtn_update.setEnabled(true);
+								//Log.d ( Tag, "upgrade button enable 5" );
+							}
+							firmware_up_to_date = false;
 						}
 					}
 					else {
@@ -2514,7 +2590,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     }
     
     /*20140814 added by michael*/
-    void Next_Download() {
+    boolean Next_Download() {
     	DownloadFilesTask downloadTask;
     	
     	URL_list_itrator = url_list.iterator();
@@ -2523,7 +2599,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 	    	downloadTask = new DownloadFilesTask(url);
 	    	current_download = downloadTask;			
 			downloadTask.execute(url);
+			return true;
 		}
+		return false;
     }
 
     CompoundButton.OnCheckedChangeListener force_upgrade_listener = new CompoundButton.OnCheckedChangeListener() {
@@ -2678,7 +2756,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			}
 			app_up_to_date = true;
 			Message message = null;
-			if (app_up_to_date && firmware_up_to_date) {
+			if ( app_up_to_date == true && firmware_up_to_date == true ) {
 				/*inderterminate_progressbar.setVisibility(View.INVISIBLE);
 				about_dialog.setCancelable(true);
 				checkbox1.setEnabled(true);
@@ -2787,7 +2865,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 			}
 			firmware_up_to_date = true;
 			Message message = null;
-			if (app_up_to_date && firmware_up_to_date) {
+			if ( app_up_to_date == true && firmware_up_to_date == true ) {
 				/*inderterminate_progressbar.setVisibility(View.INVISIBLE);
 				about_dialog.setCancelable(true);
 				checkbox1.setEnabled(true);
@@ -2822,6 +2900,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				 * emulate listview click item event */
     				mList.performItemClick(mList.getAdapter().getView(5, null, null), 5, mList.getAdapter().getItemId(5));
 					if (Connect_Itracker(true)) {
+						/*20141211 added by michael*/
+						if ( ReRunBtn.getVisibility() == View.INVISIBLE )
+							ReRunBtn.setVisibility( View.VISIBLE );
 						//mMenuDrawer.toggleMenu();
 						mMenuDrawer.closeMenu();
 						Show_Toast_Msg(I_Tracker_Device_Tracking_On);
@@ -2894,7 +2975,11 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     					
     					/*20131213 added by michael*/
     					write_logfile_msg("Pause");
-    					break;    					
+    					
+						/*20141211 added by michael*/
+    					if ( ReRunBtn.getVisibility() == View.VISIBLE )
+    						ReRunBtn.setVisibility( View.INVISIBLE );
+    					break;
     				}
     			break;
     			
@@ -2921,6 +3006,10 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 							write_logfile_msg("End pipetting session");
 							flush_close_logfile();
 							UpdateActionMenuItem();
+							
+							/*20141211 added by michael*/
+							if ( ReRunBtn.getVisibility() == View.VISIBLE )
+								ReRunBtn.setVisibility( View.INVISIBLE );
 						}						
 					});
 					dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener() {
@@ -3060,7 +3149,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 				  preference_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_preference, null);
 				  spinner = (Spinner) preference_dialog_layout.findViewById(R.id.spinner1);
 				  ArrayList<String> spinner_items = new ArrayList<String>();
-				  spinner_items.add("Auto-channel Pipet");
+				  //spinner_items.add("Auto-channel Pipet");
 				  spinner_items.add("Single-channel Pipet");
 				  spinner_items.add("8-channel Pipet");
 				  spinner_items.add("12-channel Pipet");
@@ -3101,7 +3190,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						/*20141023 modified by michael
 						 * remove the auto pipetting mode¡Aremapped mode index*/
 						//mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode+1);
-						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode);
+						mItracker_dev.set_pipetting_detection_mode(Pipetting_Mode + 1);
 						mItracker_dev.set_pipetting_detection_sensitivity_level(Adjust_Detection_Sensitivity, Pipetting_Sensitivity_Level);
 						if ((mItrackerState & (1 << Itracker_State_isRunning)) == 1) {
 							mItracker_dev.Itracker_IOCTL(CMD_T.HID_CMD_ITRACKER_STOP, 0, 0, null, 1);
@@ -3243,7 +3332,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     			download_phase = -1;
     			turn_on_wifi();
     			Check_Network_timerTaskStart();
-    			TextView iTrack_firmware_ver_desc = null, iTrack_app_ver_desc = null;
+    			TextView iTrack_firmware_ver_desc = null, iTrack_app_ver_desc = null, textView2 = null;
 
     		    Button dlgbtn_update;
     		    //DownloadFilesTask downloadTask;
@@ -3252,9 +3341,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     				trimCache(this);
         			mMenuDrawer.toggleMenu();
         			if (about_dialog==null) {
-        				about_dialog = new Dialog(this, R.style.CenterDialog);
+        				about_dialog = new Dialog(I_Tacker_Activity.this, R.style.CenterDialog);
         				if (about_dialog_layout == null) 
-        					about_dialog_layout = (LinearLayout) LayoutInflater.from(this.getApplicationContext()).inflate(R.layout.dialog_about, null);
+        					about_dialog_layout = (LinearLayout) LayoutInflater.from(I_Tacker_Activity.this.getApplicationContext()).inflate(R.layout.dialog_about, null);
         				about_dialog.getWindow().setGravity(Gravity.TOP);
         				about_dialog.setContentView(about_dialog_layout);
         				about_dialog.setTitle("About");
@@ -3302,6 +3391,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
+							url_list.clear();
 	        				if ( this.url_list.isEmpty() ){
 	        					url_list.add(url);
 	        				}
@@ -3330,7 +3420,20 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}        				
-        				} while (downloadTask.isTaskFinish==false);*/
+        				} while (downloadTask.isTaskFinish==false);*/	        			
+	        			textView2 = (TextView) about_dialog_layout.findViewById(R.id.user_manual_httplink);
+	        			//textView2.setText( Html.fromHtml( "<a href=\"http://www.maestrogen.com/ftp/i-track/user_manual.html\">iTrack User Manual</a>" ) );
+	        			textView2.setText( "user manual: http://www.maestrogen.com/ftp/i-track/user_manual.html" );
+	        			//textView2.setMovementMethod(LinkMovementMethod.getInstance());
+	        			//textView2.setLinksClickable(true);
+	        			//textView2.setAutoLinkMask( Linkify.ALL );
+	        			SpannableStringBuilder ssb = new SpannableStringBuilder();
+	        			
+	        			ssb.append( textView2.getText() );
+	        			
+	        			ssb.setSpan(new URLSpan("#"), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+	        			
+	        			textView2.setText(ssb, TextView.BufferType.SPANNABLE);
         				about_dialog.show();
 						//if (downloadTask.isDownloadSuccess==true) {
 							//Refresh_About_Dialog();
@@ -4002,23 +4105,48 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 
 		@Override
 		public void run() {
-			if ( remain_secconds == 0 ) {
+			if (is_internet_available() == false) {
+				if ( remain_secconds == 0 ) {
+					message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Upgrade_Error, "status: no network connection");
+					message.sendToTarget();
+					Check_Network_timerTaskPause();
+					/*20141208 added by michael*/
+					if ( progress_dialog.isShowing() ) {
+						progress_dialog.dismiss();
+						//turn_off_wifi();
+					}
+				}
+				else {
+					message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Upgrade_Error, "status¡G  connecting to network..." + Integer.toString( remain_secconds ));
+					message.sendToTarget();
+					remain_secconds = remain_secconds - 1;					
+				}				
+			}
+			else {
+				message = mHandler.obtainMessage(I_Tacker_Activity.this.Msg_Upgrade_Error, "status: network connection");
+				message.sendToTarget();
+				Check_Network_timerTaskPause();
+				Next_Download();
+			}
+			/*if ( remain_secconds == 0 ) {
 				if (is_internet_available() == false) {
 					message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Upgrade_Error, "status: no network connection");
 					message.sendToTarget();
 				}
-				Check_Network_timerTaskPause();
+				else
+					Next_Download();
+				Check_Network_timerTaskPause();*/
 				/*20141208 added by michael*/
-				if ( progress_dialog.isShowing() ) {
-					progress_dialog.dismiss();
-					turn_off_wifi();
-				}
+				/*if ( progress_dialog.isShowing() ) {
+					progress_dialog.dismiss();*/
+					//turn_off_wifi();
+				/*}
 			}
 			else {
 				message = mHandler.obtainMessage( I_Tacker_Activity.this.Msg_Upgrade_Error, "status¡G  connecting to network..." + Integer.toString( remain_secconds ));
 				message.sendToTarget();
 				remain_secconds = remain_secconds - 1;
-			}				
+			}*/				
 		}
 	}
 	

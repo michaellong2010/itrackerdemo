@@ -73,7 +73,7 @@ public class I_Tracker_Device {
     /*20131213 added by michael*/
     protected int multi_pipettes_well_gap = 0, Well_Plate_Type = 0;
     /*20140306 added by michael*/
-    protected int Pipetting_Mode = 0, Pipetting_Sensitivity_Level = -1;
+    protected int Pipetting_Mode = 1, Pipetting_Sensitivity_Level = -1;
     /*20131224 added by michael*/
     private final ReentrantLock lock3 = new ReentrantLock();
     /*20140731 added by michael*/
