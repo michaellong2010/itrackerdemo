@@ -581,3 +581,7 @@ mList.performItemClick(mList.getAdapter().getView(5, null, null), 5, mList.getAd
 3.  About┬為話盒底部新增使用者說明書超連結，轉址網頁放置在盟基網頁，目地檔案放在google drive
 4.  重新review下載更新頁面，更嚴格對話盒上的各種狀態
 2.  應要求移除"Auto pipetting Mode"
+
+=============================================================================================
+20150119
+1.  發行使用之數位簽章存放signature
