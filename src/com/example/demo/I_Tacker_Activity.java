@@ -366,7 +366,7 @@ public class I_Tacker_Activity extends BaseListSample implements OnCheckedChange
 					
 					/*20130320 added by michael*/
 					if (mRequest_USB_permission==true) {
-						//hide_system_bar();
+						hide_system_bar();
 						mRequest_USB_permission = false;
 					}
 				}
@@ -1058,7 +1058,7 @@ radio group to let user to choice well plate for i-tacker*/
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				// TODO Auto-generated method stub
-      		  //turn_off_wifi();
+      		  turn_off_wifi();
       		  if ( progress_dialog.isShowing() ) {
       			  progress_dialog.dismiss();
       		  }
@@ -1726,10 +1726,10 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     protected void onStart() {
     	super.onStart();
 
-    	//if (mRequest_USB_permission==false)
-    		//hide_system_bar();
-    	//network_status_receiver.bind(this);
-    	//turn_off_wifi();
+    	if (mRequest_USB_permission==false)
+    		hide_system_bar();
+    	network_status_receiver.bind(this);
+    	turn_off_wifi();
     }
 
     public void show_system_bar() {
@@ -1786,7 +1786,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 /*20130320 added by michael*/
 //when our activity become in-visible then resume the system bar
     	show_system_bar();
-    	//network_status_receiver.unbind(this);
+    	network_status_receiver.unbind(this);
     	turn_on_wifi();
     }
 
@@ -2212,14 +2212,14 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
         		  general_task_executor.execute(upgrade_firmware_runnable);
         		  break;
         	  case Msg_Cancel_Dlg:
-        		  //turn_off_wifi();        		  
+        		  turn_off_wifi();        		  
         		  Check_Network_timerTaskPause();
         		  break;
         	  case Msg_Upgrade_UserManual:
         		  Log.d ( "usermanual", "upgrade usermanual" );
         		  if ( url_list.size() > 0 )
         			  url_list.remove(url_list.get(0));
-        		  //turn_off_wifi();
+        		  turn_off_wifi();
         		  upgrade_usermanual ();
         		  if ( progress_dialog.isShowing() )
         			  progress_dialog.dismiss();        		  
@@ -4113,7 +4113,7 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					/*20141208 added by michael*/
 					if ( progress_dialog.isShowing() ) {
 						progress_dialog.dismiss();
-						//turn_off_wifi();
+						turn_off_wifi();
 					}
 				}
 				else {

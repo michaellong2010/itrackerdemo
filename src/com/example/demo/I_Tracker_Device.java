@@ -486,10 +486,10 @@ public class I_Tracker_Device {
 					if (Coord_X_Count == 1) {
 					for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += multi_pipettes_well_gap) {
 						//
-						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y += multi_pipettes_well_gap) {
+						for (j = 0, y = Coord_Y + ( Coord_Y_Count - 1 ) * multi_pipettes_well_gap; j < Coord_Y_Count; j++, y -= multi_pipettes_well_gap) {
 							Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 							/*20131213 added by michael*/
-							chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
+							chr = 'A' + y;
 							line = line + Character.toString((char) (chr)) +Integer.toString(x+1) + ", ";
 						}
 					}

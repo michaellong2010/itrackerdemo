@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.demo"
     android:versionCode="1"
-    android:versionName="1.0.20141215" >
+    android:versionName="1.0.20150226" >
 
     <uses-sdk
         android:minSdkVersion="12"
@@ -31,7 +31,7 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
         <activity android:name="I_Tacker_Activity" android:screenOrientation="portrait" android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/> 
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <!-- <category android:name="android.intent.category.LAUNCHER"/> -->
             </intent-filter>
              <intent-filter>
                 <category android:name="android.intent.category.DEFAULT"/>
