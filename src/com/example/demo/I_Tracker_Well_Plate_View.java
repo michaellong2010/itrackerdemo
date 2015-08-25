@@ -116,7 +116,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
  * bit field represent Led & Sensor failure status */
 	public int X_Led_failure, X_Sensor_failure, Y_Led_failure, Y_Sensor_failure;
     BitmapDrawable Led_Sensor_Failure_Icon, Only_Led_Failure_Icon, Only_Sensor_Failure_Icon;
-    boolean attachToWindow;
+    boolean attachToWindow, is_intermediate;
     
 	public I_Tracker_Well_Plate_View(Context context, int wells) {
 		super(context);
@@ -818,7 +818,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 				if (mWells == Wells_96)
 					Canvas_Well_Plate.drawRect(margin_x-radius_pixels-2, margin_y-radius_pixels-2, margin_x+radius_pixels+2, margin_y+radius_pixels+2, mPaint);
 				else
-					Canvas_Well_Plate.drawRect((float)(margin_x-radius_pixels-3.5), (float)(margin_y-radius_pixels-3.5f), (margin_x+radius_pixels+3.5f), (margin_y+radius_pixels+3.5f), mPaint);
+					Canvas_Well_Plate.drawRect((float)(margin_x-radius_pixels-3.5f), (float)(margin_y-radius_pixels-3.5f), (margin_x+radius_pixels+3.5f), (margin_y+radius_pixels+3.5f), mPaint);
 				mPaint.setXfermode(null);
 				//mPaint.setColor(Color.WHITE);
 				mPaint = mPaint_well_Stroke;
@@ -854,24 +854,29 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 				mPaint.setXfermode(null);*/
 			/*20131217 added by michael*/
 			//if (color_index > 0 && this.mWells == this.Wells_96) {
-			if (color_index > 0) {
-				chrs = Integer.toString(color_index).length();
-				if (color_index <= 6) {
-					if (chrs == 1) {
-						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);
+			if ( is_intermediate == false ) {
+				if (color_index > 0) {
+					chrs = Integer.toString(color_index).length();
+					if (color_index <= 6) {
+						if (chrs == 1) {
+							Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);
+						}
+						else {
+							Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);	
+						}
 					}
 					else {
-						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent);	
+						if (chrs == 1) {
+							Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent1);
+						}
+						else {
+							Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent1);	
+						}
 					}
 				}
-				else {
-					if (chrs == 1) {
-						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent1);
-					}
-					else {
-						Canvas_Well_Plate.drawText(Integer.toString(color_index), margin_x-convert_mm2pixel(chrs*Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent1);	
-					}
-				}
+			}
+			else {
+				Canvas_Well_Plate.drawText("N", margin_x-convert_mm2pixel(Label_cxChar/3), margin_y+convert_mm2pixel(Label_cxChar/3), mPaint_transparent1);
 			}
 			this.invalidate((int)(margin_x-radius_pixels-3.5), (int)(margin_y-radius_pixels-3.5), (int)(margin_x+radius_pixels+3.5), (int)(margin_y+radius_pixels+3.5));
 			
@@ -969,6 +974,7 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
     	set_led_sensor_failure(0, 0, 0, 0);
     	DrawBitmap(false);
     	//invalidate();
+    	is_intermediate = false;
 	}
 	
 	public void setWell(int well_type) {
@@ -1059,10 +1065,12 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 			Last_Coord_X_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_X_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			Last_Coord_Y_Count = (focus_valid_coord >>> I_Tracker_Device.Coord_Y_Count_shift) & I_Tracker_Device.Coord_X_Count_Mask;
 			Show_focus_coord = false;
+			is_intermediate = ( ( focus_valid_coord >>> I_Tracker_Device.Coord_Intermediate_shift ) == 1 );
 		}
 		else {
 			Last_Coord_X_Count = -1;
 			Last_Coord_Y_Count = -1;
+			is_intermediate = false;
 		}
 	}
 	

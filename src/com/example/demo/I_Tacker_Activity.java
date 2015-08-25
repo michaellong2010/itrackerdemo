@@ -1040,6 +1040,12 @@ radio group to let user to choice well plate for i-tacker*/
 			Log.d( "usermanual", "md5_checksum: false, " + md5_checksum );
 		}
 		preference_editor.commit();
+		if ( preference.getBoolean( "keep_wifi_on", false ) == false) {
+			turn_off_wifi();
+		}
+		else {
+			turn_on_wifi();
+		}
 		progress_dialog = new ProgressDialog( this );
 		progress_dialog.setMessage( "Downloading user manual: ");
 		//progress_dialog.setMax(100);
@@ -3216,6 +3222,13 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 						
 						/*20141122 added by michael*/
 						Auto_Save_Log = Cur_Auto_Save_Log;
+						
+						if ( preference.getBoolean( "keep_wifi_on", false ) == false) {
+							turn_off_wifi();
+						}
+						else {
+							turn_on_wifi();
+						}
 					}
 				});
 				
@@ -3312,6 +3325,33 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 					}
 					
 				});
+				CheckBox checkbox3;
+				checkbox3 = (CheckBox) preference_dialog_layout.findViewById(R.id.checkBox3);
+				if ( preference.getBoolean( "keep_wifi_on", false ) == false) {
+					checkbox3.setChecked( false );
+				}
+				else {
+					checkbox3.setChecked( true );
+				}
+				checkbox3.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView,
+							boolean isChecked) {
+						// TODO Auto-generated method stub
+						if ( isChecked == true ) {
+							
+						}
+						else {
+							
+						}
+						preference_editor.putBoolean( "keep_wifi_on", isChecked );
+						preference_editor.commit();
+						
+					}
+				
+				});
+				//if ( )
 				//preference_dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 				preference_dialog.getWindow().setGravity(Gravity.TOP);
 				//preference_dialog.setContentView(R.layout.dialog_preference);

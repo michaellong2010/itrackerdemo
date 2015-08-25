@@ -84,7 +84,18 @@
         android:checked="true"
         android:layout_marginTop="10dp"
         android:layout_marginLeft="8dp"
-        android:text="Auto Save Logfile" />]
+        android:text="Auto Save Logfile" />
+
+    <CheckBox
+        android:id="@+id/checkBox3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="8dp"
+        android:checked="true"
+        android:text="Keep wifi on" />
+]
     </RelativeLayout>
     
     <LinearLayout
