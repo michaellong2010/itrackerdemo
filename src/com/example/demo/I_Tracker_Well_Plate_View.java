@@ -1055,8 +1055,17 @@ public class I_Tracker_Well_Plate_View extends ImageView implements View.OnAttac
 	
 	/*20130327 added by michael*/
 	public void set_focus_coord(int focus_valid_coord) {
-		if (Show_focus_coord)
+		if (Show_focus_coord) {
+			is_intermediate = false;
 			blink_last_well();
+		}
+		else {
+			if ( is_intermediate == true ) {
+				is_intermediate = false;
+				Show_focus_coord = true;
+				blink_last_well();
+			}
+		}
 
 		if (focus_valid_coord != -1) {
 			Last_Coord_X = (focus_valid_coord) & I_Tracker_Device.Coord_X_Mask;
