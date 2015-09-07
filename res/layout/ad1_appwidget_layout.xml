@@ -6,11 +6,11 @@
     android:orientation="vertical" >
     
     <ImageButton
-        android:id="@+id/maestrogen_ad_imagebutton1"
+        android:id="@+id/tiangen_ad_imagebutton1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/btn_default_holo_light"
-        android:src="@drawable/maestrogen_logo2" >
+        android:src="@drawable/tiangen_logo1" >
     </ImageButton>
 
     <TextView

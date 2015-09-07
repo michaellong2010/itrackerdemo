@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android" 
-    android:previewImage="@drawable/maestrogen_logo1"
+    android:previewImage="@drawable/tiangen_logo1"
     android:initialLayout="@layout/ad1_appwidget_layout"
     android:minHeight="150dp"
     android:minWidth="250dp"

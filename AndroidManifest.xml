@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.demo"
     android:versionCode="1"
-    android:versionName="1.0.20150814" >
+    android:versionName="1.0.20150904" >
 
     <uses-sdk
         android:minSdkVersion="12"
@@ -64,18 +64,18 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
 
         <!-- 20131219 added by michael
         maestrogen AppWidget advertisement via browsing the home page -->
-        <receiver android:name="com.example.demo.MaestrogenAppWidgetProvider" android:label="@string/advertise_appwidget1">
+<!--         <receiver android:name="com.example.demo.MaestrogenAppWidgetProvider" android:label="@string/advertise_appwidget1">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/ad1_appwidget_info" />
-        </receiver>
+        </receiver> -->
         
         <!-- 20131219 added by michael
         digital lab bench home page hyperlink -->
-        <receiver android:name="com.example.demo.DigitalLabTechAppWidgetProvider" android:label="@string/advertise_appwidget2">
+<!--         <receiver android:name="com.example.demo.DigitalLabTechAppWidgetProvider" android:label="@string/advertise_appwidget2">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -83,8 +83,16 @@ Relatively USB_DEVICE_DETACHED action is valid only in receiver -->
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/ad2_appwidget_info" />
-        </receiver>
-        
+        </receiver> -->
+
+        <receiver android:name="com.example.demo.TiangenAppWidgetProvider" android:label="@string/advertise_appwidget1">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ad1_appwidget_info" />
+        </receiver>        
         <!--         20140807 added by michael
         App updater activity to install latest *.apk and re-launch itself-->
         <activity android:name="com.example.demo.App_Updater_Activity" android:theme="@style/AppTheme_title" android:screenOrientation="portrait" android:launchMode="singleTask"/>
