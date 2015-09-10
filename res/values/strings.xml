@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="MissingTranslation">
 
-    <string name="app_name">iTrack Demo</string>
+    <string name="app_name">iTrack</string>
     <string name="well_plate_selection">Select well plate type</string>
     <string name="well_96">  96-Well Plate   </string>
     <string name="well_384">  384-Well Plate  </string>
@@ -14,7 +14,7 @@
     
     <color name="caption_blue">#0000ff</color>
     <string name="hello_appwidget">Hello App Widgets!</string>
-    <string name="appwidget_name">iTrack</string>
+    <string name="appwidget_name">TGenius Tracking System</string>
     <string name="advertise_appwidget1">Tiangen Biotech</string>
     <string name="advertise_appwidget2">Smart Lab Bench</string>
     <string name="ad2_hyperlink">www.smartlabbench.com</string>
