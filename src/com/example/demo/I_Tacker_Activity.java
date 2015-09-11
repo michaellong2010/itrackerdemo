@@ -504,11 +504,11 @@ use menudrawer implement fly-in menu¡Amoving the action mode menu items*/
 	private Iterator URL_list_itrator;
 	//final String Http_Repo_Host = "https://googledrive.com/host/0By-Tp-CAFbFyc042TGZmeWFfZWs/";
 	//final String Http_Repo_Host = "http://www.maestrogen.com/ftp/";
-	final String Http_Repo_Host = "https://googledrive.com/host/0ByxRe22Uei-JYk5MS1NWY3Vob2M/";
-	private String MD5_list_filename = "iTrack_md5_list.txt"; 
+	final String Http_Repo_Host = "http://www.maestrogen.com/ftp//i-track/OEM/apgbio/";
+	private String MD5_list_filename = "iTrack_md5_list.rar"; 
 	public String files_MD5_list = Http_Repo_Host + MD5_list_filename;
-	public String app_filename = "ItrackerDemo-20131125-google-repo.apk";
-	public String firmware_filename = "ads7953.release";
+	public String app_filename = "ItrackerDemo-20131125-google-repo.rar";
+	public String firmware_filename = "ads7953.rar";
 	//final String iTrack_Cache_Dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath() + "//";
 	public String iTrack_Cache_Dir;
 	public String DL_fileExtenstion, DL_filename;
@@ -1088,9 +1088,9 @@ radio group to let user to choice well plate for i-tacker*/
     	versionCode = pkginfo.versionCode;
     	versionName = pkginfo.versionName;
     	parsed_version = versionName.split(Pattern.quote("."));
-    	MD5_list_filename = "iTrack_md5_list.txt";
+    	MD5_list_filename = "iTrack_md5_list.rar";
     	MD5_list_filename = MD5_list_filename.substring(0, MD5_list_filename.indexOf("."));
-    	MD5_list_filename = MD5_list_filename + "_app_ver_" + parsed_version[0] + ".txt";
+    	MD5_list_filename = MD5_list_filename + "_app_ver_" + parsed_version[0] + ".rar";
     	files_MD5_list = Http_Repo_Host + MD5_list_filename;
     	
     	//Log.d(Tag, "usb host feature:" + Boolean.toString(getPackageManager().hasSystemFeature("android.hardware.usb.host")));
@@ -2495,9 +2495,9 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
     /*20140805 added by michael*/
     String get_upgrade_app_filename() {
     	//return  "ItrackerDemo-20131125-google-repo" + ".apk";
-    	app_filename = "ItrackerDemo-20131125-google-repo.apk";
+    	app_filename = "ItrackerDemo-20131125-google-repo.rar";
     	app_filename = app_filename.substring(0, app_filename.indexOf("."));
-    	app_filename = app_filename + "_app_ver_" + parsed_version[0] + ".apk";
+    	app_filename = app_filename + "_app_ver_" + parsed_version[0] + ".rar";
     	return app_filename;
     } 
 
@@ -3461,19 +3461,19 @@ inflate a menu.xml the menu_item with attribute android:showAsAction indicate th
 								e.printStackTrace();
 							}        				
         				} while (downloadTask.isTaskFinish==false);*/	        			
-	        			textView2 = (TextView) about_dialog_layout.findViewById(R.id.user_manual_httplink);
+	        			//textView2 = (TextView) about_dialog_layout.findViewById(R.id.user_manual_httplink);
 	        			//textView2.setText( Html.fromHtml( "<a href=\"http://www.maestrogen.com/ftp/i-track/user_manual.html\">iTrack User Manual</a>" ) );
-	        			textView2.setText( "user manual: http://www.maestrogen.com/ftp/i-track/user_manual.html" );
+	        			//textView2.setText( "user manual: http://www.maestrogen.com/ftp/i-track/user_manual.html" );
 	        			//textView2.setMovementMethod(LinkMovementMethod.getInstance());
 	        			//textView2.setLinksClickable(true);
 	        			//textView2.setAutoLinkMask( Linkify.ALL );
 	        			SpannableStringBuilder ssb = new SpannableStringBuilder();
 	        			
-	        			ssb.append( textView2.getText() );
+	        			//ssb.append( textView2.getText() );
 	        			
 	        			ssb.setSpan(new URLSpan("#"), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 	        			
-	        			textView2.setText(ssb, TextView.BufferType.SPANNABLE);
+	        			//textView2.setText(ssb, TextView.BufferType.SPANNABLE);
         				about_dialog.show();
 						//if (downloadTask.isDownloadSuccess==true) {
 							//Refresh_About_Dialog();
