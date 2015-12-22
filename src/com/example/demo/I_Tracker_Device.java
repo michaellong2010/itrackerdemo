@@ -357,14 +357,11 @@ public class I_Tracker_Device {
 	
 	/*20130325 added by michael*/
 	public int get_focus_coord() {
-		if (Valid_Coord_Back_For > 0)
-			return Valid_Coord_Buf_Seq[Valid_Coord_Back_For-1];
-		/*if ( ( Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> Coord_Intermediate_shift ) == 1 )
+		if ( ( Valid_Coord_Buf_Seq[Valid_Coord_Back_For] >>> Coord_Intermediate_shift ) == 1 )
 			return Valid_Coord_Buf_Seq[Valid_Coord_Back_For];
 		else
 			if (Valid_Coord_Back_For > 0)
-				return Valid_Coord_Buf_Seq[Valid_Coord_Back_For-1];*/
-		
+				return Valid_Coord_Buf_Seq[Valid_Coord_Back_For-1];
 		return -1;
 	}
 
@@ -469,7 +466,7 @@ public class I_Tracker_Device {
 				if (Coord_X_Count == 1 && Coord_Y_Count == 1) {
 					toneG.startTone(ToneGenerator.TONE_PROP_BEEP, 1000);
 				}*/
-			play_sound_executor.execute(play_beep_sound);
+			//play_sound_executor.execute(play_beep_sound);
 /*			if (itracker_dev.Valid_Coord_Buf[i].Coord_X_Count == 1
 					&& itracker_dev.Valid_Coord_Buf[i].Coord_Y_Count == 1) {					
 			} else if (itracker_dev.Valid_Coord_Buf[i].Coord_X_Count == 1
@@ -486,18 +483,28 @@ public class I_Tracker_Device {
 				x =  Coord_X;
 				y =  Coord_Y;
 				if (0 <= x && x <= 23 && 0 <= y && y <= 15) {
-					//if ( ( Valid_Coord_Buf[i] >>> Coord_Intermediate_shift ) == 0 ) {
+					if ( ( Valid_Coord_Buf[i] >>> Coord_Intermediate_shift ) == 0 ) {
 					line = "";
 					//Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 					/*20131216 added by michael*/
 					if (Coord_X_Count == 1) {
 					for (k = 0, x = Coord_X; k < Coord_X_Count; k++, x += multi_pipettes_well_gap) {
 						//
-						for (j = 0, y = Coord_Y + ( Coord_Y_Count - 1 ) * multi_pipettes_well_gap; j < Coord_Y_Count; j++, y -= multi_pipettes_well_gap) {
+						if (Coord_Y_Count == 1) {
+						for (j = 0, y = Coord_Y; j < Coord_Y_Count; j++, y -= multi_pipettes_well_gap) {
 							Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
 							/*20131213 added by michael*/
-							chr = 'A' + y;
+							chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
 							line = line + Character.toString((char) (chr)) +Integer.toString(x+1) + ", ";
+						}
+						}
+						else {
+							for (j = 0, y = Coord_Y + ( Coord_Y_Count - 1 ) * multi_pipettes_well_gap; j < Coord_Y_Count; j++, y -= multi_pipettes_well_gap) {
+								Valid_Coord_Histogram[x][y] = Valid_Coord_Histogram[x][y] + 1;
+								/*20131213 added by michael*/
+								chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
+								line = line + Character.toString((char) (chr)) +Integer.toString(x+1) + ", ";
+							}	
 						}
 					}
 					}
@@ -509,12 +516,12 @@ public class I_Tracker_Device {
 								chr = 'A' + I_Tracker_Well_Plate_View.Y_holes - y - 1;
 								line = line + Character.toString((char) (chr)) +Integer.toString(x+1) + ", ";
 							}
-						}						
+						}					
 					}
 					//Log.d(Tag, line);
 					I_Tacker_Activity.write_logfile_msg(line);
-					//play_sound_executor.execute(play_beep_sound);
-					//}
+					play_sound_executor.execute(play_beep_sound);
+					}
 /*					if (pItrackerDlg->Valid_Coord_Back_For != pItrackerDlg->Valid_Coord_Seq_Index)
 						  pItrackerDlg->Valid_Coord_Seq_Index = pItrackerDlg->Valid_Coord_Back_For;
 						pItrackerDlg->Valid_Coord_Buf_Seq[pItrackerDlg->Valid_Coord_Seq_Index] = itracker_dev.Valid_Coord_Buf[i];
@@ -525,12 +532,12 @@ public class I_Tracker_Device {
 					if (Valid_Coord_Back_For != Valid_Coord_Seq_Index)
 						Valid_Coord_Seq_Index = Valid_Coord_Back_For;
 					Valid_Coord_Buf_Seq[Valid_Coord_Seq_Index] = Valid_Coord_Buf[i];
-					//if ( ( Valid_Coord_Buf_Seq[Valid_Coord_Seq_Index] >>> Coord_Intermediate_shift ) == 0 ) {
+					if ( ( Valid_Coord_Buf_Seq[Valid_Coord_Seq_Index] >>> Coord_Intermediate_shift ) == 0 ) {
 					Valid_Coord_Seq_Index = Valid_Coord_Seq_Index + 1;
 					Valid_Coord_Back_For = Valid_Coord_Seq_Index;
 					Forwardable = 0;
 					Backwardable = 1;
-				    //}
+				    }
 					Need_Update_UI = 1;
 				}
 			}
@@ -821,7 +828,7 @@ Note that sizeof(Well_Coord_t)=4, sizeof(I_tracker_type)=408
 	public static final int Coord_Y_shift = 5;
 	public static final int Coord_X_Count_shift = 10;
 	public static final int Coord_Y_Count_shift = 14;
-	//public static final int Coord_Intermediate_shift = 18;
+	public static final int Coord_Intermediate_shift = 18;
 	/*20131210 added by michael
 	 * buffer_locked represent if Valid_Coord_Buf be locked*/
 	public int buffer_locked = 0;
